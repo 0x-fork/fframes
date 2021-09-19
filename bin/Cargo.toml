@@ -1,0 +1,27 @@
+[package]
+name = "rumotion"
+version = "0.1.0"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tiny-skia = "0.5.1"
+resvg = "0.15.0"
+usvg = "0.15.0"
+handlebars = "4.0.1"
+serde_json = "1.0.64"
+num_cpus = "1.0"
+rayon = "1.5.1"
+quote = "1"
+syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
+
+svgr-macro = { path="../svgr-macro" }
+svgr-parser = { path="../svgr-parser" }
+rumotion-core = {path="../rumotion-core"}
+media-loader = {path="../media-loader"}
+video = { path = "../video" }
+
+[[bin]]
+name = "rumotion"
+path = "main.rs"

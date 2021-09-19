@@ -1,0 +1,13 @@
+[package]
+version = "0.1.1"
+name = "svgr-parser"
+edition = "2018"
+
+[dependencies]
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
+
+[dev-dependencies]
+criterion = "0.3"
+
