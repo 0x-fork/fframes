@@ -5,7 +5,7 @@ pub fn decode_mp3(audio_path: &str) -> (i32, Vec<f32>) {
     let mut decoder = Mp3Decoder::new(File::open(audio_path).unwrap());
 
     let mut sample_rate = 0;
-    let mut mono_samples = Vec::with_capacity(100_000_000_000);
+    let mut mono_samples = Vec::new();
     loop {
         match decoder.next_frame() {
             Ok(Mp3Frame {

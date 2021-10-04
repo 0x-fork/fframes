@@ -15,12 +15,17 @@ num_cpus = "1.0"
 rayon = "1.5.1"
 quote = "1"
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
+ffmpeg-next = "4.4.0"
+
 
 svgr-macro = { path="../svgr-macro" }
 svgr-parser = { path="../svgr-parser" }
 rumotion-core = {path="../rumotion-core"}
 media-loader = {path="../media-loader"}
 video = { path = "../video" }
+
+[build-dependencies]
+cc = "1.0"
 
 [[bin]]
 name = "rumotion"
