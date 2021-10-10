@@ -62,32 +62,32 @@ impl Stream {
             panic!("Can not reuse frame allocations");
         }
 
-        fill_yuv_image(self.frame, i, (*self.enc).width, (*self.enc).height);
+        // fill_yuv_image(self.frame, i, (*self.enc).width, (*self.enc).height);
 
-        // for y in 0..(*stream.enc).height {
-        //     for x in 0..(*stream.enc).width {
-        //         let slice = std::slice::from_raw_parts_mut((*stream.frame).data[0], 999999);
+        for y in 0..(*self.enc).height {
+            for x in 0..(*self.enc).width {
+                let slice = std::slice::from_raw_parts_mut((*self.frame).data[0], 999999);
 
-        //         slice[(y * (*stream.frame).linesize[0] + x) as usize] = (x + y + i * 3) as u8;
+                slice[(y * (*self.frame).linesize[0] + x) as usize] = (x + y + i * 3) as u8;
 
-        //         // set_custom_ptr_value(
-        //         //     (*stream.frame).data[0].offset((y * (*stream.frame).linesize[0] + x) as isize),
-        //         //     ,
-        //         // );
-        //     }
-        // }
+                // set_custom_ptr_value(
+                //     (*stream.frame).data[0].offset((y * (*stream.frame).linesize[0] + x) as isize),
+                //     ,
+                // );
+            }
+        }
 
         // println!("{:?}", (*stream.frame).data);
 
-        // for y in 0..(*stream.enc).height / 2 {
-        //     for x in 0..(*stream.enc).width / 2 {
-        //         let c = std::slice::from_raw_parts_mut((*stream.frame).data[1], 999999);
-        //         let b = std::slice::from_raw_parts_mut((*stream.frame).data[2], 999999);
+        for y in 0..(*self.enc).height / 2 {
+            for x in 0..(*self.enc).width / 2 {
+                let c = std::slice::from_raw_parts_mut((*self.frame).data[1], 999999);
+                let b = std::slice::from_raw_parts_mut((*self.frame).data[2], 999999);
 
-        //         c[(y * (*stream.frame).linesize[1] + x) as usize] = (128 + y + i * 2) as u8;
-        //         b[(y * (*stream.frame).linesize[2] + x) as usize] = (64 + y + i * 5) as u8;
-        //     }
-        // }
+                c[(y * (*self.frame).linesize[1] + x) as usize] = (128 + y + i * 2) as u8;
+                b[(y * (*self.frame).linesize[2] + x) as usize] = (64 + y + i * 5) as u8;
+            }
+        }
 
         // println!(
         //     "{:?}",
@@ -136,9 +136,11 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
 }
 
 pub unsafe fn test() {
-    let filename = CString::new("mekere.mp4").unwrap();
+    let filename = CString::new("my.mp4").unwrap();
+    let test_filename = CString::new("raw_c.mp4").unwrap();
 
-    create_video(filename.as_ptr());
+    create_video(test_filename.as_ptr());
+    // panic!("FUCK OFF");
 
     let mut oc: *mut AVFormatContext = std::ptr::null_mut();
 
@@ -159,8 +161,9 @@ pub unsafe fn test() {
     avio_open(&mut (*oc).pb, filename.as_ptr(), 2);
     avformat_write_header(oc, std::ptr::null_mut());
 
-    (1..60).for_each(|fr| {
-        let mut status: i32 = send_frame(stream.enc, stream.get_video_frame(fr));
+    (0..1000).for_each(|fr| {
+        println!("status {}", fr);
+        let mut status: i32 = avcodec_send_frame(stream.enc, stream.get_video_frame(fr));
 
         while status >= 0 {
             let mut pkt = av_packet_alloc();
@@ -170,6 +173,7 @@ pub unsafe fn test() {
                 status if status == AVERROR_EOF || status == FFMPEG_AVERROR(EAGAIN) => break,
                 status if status < 0 => break,
                 _ => {
+                    println!("rescaling");
                     av_packet_rescale_ts(pkt, (*stream.enc).time_base, (*stream.st).time_base);
                     (*pkt).stream_index = (*stream.st).index;
 
@@ -180,11 +184,15 @@ pub unsafe fn test() {
         }
     });
 
-    send_frame(stream.enc, std::ptr::null_mut());
+    avcodec_send_frame(stream.enc, std::ptr::null_mut());
     av_write_trailer(oc);
 
-    stream.free();
+    println!("stream");
 
-    avio_closep(&mut (*oc).pb);
-    avformat_free_context(oc);
+    // stream.free();
+
+    println!("avio");
+    // avio_closep(&mut (*oc).pb);
+    println!("avio context");
+    // avformat_free_context(oc);
 }
