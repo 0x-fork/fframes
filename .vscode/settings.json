@@ -21,6 +21,7 @@
     "string_view": "c",
     "type_traits": "c",
     "vector": "c",
-    "*.inc": "c"
+    "*.inc": "c",
+    "math.h": "c"
   }
 }
