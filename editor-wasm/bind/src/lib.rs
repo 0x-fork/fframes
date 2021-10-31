@@ -21,7 +21,6 @@ lazy_static! {
 pub fn cache_audio(file: String, input: &[f32]) {
     console_error_panic_hook::set_once();
     let audio_data = video::AudioData::AudioData {
-        media_id: file.clone(),
         sample_rate: 44100,
         samples: input.to_vec(),
         max_magnitude: input

@@ -1,12 +1,9 @@
-use microfft::Complex32;
-
 use crate::{Frame, RumotionContext, Windows};
-use std::{cmp::Ordering, collections::HashMap, convert::TryInto, sync::Mutex};
+use std::convert::TryInto;
 
 #[derive(Debug, Clone)]
 pub struct AudioData {
     pub max_magnitude: f32,
-    pub media_id: String,
     pub samples: Vec<f32>,
     pub sample_rate: i32,
 }
