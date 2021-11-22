@@ -425,8 +425,29 @@ mod tests {
 
         match parse_vtt(&content) {
             Ok(_) => panic!("The data is incomplete, should fail."),
-            Err(WebVttError { message }) => {
-                assert_eq!(message, "Looking for: Digit, found: \"\"")
+            Err(error) => {
+                assert_eq!(error.looking_for, "Digit");
+                assert_eq!(error.input, "");
+            }
+        }
+    }
+
+    #[test]
+    fn invalid_file() {
+        let content = fs::read_to_string(
+            "/Users/dmitrijkovalenko/dev/rumotion/webvtt-parser/tests/invalid.vtt",
+        )
+        .unwrap();
+
+        match parse_vtt(&content) {
+            Ok(_) => panic!("The data is invalid, should fail."),
+            Err(WebVttError {
+                looking_for,
+                input,
+                message,
+            }) => {
+                assert_eq!(looking_for, "Tag");
+                assert_eq!(input, ",000\nHey subtitle two\n\n");
             }
         }
     }

@@ -101,7 +101,14 @@ pub fn parse(text: &str) -> IResult<&str, Vtt> {
         preceded(space0, is_not("\n")),
     ))(slug_part)?;
 
-    let (_rest, cues) = many1(parse_cue)(subtitles_part)?;
+    let (rest, cues) = many1(parse_cue)(subtitles_part)?;
+    let (rest, _) = many0(newline)(rest)?;
+
+    if !rest.is_empty() {
+        // If after parsing many cue groups and all newlines nom does not leave an empty string – we have an error
+        // So run the parser again to get the location and error kind.
+        let _ = parse_cue(rest)?;
+    }
 
     Ok((
         text,

@@ -2,48 +2,60 @@ use nom::error::{ContextError, Error, ErrorKind, ParseError};
 
 #[derive(Debug)]
 pub struct WebVttError {
-    pub message: String,
+    /// What we are looking for
+    pub looking_for: String,
+    /// What we get
+    pub input: String,
+    /// Context-specific message
+    pub message: Option<String>,
 }
 
 impl ParseError<&str> for WebVttError {
-    // on one line, we show the error code and the input that caused it
     fn from_error_kind(input: &str, kind: ErrorKind) -> Self {
-        let message = format!("Looking for: {:?}, found: {:?}", kind, input);
-        println!("{}", message);
-        WebVttError { message }
+        WebVttError {
+            message: None,
+            looking_for: format!("{:?}", kind),
+            input: input.to_owned(),
+        }
     }
 
-    // if combining multiple errors, we show them one after the other
-    fn append(input: &str, kind: ErrorKind, other: Self) -> Self {
-        let message = format!(
-            "{} Looking for: {:?}, found: {:?}",
-            other.message, kind, input
-        );
-        println!("{}", message);
-        WebVttError { message }
+    fn append(input: &str, kind: ErrorKind, _other: Self) -> Self {
+        WebVttError {
+            message: None,
+            looking_for: format!("{:?}", kind),
+            input: input.to_owned(),
+        }
     }
 
     fn from_char(input: &str, c: char) -> Self {
-        let message = format!("Looking for: {:?}, found: {:?}", c, input);
-        println!("{}", message);
-        WebVttError { message }
+        WebVttError {
+            message: None,
+            looking_for: c.to_string(),
+            input: input.to_owned(),
+        }
     }
 
     fn or(self, other: Self) -> Self {
         let message = format!(
-            "Failure. This may happen because of {} or {}\n",
-            self.message, other.message
+            "Failure. Looking for {} or {}\n",
+            self.looking_for, other.looking_for
         );
-        println!("{}", message);
-        WebVttError { message }
+
+        WebVttError {
+            input: self.input.to_owned(),
+            looking_for: self.looking_for,
+            message: Some(message),
+        }
     }
 }
 
 impl ContextError<&str> for WebVttError {
     fn add_context(input: &str, ctx: &'static str, other: Self) -> Self {
-        let message = format!("{}\"{}\":\t{:?}\n", other.message, ctx, input);
-        println!("{}", message);
-        WebVttError { message }
+        WebVttError {
+            message: Some(ctx.to_string()),
+            input: input.to_owned(),
+            looking_for: other.looking_for,
+        }
     }
 }
 
@@ -53,7 +65,9 @@ impl From<nom::Err<Error<&str>>> for WebVttError {
             nom::Err::Error(Error { input, code }) => WebVttError::from_error_kind(input, code),
             nom::Err::Failure(Error { input, code }) => WebVttError::from_error_kind(input, code),
             nom::Err::Incomplete(_) => WebVttError {
-                message: "Incomplete data, giving up parsing.".to_owned(),
+                input: "".to_owned(),
+                looking_for: "".to_owned(),
+                message: Some("Incomplete data, giving up parsing.".to_owned()),
             },
         }
     }
