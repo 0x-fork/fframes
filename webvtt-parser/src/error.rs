@@ -1,5 +1,3 @@
-use std::io;
-
 use nom::error::{ContextError, Error, ErrorKind, ParseError};
 
 #[derive(Debug)]

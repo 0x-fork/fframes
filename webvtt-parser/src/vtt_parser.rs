@@ -9,7 +9,7 @@ use nom::{
 };
 
 use crate::cue_settings_parser::parse_cue_settings;
-use crate::{Cue, Time, Vertical, Vtt, START_MARKER};
+use crate::{Cue, Time, Vtt, START_MARKER};
 
 fn parse_note(input: &str) -> IResult<&str, Option<String>> {
     let (rest, line) = take_until("\n")(input)?;
