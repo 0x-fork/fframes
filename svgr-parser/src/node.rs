@@ -1,4 +1,3 @@
-
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use std::fmt;

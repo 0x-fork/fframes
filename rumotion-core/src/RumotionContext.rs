@@ -1,4 +1,4 @@
-use crate::{AudioData};
+use crate::AudioData;
 use std::collections::HashMap;
 
 #[derive(Clone)]

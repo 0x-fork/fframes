@@ -10,31 +10,8 @@
       "name": "Debug",
       "program": "${workspaceFolder}/target/debug/rumotion",
       "args": ["1", "2"],
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "type": "lldb",
-      "name": "Test",
-      "request": "launch",
-      "cargo": {
-        "args": ["test", "--no-run", "--lib"], // Cargo command line to build the debug target
-        "filter": {
-          // Filter applied to compilation artifacts (optional)
-          "name": "svgr-macro",
-          "kind": "proc-macro"
-        }
-      }
-    },
-    {
-      "type": "lldb",
-      "request": "launch",
-      "name": "Debug workspace",
-      "cargo": {
-        "args": ["build", "--workspace"]
-      },
-      "args": ["1", "2"],
       "cwd": "${workspaceFolder}",
-      "sourceLanguages": ["rust"]
-    }
+      "preLaunchTask": "cargo:build"
+    },
   ]
 }

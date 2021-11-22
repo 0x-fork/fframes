@@ -10,7 +10,6 @@ mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
-
 fn walk_nodes(nodes: Vec<Node>) -> (String, Vec<Expr>) {
     let mut out = String::new();
     let mut values = vec![];

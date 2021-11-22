@@ -1,5 +1,16 @@
 use ffmpeg_next::sys::*;
-use std::ffi::CString;
+use std::{ffi::CString, os::raw::c_char};
+
+#[inline(always)]
+#[warn(non_snake_case)]
+pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
+    -e
+}
+
+extern "C" {
+    pub fn log_averror(err: i32);
+    pub fn concat_files(output: *const c_char, files: *const *const c_char);
+}
 
 #[derive(Clone, Copy)]
 pub struct Stream {
@@ -10,6 +21,10 @@ pub struct Stream {
 impl Stream {
     unsafe fn free(mut self) {
         avcodec_free_context(&mut self.enc);
+    }
+
+    pub unsafe fn get_frames_in_stream(&self) -> i64 {
+        (*self.st).nb_frames
     }
 
     unsafe fn make(
@@ -27,7 +42,6 @@ impl Stream {
         assert!(!c.is_null(), "Could not alloc an encoding context");
 
         (*c).codec_id = codec_id;
-        (*c).bit_rate = 16_000_000;
         (*c).width = width;
         (*c).height = height;
         (*st).time_base = AVRational { num: 1, den: fps };
@@ -35,12 +49,19 @@ impl Stream {
 
         (*c).gop_size = 12;
         (*c).pix_fmt = AVPixelFormat::AV_PIX_FMT_YUV420P;
+        (*c).qmin = 10;
+        (*c).qmax = 51;
 
         if (*(*oc).oformat).flags & AVFMT_GLOBALHEADER != 0 {
             (*(*oc).oformat).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
         }
 
         let opts: *mut *mut AVDictionary = &mut std::ptr::null_mut();
+
+        let crf = CString::new("crf").unwrap().as_ptr();
+        let crfval = CString::new("28").unwrap().as_ptr();
+        av_dict_set(opts, crf, crfval, 0);
+
         let response = avcodec_open2(c, codec, opts);
         assert!(response >= 0, "Could not open videeo codec");
 
@@ -53,17 +74,20 @@ impl Stream {
 
 pub struct Encoder {
     pub video_stream: Stream,
+    pub b_frames_count: i32,
     oc: *mut AVFormatContext,
 }
 
 impl Encoder {
-    pub unsafe fn with_output<F: Fn(&Encoder) -> ()>(
+    pub unsafe fn with_output<T, F: FnMut(&mut Encoder) -> T>(
         width: i32,
         height: i32,
         fps: i32,
         filename: &str,
-        function: F,
-    ) {
+        function: &mut F,
+    ) -> T {
+        av_log_set_level(AV_LOG_FATAL);
+
         let filename = CString::new(filename).unwrap();
         let mut oc: *mut AVFormatContext = std::ptr::null_mut();
 
@@ -92,9 +116,13 @@ impl Encoder {
 
         avformat_write_header(oc, std::ptr::null_mut());
 
-        let encoder = Encoder { video_stream, oc };
+        let mut encoder = Encoder {
+            b_frames_count: 0,
+            video_stream,
+            oc,
+        };
 
-        function(&encoder);
+        let res = function(&mut encoder);
 
         avcodec_send_frame(video_stream.enc, std::ptr::null_mut());
         av_write_trailer(oc);
@@ -103,38 +131,52 @@ impl Encoder {
 
         avio_closep(&mut (*oc).pb);
         avformat_free_context(oc);
+
+        return res;
     }
 
-    pub unsafe fn send_frame(&self, frame: *mut AVFrame) {
-        let mut status: i32 = avcodec_send_frame(self.video_stream.enc, frame);
+    pub unsafe fn send_frame(&mut self, frame: *mut AVFrame) {
+        let mut status = avcodec_send_frame(self.video_stream.enc, frame);
+        if status == FFMPEG_AVERROR(EAGAIN) {
+            self.b_frames_count += 1;
+        }
+
+        if status < 0 {
+            log_averror(status);
+            panic!("Unterminated error")
+        }
 
         while status >= 0 {
             let mut packet = av_packet_alloc();
             status = avcodec_receive_packet(self.video_stream.enc, packet);
 
             match status {
-                status if status == AVERROR_EOF || status == FFMPEG_AVERROR(EAGAIN) => break,
-                status if status < 0 => break,
+                status if status == AVERROR_EOF => break,
+                status if status == FFMPEG_AVERROR(EAGAIN) => {
+                    self.b_frames_count += 1;
+                    break;
+                }
                 _ => {
                     av_packet_rescale_ts(
                         packet,
                         (*self.video_stream.enc).time_base,
                         (*self.video_stream.st).time_base,
                     );
+
                     (*packet).stream_index = (*self.video_stream.st).index;
 
                     status = av_interleaved_write_frame(self.oc, packet);
-                    av_packet_unref(packet);
                 }
             }
         }
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct EncoderFrame {
     height: i32,
     width: i32,
-    frame: *mut AVFrame,
+    pub frame: *mut AVFrame,
 }
 
 impl EncoderFrame {
@@ -153,6 +195,12 @@ impl EncoderFrame {
                 width: (*stream.enc).width,
                 height: (*stream.enc).height,
             }
+        }
+    }
+
+    pub fn set_index(self, new_index: i64) {
+        unsafe {
+            (*self.frame).pts = new_index;
         }
     }
 
@@ -211,7 +259,7 @@ impl EncoderFrame {
             }
         }
 
-        (*self.frame).pts = frame_index + 1;
+        (*self.frame).pts = frame_index;
         self.frame
     }
 
@@ -262,68 +310,3 @@ unsafe impl Send for Encoder {}
 unsafe impl Sync for Encoder {}
 unsafe impl Send for EncoderFrame {}
 unsafe impl Sync for EncoderFrame {}
-
-#[inline(always)]
-pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
-    -e
-}
-
-// pub unsafe fn test() {
-//     let filename = CString::new("new.mp4").unwrap();
-//     let mut oc: *mut AVFormatContext = std::ptr::null_mut();
-
-//     let alloc_res = avformat_alloc_output_context2(
-//         &mut oc,
-//         std::ptr::null_mut(),
-//         std::ptr::null_mut(),
-//         filename.as_ptr(),
-//     );
-
-//     assert!(
-//         alloc_res >= 0,
-//         "Could not deduce output format from file extension: using MPEG.\n"
-//     );
-
-//     let fmt = (*oc).oformat;
-//     let mut stream = Stream::make(1920, 1080, oc, (*fmt).video_codec);
-
-//     av_dump_format(oc, 0, filename.as_ptr(), 1);
-//     let ret = avio_open(&mut (*oc).pb, filename.as_ptr(), 2);
-//     assert!(
-//         ret >= 0,
-//         "Could not open output file {filename}",
-//         filename = filename.to_str().unwrap_or_default()
-//     );
-
-//     avformat_write_header(oc, std::ptr::null_mut());
-
-//     // (0..1000).for_each(|fr| {
-//     //     let frame = stream.get_video_frame(fr);
-//     //     let mut status: i32 = avcodec_send_frame(stream.enc, frame);
-
-//     //     while status >= 0 {
-//     //         let mut pkt = av_packet_alloc();
-//     //         status = avcodec_receive_packet(stream.enc, pkt);
-
-//     //         match status {
-//     //             status if status == AVERROR_EOF || status == FFMPEG_AVERROR(EAGAIN) => break,
-//     //             status if status < 0 => break,
-//     //             _ => {
-//     //                 av_packet_rescale_ts(pkt, (*stream.enc).time_base, (*stream.st).time_base);
-//     //                 (*pkt).stream_index = (*stream.st).index;
-
-//     //                 status = av_interleaved_write_frame(oc, pkt);
-//     //                 av_packet_unref(pkt);
-//     //             }
-//     //         }
-//     //     }
-//     // });
-
-//     avcodec_send_frame(stream.enc, std::ptr::null_mut());
-//     av_write_trailer(oc);
-
-//     stream.free();
-
-//     avio_closep(&mut (*oc).pb);
-//     avformat_free_context(oc);
-// }
