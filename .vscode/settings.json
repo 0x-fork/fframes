@@ -1,27 +1,3 @@
 {
-  "files.associations": {
-    "*.prisma": "graphql",
-    "mathematics.h": "c",
-    "swscale.h": "c",
-    "avassert.h": "c",
-    "avcodec.h": "c",
-    "avformat.h": "c",
-    "swresample.h": "c",
-    "__config": "c",
-    "__hash_table": "c",
-    "__locale": "c",
-    "array": "c",
-    "functional": "c",
-    "ios": "c",
-    "iterator": "c",
-    "locale": "c",
-    "ostream": "c",
-    "sstream": "c",
-    "string": "c",
-    "string_view": "c",
-    "type_traits": "c",
-    "vector": "c",
-    "*.inc": "c",
-    "math.h": "c"
-  }
+  "rust-analyzer.checkOnSave.allTargets": false,
 }

@@ -6,5 +6,6 @@ members = [
     "svgr-parser",
     "editor-wasm/bind",
     "video",
-    "media-loader"
+    "media-loader",
+    "webvtt-parser"
 ]
