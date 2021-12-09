@@ -145,7 +145,7 @@ pub fn get_visualization(
 
     let res = apply_fft_to_frame(
         &sample_size,
-        Some(Windows::Window::Hann),
+        Some(Windows::Window::Hamming),
         sample_start as usize,
         &audio.samples,
     )
@@ -159,11 +159,17 @@ pub fn get_visualization(
 pub fn visualize_audio_frame(frame: &Frame::Frame, input: &VisualizeFrameInput) -> Vec<f32> {
     let res = match frame.index {
         0 => get_visualization(&frame.index, input),
+        1 => get_visualization(&frame.index, input),
+        2 => get_visualization(&frame.index, input),
         frame => {
             let frames_to_smooth = [
+                get_visualization(&(frame - 3), input),
+                get_visualization(&(frame - 2), input),
                 get_visualization(&(frame - 1), input),
                 get_visualization(&frame, input),
                 get_visualization(&(frame + 1), input),
+                get_visualization(&(frame + 2), input),
+                get_visualization(&(frame + 3), input),
             ];
 
             (0..frames_to_smooth[1].len())

@@ -1019,6 +1019,7 @@ dependencies = [
  "libm",
  "microfft",
  "num",
+ "webvtt-parser",
 ]
 
 [[package]]

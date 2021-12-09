@@ -3,36 +3,21 @@ use std::ops::Range;
 
 pub enum AnimationRuntime {
     Linear(f32),
-    SpringRuntime(Spring::SpringRuntime),
+    SpringRuntime(Spring::SpringRuntime, f32),
 }
 
 impl AnimationRuntime {
-    pub fn solve_spring(runtime: &Spring::SpringRuntime, t: &f32) -> f32 {
-        let progress = if runtime.m_zeta < 1.0 {
-            // Under-damped
-            libm::expf(-t * &runtime.m_zeta * &runtime.w0)
-                * (&runtime.a * libm::cosf(&runtime.wd * t)
-                    + &runtime.b * libm::sinf(&runtime.wd * t))
-        } else {
-            // Critically damped
-            (&runtime.a + &runtime.b * t) * libm::expf(-t * &runtime.w0)
-        };
-
-        // Map range from [1..0] to [0..1].
-        1.0 - progress
-    }
-
-    pub fn get_duration(&self) -> &f32 {
+    pub fn get_duration(&self) -> f32 {
         match &self {
-            AnimationRuntime::Linear(duration) => duration,
-            AnimationRuntime::SpringRuntime(runtime) => &4.0,
+            AnimationRuntime::Linear(duration) => *duration,
+            AnimationRuntime::SpringRuntime(_spring, duration) => *duration,
         }
     }
 
     pub fn solve(&self, t: &f32) -> f32 {
         match &self {
             &AnimationRuntime::Linear(duration) => t / duration,
-            &AnimationRuntime::SpringRuntime(spring) => Self::solve_spring(&spring, t),
+            &AnimationRuntime::SpringRuntime(spring, _) => spring.solve(t),
         }
     }
 }
@@ -48,17 +33,20 @@ pub struct LinearRuntime {}
 pub fn make_runtime(easing: &Easing) -> AnimationRuntime {
     match easing {
         Easing::Spring(options) => {
-            AnimationRuntime::SpringRuntime(Spring::SpringRuntime::from_options(&options))
+            let spring_runtime = Spring::SpringRuntime::from_options(&options);
+            let duration = spring_runtime.get_duration();
+
+            AnimationRuntime::SpringRuntime(spring_runtime, duration)
         }
         Easing::Linear(duration) => AnimationRuntime::Linear(*duration),
     }
 }
 
-pub struct Tween {
-    pub start: i64,
-    pub from: f64,
+pub struct Tween<'a> {
+    pub start: f32,
     pub to: f64,
-    pub easing: Easing,
+    pub from: f64,
+    pub easing: &'a Easing,
 }
 
 pub(crate) struct KeyFrame {
@@ -76,11 +64,35 @@ impl SteppedAnimation {
     pub fn make_from_tweens(tweens: Vec<Tween>) -> Self {
         let keyframes = tweens
             .iter()
-            .map(|tween| KeyFrame {
-                to: tween.to,
-                from: tween.from,
-                seconds_range: (tween.start as f32..tween.start as f32 + 200.0),
-                animation_runtime: make_runtime(&tween.easing),
+            .enumerate()
+            .flat_map(|(i, tween)| {
+                let animation_runtime = make_runtime(&tween.easing);
+                let keyframe = KeyFrame {
+                    to: tween.to,
+                    from: tween.from,
+                    seconds_range: (tween.start..tween.start + animation_runtime.get_duration()),
+                    animation_runtime,
+                };
+
+                match tweens.get(i + 1) {
+                    None => vec![keyframe],
+                    Some(next_tween) if next_tween.start <= keyframe.seconds_range.end => {
+                        vec![keyframe]
+                    }
+                    Some(next_tween) => {
+                        let filler_keyframe_range = keyframe.seconds_range.end..next_tween.start;
+                        let filler_keyframe = KeyFrame {
+                            from: keyframe.to,
+                            to: keyframe.to,
+                            animation_runtime: AnimationRuntime::Linear(
+                                filler_keyframe_range.end - filler_keyframe_range.start,
+                            ),
+                            seconds_range: filler_keyframe_range,
+                        };
+
+                        vec![keyframe, filler_keyframe]
+                    }
+                }
             })
             .collect::<Vec<KeyFrame>>();
 

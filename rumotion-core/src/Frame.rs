@@ -8,7 +8,7 @@ pub struct Frame {
 }
 
 impl Frame {
-    pub fn getCurrentSecond(&self) -> f32 {
+    pub fn get_current_second(&self) -> f32 {
         self.index as f32 / self.fps as f32
     }
 
@@ -21,7 +21,7 @@ impl Frame {
     ) -> f64 {
         let duration = animation_runtime.get_duration();
 
-        match &self.getCurrentSecond() {
+        match &self.get_current_second() {
             second if second < &start => from,
             second if second > &(start + duration) => to,
             second => {
@@ -35,10 +35,11 @@ impl Frame {
     }
 
     pub fn animate_or(&self, animation: &Animation::SteppedAnimation, default_value: f64) -> f64 {
-        let current_second = &self.getCurrentSecond();
+        let current_second = &self.get_current_second();
         let keyframe = animation
             .keyframes
             .iter()
+            .rev()
             .find(|keyframe| keyframe.seconds_range.contains(current_second));
 
         match keyframe {

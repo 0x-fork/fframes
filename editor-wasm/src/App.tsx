@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import init, { render_frame, cache_audio } from "../bind/pkg";
-import testAudio from "../../video/media/marketing.mp3";
+import init, { render_frame, cache_audio, cache_subtitles } from "../bind/pkg";
+import testAudio from "../media/marketing.mp3";
+import subtitlesUrl from "../media/subtitles.vtt?url";
 import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
 import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
 
@@ -22,16 +23,16 @@ function App() {
     if (state === "paused") {
       return;
     }
-    
-    console.time("frame")
-    const currentFrame = Math.round((audioContext.currentTime - offset) * FPS);
+
+    console.time("frame");
+    const currentFrame = Math.round((audioContext.currentTime - offset) * FPS) + 100;
     const frame_svg = render_frame(BigInt(currentFrame));
 
     if (frame_svg && ref.current && ref.current.innerHTML !== frame_svg) {
       ref.current.innerHTML = frame_svg;
     }
 
-    console.timeEnd('frame')
+    console.timeEnd("frame");
 
     requestAnimationFrame(() => frame());
   }
@@ -40,12 +41,19 @@ function App() {
     audioContext = new AudioContext();
     const source = audioContext.createBufferSource();
     offset = audioContext.currentTime;
-    // console.log(data);
+
     var gainNode = audioContext.createGain();
-    gainNode.gain.value = 0.5;
+    gainNode.gain.value = 0.0;
     gainNode.connect(audioContext.destination);
 
     source.connect(gainNode);
+
+    fetch(subtitlesUrl)
+      .then((res) => res.text())
+      .then((rawSubtitles) => {
+        cache_subtitles("subtitles", rawSubtitles);
+      });
+
     audioContext
       .decodeAudioData(audioBuffer.slice(0))
       .then(async (audioData) => {
@@ -65,7 +73,7 @@ function App() {
         cache_audio("marketing", mono);
         source.buffer = audioData;
         offset = audioContext.currentTime - offset;
-        source.start();
+        source.start(audioContext.currentTime);
         requestAnimationFrame(() => {
           frame();
         });
@@ -77,7 +85,7 @@ function App() {
       if (e.key === " ") {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (state === "idle") {
           state = "play";
           start();
@@ -101,7 +109,7 @@ function App() {
           console.log(monoCache);
           if (monoCache) {
             cache_audio("test", new Float32Array(JSON.parse(monoCache)));
-            render_frame(BigInt(400));
+            render_frame(BigInt(0));
           }
         });
       // .then(async (uint8Buffer) => {

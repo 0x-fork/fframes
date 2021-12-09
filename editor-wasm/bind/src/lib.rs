@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashMap, sync::Mutex};
 
 use lazy_static::lazy_static;
-use rumotion_core::{RumotionContext, Video::Video};
+use rumotion_core::{AudioData::AudioData, RumotionContext, Subtitles::Subtitles, Video::Video};
 use wasm_bindgen::prelude::*;
 
 // Import the `window.alert` function from the Web.
@@ -13,14 +13,13 @@ extern "C" {
 }
 
 lazy_static! {
-    static ref AUDIO_CACHE: Mutex<HashMap<String, video::AudioData::AudioData>> =
-        Mutex::new(HashMap::new());
+    static ref AUDIO_CACHE: Mutex<HashMap<String, AudioData>> = Mutex::new(HashMap::new());
+    static ref SUBTITLES_CACHE: Mutex<HashMap<String, Subtitles>> = Mutex::new(HashMap::new());
 }
 
 #[wasm_bindgen]
 pub fn cache_audio(file: String, input: &[f32]) {
-    console_error_panic_hook::set_once();
-    let audio_data = video::AudioData::AudioData {
+    let audio_data = AudioData {
         sample_rate: 44100,
         samples: input.to_vec(),
         max_magnitude: input
@@ -35,21 +34,30 @@ pub fn cache_audio(file: String, input: &[f32]) {
     audio_cache.insert(file, audio_data);
 }
 
-// Export a `greet` function from Rust to JavaScript, that alerts a
-// hello message.
+#[wasm_bindgen]
+pub fn cache_subtitles(file: String, content: String) {
+    console_error_panic_hook::set_once();
+
+    SUBTITLES_CACHE
+        .lock()
+        .unwrap()
+        .insert(file, Subtitles::from_str(content.as_str()));
+
+    log(format!("{:?}", Subtitles::from_str(content.as_str())).as_str());
+}
+
 #[wasm_bindgen]
 pub fn render_frame(frame: i64) -> String {
-    let video = video::podcast::PodcastVideo::make();
-    // video::render_frame(frame, AUDIO_CACHE.lock().unwrap().get("test").unwrap())
+    let video = video::marketing::MarketingVideo::make();
     video.render_frame(
         &video::Frame::Frame {
             fps: 30,
             index: frame,
         },
         RumotionContext::RumotionContext {
-            fft_hash: None,
             fps: 30,
             audio: &AUDIO_CACHE.lock().unwrap(),
+            subtitles: &SUBTITLES_CACHE.lock().unwrap(),
         },
     )
 }

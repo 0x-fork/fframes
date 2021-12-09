@@ -20,7 +20,7 @@ impl Video for TestVideo {
           >
             <rect width="1920" height="1080" x="0" y="0" fill="white" />
             <text x="100" y="100" font-size="100">
-              {format!("Frame number: {}, second: {}", frame.index + 1, frame.getCurrentSecond())}
+              {format!("Frame number: {}, second: {}", frame.index + 1, frame.get_current_second())}
             </text>
           </svg>
         )

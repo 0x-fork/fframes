@@ -38,4 +38,43 @@ impl SpringRuntime {
             }
         }
     }
+
+    pub fn solve(&self, t: &f32) -> f32 {
+        let progress = if self.m_zeta < 1.0 {
+            // Under-damped
+            libm::expf(-t * self.m_zeta * self.w0)
+                * (self.a * libm::cosf(self.wd * t) + self.b * libm::sinf(self.wd * t))
+        } else {
+            // Critically damped
+            (self.a + self.b * t) * libm::expf(-t * self.w0)
+        };
+
+        // Map range from [1..0] to [0..1].
+        1.0 - progress
+    }
+
+    /// The dumbest way to calculate spring duration taken from animejs https://github.com/juliangarnier/anime/blob/master/src/index.js#L100
+    /// Not the best, but it looks there is no formula for precise calculation of spring dumping timing.
+    /// Must be called in compile time
+    pub fn get_duration(&self) -> f32 {
+        let frame_duration = 0.166667; // for 60 fps
+
+        let mut elapsed = 0.0;
+        let mut not_animating_frames_count = 0u8;
+
+        loop {
+            elapsed += frame_duration;
+            if self.solve(&elapsed) == 1.0 {
+                not_animating_frames_count += 1;
+
+                if not_animating_frames_count >= 16 {
+                    break;
+                }
+            } else {
+                not_animating_frames_count = 0
+            }
+        }
+
+        elapsed * frame_duration
+    }
 }

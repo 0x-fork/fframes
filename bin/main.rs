@@ -1,6 +1,7 @@
 mod encoder;
 use ffmpeg_next::sys::exit;
 use rayon::prelude::*;
+use rumotion_core::Subtitles::Subtitles;
 use rumotion_core::{AudioData, Frame, RumotionContext, Video::Video};
 use std::ffi::CString;
 use std::ops::Range;
@@ -52,42 +53,49 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 
     println!("decoding audio");
     let mut audio_hash = HashMap::new();
+    audio_hash.insert(
+        "marketing".to_owned(),
+        load_audio("/Users/dmitrijkovalenko/dev/rumotion/editor-wasm/media/marketing.mp3"),
+    );
     // audio_hash.insert(
-    //     "marketing".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/marketing.mp3"),
+    //     "me".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/me.mp3"),
     // );
-    audio_hash.insert(
-        "me".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/me.mp3"),
-    );
-    audio_hash.insert(
-        "vlad".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/vlad.mp3"),
-    );
-    audio_hash.insert(
-        "guest".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/guest.mp3"),
-    );
-    audio_hash.insert(
-        "final".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/final.mp3"),
+    // audio_hash.insert(
+    //     "vlad".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/vlad.mp3"),
+    // );
+    // audio_hash.insert(
+    //     "guest".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/guest.mp3"),
+    // );
+    // audio_hash.insert(
+    //     "final".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/final.mp3"),
+    // );
+
+    let mut subtitles_hash = HashMap::new();
+    subtitles_hash.insert(
+        "subtitles".to_owned(),
+        Subtitles::from_file(
+            "/Users/dmitrijkovalenko/dev/rumotion/editor-wasm/media/subtitles.vtt",
+        ),
     );
 
     println!("audio decoding completed");
 
     let fps = TVideo::FPS;
 
-    let final_audio = audio_hash.get("final").unwrap();
+    let final_audio = audio_hash.get("marketing").unwrap();
     let duration_in_frames =
         final_audio.samples.len() / final_audio.sample_rate as usize * fps as usize;
 
     let ctx = RumotionContext::RumotionContext {
         fps,
         audio: &audio_hash,
-        fft_hash: None,
+        subtitles: &subtitles_hash,
     };
 
-    let duration_in_frames = 630;
     println!("rendering {} frames", duration_in_frames);
 
     let output = "out.mp4";
@@ -96,6 +104,14 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
         .map(|file| std::ffi::CStr::as_ptr(&CString::new(file).unwrap()))
         .collect::<Vec<_>>()
         .as_ptr();
+    let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
+    let svg = video.render_frame(&Frame::Frame { fps, index: 1260 }, ctx.clone());
+
+    let rtree = usvg::Tree::from_str(&svg, &opt).unwrap();
+    resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut()).unwrap();
+println!("{}", svg);
+    pixmap.save_png("poster.png");
+    panic!("wefr0iojweifj");
 
     unsafe {
         split_ffmpeg_chunks(
@@ -158,5 +174,5 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 }
 
 fn main() {
-    render(video::test_video::TestVideo::make());
+    render(video::marketing::MarketingVideo::make());
 }
