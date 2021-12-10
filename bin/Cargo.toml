@@ -19,7 +19,6 @@ ffmpeg-next = "4.4.0"
 
 
 svgr-macro = { path="../svgr-macro" }
-svgr-parser = { path="../svgr-parser" }
 rumotion-core = {path="../rumotion-core"}
 media-loader = {path="../media-loader"}
 video = { path = "../video" }

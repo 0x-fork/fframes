@@ -1,5 +1,3 @@
-//! RSX Parser
-
 use proc_macro2::{Span, TokenStream, TokenTree};
 use syn::{
     braced,
@@ -16,86 +14,18 @@ type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
 /// Configures the `Parser` behavior
 #[derive(Default)]
-pub struct ParserConfig {
-    flat_tree: bool,
+pub struct ParserOptions {
     number_of_top_level_nodes: Option<usize>,
-    type_of_top_level_nodes: Option<NodeType>,
     transform_block: Option<Box<TransformBlockFn>>,
 }
 
-impl ParserConfig {
-    /// Create new `ParserConfig` with default config
-    pub fn new() -> ParserConfig {
-        ParserConfig::default()
-    }
-
-    /// Return flat tree instead of nested tree
-    pub fn flat_tree(mut self) -> Self {
-        self.flat_tree = true;
-        self
-    }
-
-    /// Exact number of required top level nodes
-    pub fn number_of_top_level_nodes(mut self, number: usize) -> Self {
-        self.number_of_top_level_nodes = Some(number);
-        self
-    }
-
-    /// Enforce the `NodeType` of top level nodes
-    pub fn type_of_top_level_nodes(mut self, node_type: NodeType) -> Self {
-        self.type_of_top_level_nodes = Some(node_type);
-        self
-    }
-
-    /// Transforms the `value` of all `NodeType::Block`s with the given closure
-    /// callback. The provided `ParseStream` is the content of the block.
-    ///
-    /// When `Some(TokenStream)` is returned, the `TokenStream` is parsed as
-    /// Rust block content. The `ParseStream` must be completely consumed in
-    /// this case (no tokens left).
-    ///
-    /// If `None` is returned, the `ParseStream` is parsed as Rust block
-    /// content. The `ParseStream` isn't forked, so partial parsing inside the
-    /// transform callback will break this mechanism - fork if you want to avoid
-    /// breaking.
-    ///
-    /// An example usage might be a custom syntax inside blocks which isn't
-    /// valid Rust. The given example simply translates the `%` character into
-    /// the string `percent`
-    ///
-    /// ```rust
-    /// use quote::quote;
-    /// use syn::Token;
-    /// use syn_rsx::{parse2_with_config, ParserConfig};
-    ///
-    /// let tokens = quote! {
-    ///     <div>{%}</div>
-    /// };
-    ///
-    /// let config = ParserConfig::new().transform_block(|input| {
-    ///     input.parse::<Token![%]>()?;
-    ///     Ok(Some(quote! { "percent" }))
-    /// });
-    ///
-    /// parse2_with_config(tokens, config).unwrap();
-    /// ```
-    pub fn transform_block<F>(mut self, callback: F) -> Self
-    where
-        F: Fn(ParseStream) -> Result<Option<TokenStream>> + 'static,
-    {
-        self.transform_block = Some(Box::new(callback));
-        self
-    }
-}
-
-/// RSX Parser
 pub struct Parser {
-    config: ParserConfig,
+    config: ParserOptions,
 }
 
 impl Parser {
     /// Create a new parser with the given config
-    pub fn new(config: ParserConfig) -> Parser {
+    pub fn new(config: ParserOptions) -> Parser {
         Parser { config }
     }
 
@@ -105,15 +35,6 @@ impl Parser {
         let mut top_level_nodes = 0;
         while !input.cursor().eof() {
             let parsed_nodes = &mut self.node(input)?;
-
-            if let Some(type_of_top_level_nodes) = &self.config.type_of_top_level_nodes {
-                if &parsed_nodes[0].node_type != type_of_top_level_nodes {
-                    return Err(input.error(format!(
-                        "top level nodes need to be of type {}",
-                        type_of_top_level_nodes
-                    )));
-                }
-            }
 
             nodes.append(parsed_nodes);
             top_level_nodes += 1;
@@ -133,31 +54,14 @@ impl Parser {
 
     fn node(&self, input: ParseStream) -> Result<Vec<Node>> {
         let node = if input.peek(Token![<]) {
-            if input.peek2(Token![!]) {
-                if input.peek3(Ident) {
-                    self.doctype(input)
-                } else {
-                    self.comment(input)
-                }
-            } else if input.peek2(Token![>]) {
-                self.fragment(input)
-            } else {
-                self.element(input)
-            }
+            self.element(input)
         } else if input.peek(Brace) {
             self.block(input)
         } else {
             self.text(input)
         }?;
 
-        let mut nodes = vec![node];
-        if self.config.flat_tree {
-            let mut children = vec![];
-            children.append(&mut nodes[0].children);
-            nodes.append(&mut children);
-        }
-
-        Ok(nodes)
+        Ok(vec![node])
     }
 
     fn text(&self, input: ParseStream) -> Result<Node> {
@@ -255,7 +159,9 @@ impl Parser {
         if self.tag_close(&input.fork()).is_ok() {
             return Err(fork.error("close tag has no corresponding open tag"));
         }
+
         let (name, attributes, self_closing) = self.tag_open(fork)?;
+        crate::validate_svg::validate_node(input, &name)?;
 
         let mut children = vec![];
         if !self_closing {
@@ -399,97 +305,6 @@ impl Parser {
                 children: vec![],
             })
         }
-    }
-
-    fn doctype(&self, input: ParseStream) -> Result<Node> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![!]>()?;
-        let ident = input.parse::<Ident>()?;
-        if ident.to_string().to_lowercase() != "doctype" {
-            return Err(input.error("expected Doctype"));
-        }
-        let doctype = input.parse::<Ident>()?;
-        input.parse::<Token![>]>()?;
-
-        let mut segments = Punctuated::new();
-        segments.push_value(PathSegment::from(doctype));
-        let value = ExprPath {
-            attrs: vec![],
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments,
-            },
-        }
-        .into();
-
-        Ok(Node {
-            name: None,
-            value: Some(value),
-            node_type: NodeType::Doctype,
-            attributes: vec![],
-            children: vec![],
-        })
-    }
-
-    fn comment(&self, input: ParseStream) -> Result<Node> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![!]>()?;
-        input.parse::<Token![-]>()?;
-        input.parse::<Token![-]>()?;
-        let comment = input.parse::<ExprLit>()?.into();
-        input.parse::<Token![-]>()?;
-        input.parse::<Token![-]>()?;
-        input.parse::<Token![>]>()?;
-
-        Ok(Node {
-            name: None,
-            value: Some(comment),
-            node_type: NodeType::Comment,
-            attributes: vec![],
-            children: vec![],
-        })
-    }
-
-    fn fragment(&self, input: ParseStream) -> Result<Node> {
-        self.fragment_open(input)?;
-
-        let mut children = vec![];
-        loop {
-            if input.is_empty() {
-                return Err(input.error("unexpected end of input"));
-            }
-
-            if self.fragment_close(&input.fork()).is_ok() {
-                self.fragment_close(input)?;
-                break;
-            }
-
-            children.append(&mut self.node(input)?);
-        }
-
-        Ok(Node {
-            name: None,
-            value: None,
-            node_type: NodeType::Fragment,
-            attributes: vec![],
-            children,
-        })
-    }
-
-    fn fragment_open(&self, input: ParseStream) -> Result<()> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![>]>()?;
-
-        Ok(())
-    }
-
-    fn fragment_close(&self, input: ParseStream) -> Result<()> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![/]>()?;
-        input.parse::<Token![>]>()?;
-
-        Ok(())
     }
 
     fn node_name(&self, input: ParseStream) -> Result<NodeName> {

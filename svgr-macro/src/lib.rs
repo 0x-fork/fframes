@@ -1,8 +1,22 @@
 extern crate proc_macro;
+
+mod node;
+mod parser;
+mod nodes_to_format;
+mod validate_svg;
+
 use proc_macro::TokenStream;
 use quote::quote;
-use svgr_parser::{Node, NodeType};
-use syn::Expr;
+
+use syn::{
+    parse::{ParseStream, Parser as _},
+    Result,
+};
+
+use node::Node;
+use parser::{Parser, ParserOptions};
+
+use crate::nodes_to_format::nodes_to_format;
 
 mod punctuation {
     use syn::custom_punctuation;
@@ -10,64 +24,23 @@ mod punctuation {
     custom_punctuation!(Dash, -);
 }
 
-fn walk_nodes(nodes: Vec<Node>) -> (String, Vec<Expr>) {
-    let mut out = String::new();
-    let mut values = vec![];
+fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(ParserOptions::default()).parse(input);
 
-    for node in nodes {
-        match node.node_type {
-            NodeType::Element => {
-                let name = node.name_as_string().unwrap();
-                out.push_str(&format!("<{}", name));
+    parser.parse(tokens)
+}
 
-                // attributes
-                let (svg_string, attribute_values) = walk_nodes(node.attributes);
-                out.push_str(&svg_string);
-                values.extend(attribute_values);
-                out.push('>');
+fn parse_with_config(tokens: proc_macro::TokenStream, config: ParserOptions) -> Result<Vec<Node>> {
+    let parser = move |input: ParseStream| Parser::new(config).parse(input);
 
-                // children
-                let (svg_string, children_values) = walk_nodes(node.children);
-                out.push_str(&svg_string);
-                values.extend(children_values);
-
-                out.push_str(&format!("</{}>", name));
-            }
-            NodeType::Attribute => {
-                out.push_str(&format!(" {}", node.name_as_string().unwrap()));
-                if node.value.is_some() {
-                    out.push_str(r#"="{}""#);
-                    values.push(node.value.unwrap());
-                }
-            }
-            NodeType::Text | NodeType::Block => {
-                out.push_str("{}");
-                values.push(node.value.unwrap());
-            }
-            NodeType::Fragment => {
-                let (html_string, children_values) = walk_nodes(node.children);
-                out.push_str(&html_string);
-                values.extend(children_values);
-            }
-            NodeType::Comment => {
-                out.push_str("<!-- {} -->");
-                values.push(node.value.unwrap());
-            }
-            NodeType::Doctype => {
-                let value = node.value_as_string().unwrap();
-                out.push_str(&format!("<!DOCTYPE {}>", value));
-            }
-        }
-    }
-
-    (out, values)
+    parser.parse(tokens)
 }
 
 #[proc_macro]
 pub fn svgr(tokens: TokenStream) -> TokenStream {
-    match svgr_parser::parse(tokens) {
+    match parse(tokens) {
         Ok(nodes) => {
-            let (html_string, values) = walk_nodes(nodes);
+            let (html_string, values) = nodes_to_format(nodes);
             quote! { format!(#html_string, #(#values),*) }
         }
         Err(error) => error.to_compile_error(),

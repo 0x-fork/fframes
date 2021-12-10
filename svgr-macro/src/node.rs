@@ -104,17 +104,6 @@ pub enum NodeType {
     /// [planned to support unquoted text]: https://github.com/stoically/syn-rsx/issues/2
     Text,
 
-    /// Comment: `<!-- "comment" -->`, currently has the same restrictions as
-    /// `Text` (comment needs to be quoted)
-    Comment,
-
-    /// Doctype declaration: `<!DOCTYPE html>` (case insensitive), `html` is the
-    /// node value in this case
-    Doctype,
-
-    /// Fragment: `<></>`
-    Fragment,
-
     /// Arbitrary rust code in braced `{}` blocks
     Block,
 }
@@ -128,9 +117,6 @@ impl fmt::Display for NodeType {
                 Self::Element => "NodeType::Element",
                 Self::Attribute => "NodeType::Attribute",
                 Self::Text => "NodeType::Text",
-                Self::Comment => "NodeType::Comment",
-                Self::Doctype => "NodeType::Doctype",
-                Self::Fragment => "NodeType::Fragment",
                 Self::Block => "NodeType::Block",
             }
         )
@@ -140,14 +126,13 @@ impl fmt::Display for NodeType {
 /// Name of the node
 #[derive(Debug)]
 pub enum NodeName {
-    /// A plain identifier like `div` is a path of length 1, e.g. `<div />`. Can
-    /// be separated by double colons, e.g. `<foo::bar />`
+    /// A plain identifier like`<rect />`
     Path(ExprPath),
 
-    /// Name separated by dashes, e.g. `<div data-foo="bar" />`
+    /// Name separated by dashes, e.g. `<text dominant-baseline="middle" />`
     Dash(Punctuated<Ident, Dash>),
 
-    /// Name separated by colons, e.g. `<div on:click={foo} />`
+    /// Name separated by colons, e.g. `<image xlink:href={path} />`
     Colon(Punctuated<Ident, Colon>),
 
     /// Arbitrary rust code in braced `{}` blocks

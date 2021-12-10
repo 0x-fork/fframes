@@ -992,7 +992,6 @@ dependencies = [
  "rumotion-core",
  "serde_json",
  "svgr-macro",
- "svgr-parser",
  "syn",
  "tiny-skia",
  "usvg",
@@ -1195,17 +1194,6 @@ dependencies = [
 
 [[package]]
 name = "svgr-macro"
-version = "0.1.1"
-dependencies = [
- "criterion",
- "proc-macro2",
- "quote",
- "svgr-parser",
- "syn",
-]
-
-[[package]]
-name = "svgr-parser"
 version = "0.1.1"
 dependencies = [
  "criterion",

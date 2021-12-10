@@ -3,7 +3,6 @@
 members = [
     "bin",
     "svgr-macro",
-    "svgr-parser",
     "editor-wasm/bind",
     "video",
     "media-loader",

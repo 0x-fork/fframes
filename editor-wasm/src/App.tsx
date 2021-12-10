@@ -13,8 +13,10 @@ let offset: number;
 
 const FPS = 30;
 let state = "idle";
-
 let monoCache = localStorage.getItem("cache");
+
+const modules = import.meta.globEager("../media/*");
+console.log(modules);
 
 function App() {
   const ref = React.useRef<HTMLDivElement>(null);
@@ -25,7 +27,8 @@ function App() {
     }
 
     console.time("frame");
-    const currentFrame = Math.round((audioContext.currentTime - offset) * FPS) + 100;
+    const currentFrame =
+      Math.round((audioContext.currentTime - offset) * FPS) + 100;
     const frame_svg = render_frame(BigInt(currentFrame));
 
     if (frame_svg && ref.current && ref.current.innerHTML !== frame_svg) {

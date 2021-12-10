@@ -29,13 +29,15 @@ impl MarketingVideo {
            viewBox="0 0 1200 800"
            version="1.1"
            xmlns="http://www.w3.org/2000/svg"
-           xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/"
+           xmlns:xlink="http://www.w3.org/1999/xlink"
+           xml:space="preserve"
+           xmlns:serif="http://www.serif.com/"
            fill-rule="evenodd"
            clip-rule="evenodd"
            stroke-linejoin="round"
            stroke-miterlimit="1.41421"
           >
-            <g id="Layer-1" serif:id="Layer 1">
+            <g f id="Layer-1" serif:id="Layer 1">
                 <g transform="matrix(1,0,0,1,597.344,637.02)">
                     <path
                         d="M0,-279.559C-121.238,-279.559 -231.39,-264.983 -312.939,-241.23L-312.939,-38.329C-231.39,-14.575 -121.238,0 0,0C138.76,0 262.987,-19.092 346.431,-49.186L346.431,-230.37C262.987,-260.465 138.76,-279.559 0,-279.559"
@@ -97,6 +99,7 @@ impl MarketingVideo {
                         style="fill:url(#_Linear3);fill-rule:nonzero;" />
                 </g>
             </g>
+
             <defs>
                 <linearGradient id="_Linear1" x1="0" y1="0" x2="1" y2="0" gradientUnits="userSpaceOnUse"
                     gradientTransform="matrix(1,0,1.38778e-17,-1,0,-0.000650515)">
@@ -336,7 +339,7 @@ impl Video for MarketingVideo {
                   </linearGradient>
                    <rect
                     y={500 as f32 - bar_height / 2.0}
-                   x={frame.animate_runtime(
+                    x={frame.animate_runtime(
                       16.0,
                       ((spectrum_space_len / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f64,
                       944.0,

@@ -42,8 +42,6 @@ pub fn cache_subtitles(file: String, content: String) {
         .lock()
         .unwrap()
         .insert(file, Subtitles::from_str(content.as_str()));
-
-    log(format!("{:?}", Subtitles::from_str(content.as_str())).as_str());
 }
 
 #[wasm_bindgen]
