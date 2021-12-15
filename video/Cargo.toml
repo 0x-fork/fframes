@@ -7,6 +7,6 @@ edition = "2018"
 
 [dependencies]
 svgr-macro = { path="../svgr-macro" }
-rumotion-core = {path="../rumotion-core"}
+fframes = {path="../fframes"}
 lazy_static = "1.4.0"
 libm="0.2.1"

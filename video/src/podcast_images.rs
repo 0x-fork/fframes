@@ -1,5 +1,5 @@
-use rumotion_core::RumotionContext;
-pub use rumotion_core::{AudioData, Frame, Video, Windows};
+use fframes::RumotionContext;
+pub use fframes::{AudioData, Frame, Video, Windows};
 use svgr_macro::{self, svgr};
 
 use crate::image;

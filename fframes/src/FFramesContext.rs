@@ -5,13 +5,13 @@ use crate::{
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub struct RumotionContext<'a> {
-    pub fps: i64,
+pub struct FFramesContext<'a> {
+    pub fps: usize,
     pub audio: &'a HashMap<String, AudioData::AudioData>,
     pub subtitles: &'a HashMap<String, Subtitles::Subtitles>,
 }
 
-impl RumotionContext<'_> {
+impl FFramesContext<'_> {
     pub fn get_audio_data(&self, filename: &str) -> &AudioData::AudioData {
         match self.audio.get(filename) {
             Some(data) => data,

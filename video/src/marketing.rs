@@ -1,6 +1,6 @@
-use rumotion_core::Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween};
-pub use rumotion_core::{
-    AudioData, Frame::Frame, RumotionContext, Subtitles, Video::Video, Windows,
+use fframes::Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween};
+pub use fframes::{
+    AudioData, FFramesContext, Frame::Frame, Subtitles, Video::Video, WindowFunctions,
 };
 use svgr_macro::{self, svgr};
 
@@ -37,7 +37,7 @@ impl MarketingVideo {
            stroke-linejoin="round"
            stroke-miterlimit="1.41421"
           >
-            <g f id="Layer-1" serif:id="Layer 1">
+            <g id="Layer-1" serif:id="Layer 1">
                 <g transform="matrix(1,0,0,1,597.344,637.02)">
                     <path
                         d="M0,-279.559C-121.238,-279.559 -231.39,-264.983 -312.939,-241.23L-312.939,-38.329C-231.39,-14.575 -121.238,0 0,0C138.76,0 262.987,-19.092 346.431,-49.186L346.431,-230.37C262.987,-260.465 138.76,-279.559 0,-279.559"
@@ -128,7 +128,8 @@ impl MarketingVideo {
 }
 
 impl Video for MarketingVideo {
-    const FPS: i64 = 60;
+    const FPS: usize = 60;
+    const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
 
     fn make() -> Self {
         let spring = Animation::Easing::Spring(SpringOptions {
@@ -218,7 +219,7 @@ impl Video for MarketingVideo {
         }
     }
 
-    fn render_frame(&self, frame: &Frame, ctx: RumotionContext::RumotionContext) -> String {
+    fn render_frame(&self, frame: &Frame, ctx: FFramesContext::FFramesContext) -> String {
         const BAR_SIZE: usize = 96;
         const BAR_SIZE_F32: f32 = BAR_SIZE as f32;
         let subtitles = ctx.get_subtitles("subtitles");
@@ -377,14 +378,14 @@ impl Video for MarketingVideo {
             }
 
             <svg opacity={frame.animate_or(&self.opacity_animation, 0.0)} x="200" y="740" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 598.3520004127504 417.989493060112" width="298" height="208">
-              <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
+              <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
+                <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
             </svg>
 
             <text
               font-size="64"
               y="87%"
               x="50%"
-              dominant-baseline="middle"
               text-anchor="middle"
               fill="white"
               font-family="Chalkboard SE"
@@ -408,10 +409,10 @@ impl Video for MarketingVideo {
             {if frame.get_current_second() > 16.25  {
               svgr!(
                 <g opacity={frame.animate_runtime(16.25, 0.6, 1.0, &self.spring)}>
-                  <text x="960" y="570" font-family="'Bubble Bobble'" font-size="154" dominant-baseline="middle" text-anchor="middle">
+                  <text x="960" y="570" font-family="'Bubble Bobble'" font-size="154" text-anchor="middle">
                     <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
                   </text>
-                  <text x="960" y="610" font-family="Chalkboard SE" font-size="30" dominant-baseline="middle" text-anchor="middle">
+                  <text x="960" y="610" font-family="Chalkboard SE" font-size="30" text-anchor="middle">
                     "Write some code. Get video. Enjoy!"
                   </text>
 

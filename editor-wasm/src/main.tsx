@@ -1,11 +1,17 @@
-import React from 'react'
-import ReactDOM from 'react-dom'
-import './index.css'
-import App from './App'
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
 
-ReactDOM.render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-  document.getElementById('root')
-)
+  </React.StrictMode>
+);
+
+// import * as videoWasmBinding from "../bind/pkg";
+// import { renderEditor } from "fframes-editor";
+// import "fframes-editor/tw.css";
+// import file from './user.data?raw'
+
+// renderEditor(videoWasmBinding);

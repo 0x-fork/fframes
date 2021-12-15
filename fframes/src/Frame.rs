@@ -1,10 +1,8 @@
-use std::thread::current;
-
 use crate::Animation;
 
 pub struct Frame {
     pub index: i64,
-    pub fps: i64,
+    pub fps: usize,
 }
 
 impl Frame {

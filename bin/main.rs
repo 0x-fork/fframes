@@ -1,13 +1,13 @@
 mod encoder;
 use ffmpeg_next::sys::exit;
+use fframes::Duration;
+use fframes::Subtitles::Subtitles;
+use fframes::{AudioData, FFramesContext, Frame, Video::Video};
 use rayon::prelude::*;
-use rumotion_core::Subtitles::Subtitles;
-use rumotion_core::{AudioData, Frame, RumotionContext, Video::Video};
 use std::ffi::CString;
 use std::ops::Range;
 use std::thread;
 use std::{borrow::BorrowMut, collections::HashMap, sync::mpsc};
-use usvg::SystemFontDB;
 
 use crate::encoder::{Encoder, EncoderFrame};
 
@@ -46,51 +46,53 @@ pub fn divide_round_up(a: usize, b: usize) -> usize {
 fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
     let mut opt = usvg::Options::default();
     opt.fontdb.load_system_fonts();
-    opt.fontdb.set_generic_families();
     opt.fontdb
-        .load_font_file("/Users/dmitrijkovalenko/dev/rumotion/video/media/Bubble.ttf")
+        .load_font_file("/Users/dmitrijkovalenko/dev/fframes/video/media/Bubble.ttf")
         .unwrap_or_else(|_| println!("Can not load a font"));
 
     println!("decoding audio");
     let mut audio_hash = HashMap::new();
     audio_hash.insert(
         "marketing".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/rumotion/editor-wasm/media/marketing.mp3"),
+        load_audio("/Users/dmitrijkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
     );
-    // audio_hash.insert(
-    //     "me".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/me.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "vlad".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/vlad.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "guest".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/guest.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "final".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/rumotion/video/media/final.mp3"),
-    // );
+    audio_hash.insert(
+        "me".to_owned(),
+        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/me.mp3"),
+    );
+    audio_hash.insert(
+        "vlad".to_owned(),
+        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/vlad.mp3"),
+    );
+    audio_hash.insert(
+        "guest".to_owned(),
+        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/guest.mp3"),
+    );
+    audio_hash.insert(
+        "final".to_owned(),
+        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/final.mp3"),
+    );
 
     let mut subtitles_hash = HashMap::new();
-    subtitles_hash.insert(
-        "subtitles".to_owned(),
-        Subtitles::from_file(
-            "/Users/dmitrijkovalenko/dev/rumotion/editor-wasm/media/subtitles.vtt",
-        ),
-    );
+    // subtitles_hash.insert(
+    //     "subtitles".to_owned(),
+    //     Subtitles::from_file("/Users/dmitrijkovalenko/dev/fframes/editor-wasm/media/subtitles.vtt"),
+    // );
 
     println!("audio decoding completed");
 
     let fps = TVideo::FPS;
 
-    let final_audio = audio_hash.get("marketing").unwrap();
-    let duration_in_frames =
-        final_audio.samples.len() / final_audio.sample_rate as usize * fps as usize;
+    let duration_in_frames = match TVideo::DURATION {
+        Duration::FromAudio(audio) => {
+            let main_audio = audio_hash.get(audio).unwrap();
+            main_audio.samples.len() / main_audio.sample_rate as usize * fps as usize
+        }
+        Duration::Seconds(seconds) => seconds * fps,
+        Duration::Frames(frames) => frames,
+    };
 
-    let ctx = RumotionContext::RumotionContext {
+    let ctx = FFramesContext::FFramesContext {
         fps,
         audio: &audio_hash,
         subtitles: &subtitles_hash,
@@ -104,15 +106,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
         .map(|file| std::ffi::CStr::as_ptr(&CString::new(file).unwrap()))
         .collect::<Vec<_>>()
         .as_ptr();
-    let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
-    let svg = video.render_frame(&Frame::Frame { fps, index: 1260 }, ctx.clone());
-
-    let rtree = usvg::Tree::from_str(&svg, &opt).unwrap();
-    resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut()).unwrap();
-println!("{}", svg);
-    pixmap.save_png("poster.png");
-    panic!("wefr0iojweifj");
-
+    let opt_ref = &opt.to_ref();
     unsafe {
         split_ffmpeg_chunks(
             duration_in_frames,
@@ -128,6 +122,7 @@ println!("{}", svg);
                 fps as i32,
                 format!("some-{}.mp4", i).as_str(),
                 &mut |encoder| {
+                    let mut last_svg = "".to_owned();
                     let frame = EncoderFrame::make(&encoder.video_stream);
                     let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
 
@@ -145,8 +140,13 @@ println!("{}", svg);
                                 ctx.clone(),
                             );
 
-                            let rtree = usvg::Tree::from_str(&svg, &opt).unwrap();
-                            resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut()).unwrap();
+                            if svg != last_svg {
+                                let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
+                                resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut())
+                                    .unwrap();
+
+                                last_svg = svg;
+                            }
 
                             encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()));
                         });
@@ -174,5 +174,6 @@ println!("{}", svg);
 }
 
 fn main() {
-    render(video::marketing::MarketingVideo::make());
+    // render(video::marketing::MarketingVideo::make());
+    render(video::podcast::PodcastVideo::make());
 }

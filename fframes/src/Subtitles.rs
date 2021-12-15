@@ -1,8 +1,6 @@
-use std::fs;
-
-use webvtt_parser::{self, parse_vtt, Vtt};
-
 use crate::Frame::Frame;
+use std::fs;
+use webvtt_parser::{self, parse_vtt, Vtt};
 
 #[derive(Debug)]
 pub struct Subtitles {
@@ -16,7 +14,7 @@ impl Subtitles {
         }
     }
 
-    pub fn from_file(path: &str) -> Self { 
+    pub fn from_file(path: &str) -> Self {
         let file = fs::read_to_string(path).unwrap();
         Self::from_str(file.as_str())
     }

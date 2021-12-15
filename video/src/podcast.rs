@@ -1,10 +1,6 @@
-use std::string;
-
-use rumotion_core::Animation::{self, AnimationRuntime, SpringOptions, Tween};
-pub use rumotion_core::{AudioData, Frame, RumotionContext, Video::Video, Windows};
-use svgr_macro::{self, svgr};
-
 use crate::image;
+use fframes::{AudioData, FFramesContext, Frame, Video::Video};
+use svgr_macro::{self, svgr};
 
 struct SpectrumValue {
     color: String,
@@ -14,13 +10,14 @@ struct SpectrumValue {
 pub struct PodcastVideo {}
 
 impl Video for PodcastVideo {
-    const FPS: i64 = 30;
+    const FPS: usize = 30;
+    const DURATION: fframes::Duration = fframes::Duration::FromAudio("final.mp3");
 
     fn make() -> Self {
         PodcastVideo {}
     }
 
-    fn render_frame(&self, frame: &Frame::Frame, ctx: RumotionContext::RumotionContext) -> String {
+    fn render_frame(&self, frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String {
         let me_vis = AudioData::visualize_audio_frame(
             frame,
             &AudioData::VisualizeFrameInput {

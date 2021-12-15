@@ -1,7 +1,7 @@
-use rumotion_core::*;
+use fframes::*;
 use svgr_macro::svgr;
 
-pub fn render_frame(frame: &Frame::Frame, ctx: RumotionContext::RumotionContext) -> String {
+pub fn render_frame(frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String {
     let audio_visualization = AudioData::visualize_audio_frame(
         frame,
         &AudioData::VisualizeFrameInput {

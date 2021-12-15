@@ -1,6 +1,7 @@
 {
   "name": "editor-wasm",
   "version": "0.0.0",
+  "types": "src/main.tsx",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -10,7 +11,8 @@
   "dependencies": {
     "minimp3-wasm": "^0.1.0",
     "react": "^17.0.0",
-    "react-dom": "^17.0.0"
+    "react-dom": "^17.0.0",
+    "fframes-editor": "*"
   },
   "devDependencies": {
     "@types/react": "^17.0.0",

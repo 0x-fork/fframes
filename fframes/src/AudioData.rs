@@ -1,4 +1,4 @@
-use crate::{Frame, RumotionContext, Windows};
+use crate::{Frame, FFramesContext, WindowFunctions};
 use std::convert::TryInto;
 
 #[derive(Debug, Clone)]
@@ -39,18 +39,18 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
 pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
-    pub ctx: &'a RumotionContext::RumotionContext<'a>,
+    pub ctx: &'a FFramesContext::FFramesContext<'a>,
 }
 
 fn apply_fft_to_frame(
     sample_size: &SampleSize,
-    window: Option<Windows::Window>,
+    window: Option<WindowFunctions::Window>,
     start_index: usize,
     samples: &Vec<f32>,
 ) -> Vec<microfft::Complex32> {
     let apply_window = |samples: &[f32]| -> Vec<f32> {
         if let Some(window_function) = window {
-            Windows::apply_window_function(window_function, samples)
+            WindowFunctions::apply_window_function(window_function, samples)
         } else {
             samples.to_vec()
         }
@@ -145,7 +145,7 @@ pub fn get_visualization(
 
     let res = apply_fft_to_frame(
         &sample_size,
-        Some(Windows::Window::Hamming),
+        Some(WindowFunctions::Window::Hamming),
         sample_start as usize,
         &audio.samples,
     )
@@ -163,13 +163,9 @@ pub fn visualize_audio_frame(frame: &Frame::Frame, input: &VisualizeFrameInput) 
         2 => get_visualization(&frame.index, input),
         frame => {
             let frames_to_smooth = [
-                get_visualization(&(frame - 3), input),
-                get_visualization(&(frame - 2), input),
                 get_visualization(&(frame - 1), input),
                 get_visualization(&frame, input),
                 get_visualization(&(frame + 1), input),
-                get_visualization(&(frame + 2), input),
-                get_visualization(&(frame + 3), input),
             ];
 
             (0..frames_to_smooth[1].len())

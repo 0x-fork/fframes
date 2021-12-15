@@ -1,0 +1,30 @@
+{
+  "name": "fframes-editor",
+  "version": "0.0.1",
+  "sources": {
+    "dir": "src",
+    "subdirs": true
+  },
+  "package-specs": {
+    "module": "es6",
+    "in-source": true
+  },
+  "reason": { "react-jsx": 3 },
+  "suffix": ".bs.js",
+  "bs-dependencies": ["@rescript/react", "bs-webapi"],
+  "warnings": {
+    "error": "+101"
+  },
+  "gentypeconfig": {
+    "language": "typescript",
+    "module": "es6",
+    "importPath": "relative",
+    "shims": {
+      "Js": "Js"
+    },
+    "debug": {
+      "all": false,
+      "basic": false
+    }
+  }
+}

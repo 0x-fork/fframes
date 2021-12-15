@@ -1,0 +1,8 @@
+{
+  "name": "fframes-root",
+  "private": true,
+  "workspaces": [
+    "fframes-editor",
+    "editor-wasm"
+  ]
+}

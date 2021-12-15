@@ -2,7 +2,7 @@ use ffmpeg_next::sys::*;
 use std::{ffi::CString, os::raw::c_char};
 
 #[inline(always)]
-#[warn(non_snake_case)]
+#[allow(non_snake_case)]
 pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
     -e
 }
