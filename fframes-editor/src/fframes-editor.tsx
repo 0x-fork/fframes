@@ -2,22 +2,22 @@ import "../tw.css";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Editor } from "./Editor.gen";
+import { EditorContext } from "./EditorContext.gen";
+import type { WasmController } from "./WasmController.gen";
 
-export interface VideoMetadata {
-  readonly name: string;
-}
-
-interface Wasm {
-  default(): Promise<unknown>;
-  prepare(): Promise<VideoMetadata>;
-}
-
-export function renderEditor(wasm: Wasm) {
-  wasm.default().then(() => wasm.prepare().then(console.log));
-  ReactDOM
-    // @ts-expect-error REACT 18 BINDINGS are missing aaaaa
-    .createRoot(document.getElementById("root"))
-    .render(<Editor />);
+export function renderEditor(wasm: WasmController) {
+  wasm.default().then(() =>
+    wasm.prepare().then((videoMeta) => {
+      ReactDOM
+        // @ts-expect-error REACT 18 BINDINGS are missing aaaaa
+        .createRoot(document.getElementById("root"))
+        .render(
+          <EditorContext.make videoMeta={videoMeta} wasmController={wasm}>
+            <Editor />
+          </EditorContext.make>
+        );
+    })
+  );
 }
 
 export async function load_audio_wasm_callback(name: string) {

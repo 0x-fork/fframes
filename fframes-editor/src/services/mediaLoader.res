@@ -1,19 +1,39 @@
-type defaultModule<'a> = {default: 'a}
-type mediaImport<'a> = unit => Js.Promise.t<'a>
+type audioInfo = {
+  duration: int,
+  sampleRate: int,
+  arrayBuffer: Js.ArrayBuffer.t,
+}
 
-type mediaImportHash<'a> = Js.Dict.t<mediaImport<'a>>
+type imageInfo = {
+  width: int,
+  height: int,
+}
 
-// let loadAudio = (url) => { 
+@genType
+type processedMedia =
+  | Font(string)
+  | Subtitles(string)
+  | Image(string, imageInfo)
+  | Audio((string, audioInfo))
 
-// }
+type imageImport = {default: string}
 
-let makeMediaEditor = (imports, name) => {
-  let a =
-    imports
-    ->Js.Dict.get(name)
-    ->Belt.Option.map(val =>
-      switch name {
-      | name if name->Js.String.endsWith(".mp3") => 0
-      }
-    )
+@genType.as("MediaResolver")
+type mediaResolveFn = (~name: string, ~url: string, WasmController.t) => Js.Promise.t<processedMedia>
+
+@module("./MediaResolvers") external resolveAudio: mediaResolveFn = "resolveAudio"
+@module("./MediaResolvers") external resolveSubtitles: mediaResolveFn = "resolveSubtitles"
+
+let processAudio = (controller: WasmController.t, imports: Js.Dict.t<imageImport>) => {
+  imports
+  ->Js.Dict.toArray
+  ->Belt.Array.keepMap(((name, moduleVal)) =>
+    switch name {
+    | name if name->Js.String.endsWith(".mp3") => Some(resolveAudio(~name))
+    | name if name->Js.String.endsWith(".vtt") => Some(resolveSubtitles)
+    | _ => None
+    }
+  )
+  // ->Belt.Array.map(resolveFn => resolveFn(controller, name, moduleVal.default))
+  // ->Js.Promise.all
 }

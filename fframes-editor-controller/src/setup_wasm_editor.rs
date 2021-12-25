@@ -1,6 +1,12 @@
 #[macro_export]
 macro_rules! setup_wasm_editor {
     ($x:tt) => {
+        #[wasm_bindgen(module = "fframes-editor")]
+        extern "C" {
+            #[wasm_bindgen(catch)]
+            async fn load_audio_wasm_callback(path: &str) -> Result<JsValue, JsValue>;
+        }
+
         lazy_static! {
             static ref VIDEO: $x = $x::make();
             static ref AUDIO_CACHE: Mutex<HashMap<String, AudioData>> = Mutex::new(HashMap::new());
@@ -18,6 +24,16 @@ macro_rules! setup_wasm_editor {
             #[wasm_bindgen(getter)]
             pub fn duration(&self) -> f64 {
                 self.duration
+            }
+
+            #[wasm_bindgen(getter)]
+            pub fn height(&self) -> f64 {
+                $x::HEIGHT as f64
+            }
+
+            #[wasm_bindgen(getter)]
+            pub fn width(&self) -> f64 {
+                $x::WIDTH as f64
             }
 
             #[wasm_bindgen(getter = name)]
@@ -50,7 +66,7 @@ macro_rules! setup_wasm_editor {
         }
 
         #[wasm_bindgen]
-        pub fn cache_audio(file: String, input: &[f32]) {
+        pub fn add_audio_source(file: String, input: &[f32]) {
             let audio_data = AudioData {
                 sample_rate: 44100,
                 samples: input.to_vec(),
@@ -67,7 +83,7 @@ macro_rules! setup_wasm_editor {
         }
 
         #[wasm_bindgen]
-        pub fn cache_subtitles(file: String, content: String) {
+        pub fn add_subtitles_source(file: String, content: String) {
             SUBTITLES_CACHE
                 .lock()
                 .unwrap()

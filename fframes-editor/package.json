@@ -20,6 +20,7 @@
     "react": "^0.0.0-experimental-3b3daf557-20211210",
     "react-dom": "^0.0.0-experimental-3b3daf557-20211210",
     "rescript": "*",
+    "rescript-js": "^0.6.0",
     "tailwindcss": "^3.0.1",
     "workbox-cacheable-response": "^6.4.2",
     "workbox-routing": "^6.4.2",

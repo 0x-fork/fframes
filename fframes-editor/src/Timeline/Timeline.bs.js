@@ -3,30 +3,51 @@
 import * as React from "react";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
+import * as EditorContext from "../EditorContext.bs.js";
 import * as Webapi__Canvas__Canvas2d from "bs-webapi/src/Webapi/Canvas/Webapi__Canvas__Canvas2d.bs.js";
+
+function renderRoundedRect(ctx, x, y, width, height, radius, param) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + width, y, x + width, y + height, radius);
+  ctx.arcTo(x + width, y + height, x, y + height, radius);
+  ctx.arcTo(x, y + height, x, y, radius);
+  ctx.arcTo(x, y, x + width, y, radius);
+  ctx.stroke();
+  
+}
+
+function renderScenesPlaceholder(ctx, size, editorContext) {
+  var maxSceneWidth = size.width - 128.0;
+  renderRoundedRect(ctx, 128.0 / 2.0, 32.0, maxSceneWidth, 120.0, 8.0, undefined);
+  ctx.clip();
+  Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#9ca3af");
+  ctx.fillRect(128.0 / 2.0, 32.0, maxSceneWidth, 120.0);
+  
+}
 
 function renderCanvas(element, context) {
   var width = element.width;
   var height = element.height;
-  var centerX = width / 2.0;
-  Webapi__Canvas__Canvas2d.setFillStyle(context, /* String */0, "white");
-  context.fillRect(centerX, 0.0, width / 2.0, height / 2.0);
+  console.log(width, height);
   
 }
 
 function Timeline(Props) {
+  var sectionSize = Props.sectionSize;
   var canvasRef = React.useRef(null);
+  var editorContext = EditorContext.useEditorContext(undefined);
   React.useEffect((function () {
           Belt_Option.forEach(Caml_option.nullable_to_opt(canvasRef.current), (function (element) {
                   var context = element.getContext("2d");
-                  return renderCanvas(element, context);
+                  return renderScenesPlaceholder(context, sectionSize, editorContext);
                 }));
           
         }), []);
   return React.createElement("canvas", {
               ref: canvasRef,
-              height: "400px",
-              width: "calc(100vw)"
+              height: String(sectionSize.height) + "px",
+              width: String(sectionSize.width) + "px"
             });
 }
 
@@ -34,11 +55,19 @@ var Canvas;
 
 var Canvas2d;
 
+var timeline_margin_x = 128.0;
+
+var scene_height_size = 120.0;
+
 var make = Timeline;
 
 export {
   Canvas ,
   Canvas2d ,
+  timeline_margin_x ,
+  scene_height_size ,
+  renderRoundedRect ,
+  renderScenesPlaceholder ,
   renderCanvas ,
   make ,
   

@@ -14,6 +14,8 @@ pub enum Duration {
 
 pub trait Video: Sized {
     const FPS: usize;
+    const WIDTH: usize;
+    const HEIGHT: usize;
     const DURATION: Duration;
 
     fn make() -> Self

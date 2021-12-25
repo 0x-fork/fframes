@@ -129,6 +129,8 @@ impl MarketingVideo {
 
 impl Video for MarketingVideo {
     const FPS: usize = 60;
+    const WIDTH: usize = 1920;
+    const HEIGHT: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
 
     fn make() -> Self {

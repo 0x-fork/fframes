@@ -3,8 +3,7 @@ import "./App.css";
 import init, { render_frame, cache_audio, cache_subtitles } from "../bind/pkg";
 import testAudio from "../media/marketing.mp3";
 import subtitlesUrl from "../media/subtitles.vtt?url";
-import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
-import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
+
 
 let audioContext: AudioContext;
 let audioBuffer: ArrayBuffer;
