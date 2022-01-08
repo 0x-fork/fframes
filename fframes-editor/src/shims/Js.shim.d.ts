@@ -1,4 +1,4 @@
-export type Dict_t<T> = { [id: string]: T };
+export type Js_Dict_t<T> = { [id: string]: T };
 
 export type Js_BigInt_t = BigInt;
 

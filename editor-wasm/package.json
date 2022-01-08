@@ -9,10 +9,11 @@
     "rsw:deploy": "rsw && npm run build"
   },
   "dependencies": {
+    "fframes-editor": "*",
     "minimp3-wasm": "^0.1.0",
     "react": "^17.0.0",
     "react-dom": "^17.0.0",
-    "fframes-editor": "*"
+    "wasm-pack": "^0.10.2"
   },
   "devDependencies": {
     "@types/react": "^17.0.0",

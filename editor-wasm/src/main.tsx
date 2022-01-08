@@ -13,6 +13,6 @@ import * as videoWasmBinding from "../bind/pkg";
 import { renderEditor } from "fframes-editor";
 import "fframes-editor/tw.css";
 
-console.log(import.meta.globEager("../media/*"));
+console.log(videoWasmBinding);
 
-renderEditor(videoWasmBinding);
+renderEditor(import.meta.globEager("../media/*"), videoWasmBinding);

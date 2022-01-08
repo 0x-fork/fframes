@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 import ViteRsw from "vite-plugin-rsw";
 
 export default defineConfig({
-  assetsInclude: ["./media/*"],
+  assetsInclude: ["./media/*", "fframes-editor/*.wasm"],
   server: {
     fs: {
       strict: false,

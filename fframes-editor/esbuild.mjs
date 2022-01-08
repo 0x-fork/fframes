@@ -8,7 +8,8 @@ esbuild
     splitting: true,
     format: "esm",
     target: ["es2020"],
-    loader: { ".url.ts": "file" },
+    external: ['*?url'],
+    
     watch: process.argv.some((arg) => arg.includes("-w")),
   })
   .catch(() => process.exit(1));

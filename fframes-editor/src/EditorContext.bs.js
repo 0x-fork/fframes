@@ -3,6 +3,12 @@
 import * as React from "react";
 import * as Pervasives from "rescript/lib/es6/pervasives.js";
 
+function editorReducer(state, action) {
+  return {
+          frame: action._0
+        };
+}
+
 var editorContext = React.createContext(undefined);
 
 function useEditorContext(param) {
@@ -20,10 +26,14 @@ function EditorContext$EditorContext(Props) {
   var wasmController = Props.wasmController;
   var videoMeta = Props.videoMeta;
   var children = Props.children;
+  var match = React.useReducer(editorReducer, {
+        frame: 0
+      });
   return React.createElement(providerElement, {
               value: {
                 wasmController: wasmController,
-                videoMeta: videoMeta
+                videoMeta: videoMeta,
+                editorState: match[0]
               },
               children: children
             });
@@ -35,6 +45,7 @@ var EditorContext = {
 };
 
 export {
+  editorReducer ,
   editorContext ,
   useEditorContext ,
   EditorContext ,

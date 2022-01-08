@@ -4,5 +4,8 @@
   "workspaces": [
     "fframes-editor",
     "editor-wasm"
-  ]
+  ],
+  "dependencies": {
+    "react-from-svg": "^5.1.2"
+  }
 }

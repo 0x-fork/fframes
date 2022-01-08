@@ -8,12 +8,10 @@ type videoMeta = {
 
 @genType.as("WasmController")
 type t = {
-  addAudioSource: (string, Js.Float32Array.t) => unit,
-  addSubtitlesSource: (string, string) => unit,
+  add_audio_source: (string, ReScriptJs.Js.Float32Array.t) => unit,
+  add_subtitles_source: (string, string) => unit,
   default: unit => Js.Promise.t<unit>,
   prepare: unit => Js.Promise.t<videoMeta>,
 }
 
 external getFrame: (t, Js.BigInt.t) => string = "getFrame"
-
- 

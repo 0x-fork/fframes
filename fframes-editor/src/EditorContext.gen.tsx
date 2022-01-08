@@ -13,7 +13,14 @@ import type {t as WasmController_t} from './WasmController.gen';
 import type {videoMeta as WasmController_videoMeta} from './WasmController.gen';
 
 // tslint:disable-next-line:interface-over-type-literal
-export type editorContext = { readonly wasmController: WasmController_t; readonly videoMeta: WasmController_videoMeta };
+export type editorState = { readonly frame: number };
+
+// tslint:disable-next-line:interface-over-type-literal
+export type editorContext = {
+  readonly wasmController: WasmController_t; 
+  readonly videoMeta: WasmController_videoMeta; 
+  readonly editorState: editorState
+};
 
 // tslint:disable-next-line:interface-over-type-literal
 export type Props = {

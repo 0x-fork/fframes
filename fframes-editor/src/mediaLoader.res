@@ -1,0 +1,112 @@
+open Belt
+module Promise = Js.Promise
+
+type audioInfo = {
+  duration: float,
+  sampleRate: int,
+  arrayBuffer: Js.ArrayBuffer.t,
+}
+
+type imageInfo = {
+  src: string,
+  width: int,
+  height: int,
+}
+
+@genType
+type processedMedia =
+  | Font(string)
+  | Subtitles
+  | Image(imageInfo)
+  | Audio(audioInfo)
+
+type loadableMedia = Loading(string) | Media(processedMedia) | Error(string)
+
+@genType
+type mediaImport = {default: string}
+
+type action =
+  | InitMediaProcessing(Js.Dict.t<mediaImport>)
+  | MediaItemProcessed(string, processedMedia)
+  | MediaProcessingFinished
+
+module MediaObserver = {
+  type state = {
+    allMediaLoaded: bool,
+    mediaList: Belt.Map.String.t<loadableMedia>,
+  }
+
+  type action = action
+
+  let initial = {
+    allMediaLoaded: false,
+    mediaList: Belt.Map.String.empty,
+  }
+
+  let reducer = (state, action) => {
+    switch action {
+    | InitMediaProcessing(imports) => {
+        ...state,
+        mediaList: imports
+        ->Js.Dict.keysToArray
+        ->Array.map(relativePath => (Utils.Path.getFilename(relativePath), Loading(relativePath)))
+        ->Map.String.fromArray,
+      }
+    | MediaItemProcessed(name, media) => {
+        ...state,
+        mediaList: state.mediaList->Map.String.update(name, _ => Some(Media(media))),
+      }
+    | MediaProcessingFinished => {
+        ...state,
+        allMediaLoaded: true,
+      }
+    }
+  }
+}
+
+module MediaLoaderObserver = UseObservable.MakeObserver(MediaObserver)
+
+// This types forces typescript to correctly call handle `resolveMedia` and convert values to the rescript world
+type forceTsReturnResolveMedia = MediaResolved
+
+@genType.as("MediaResolver")
+type mediaResolveFn = (string, string, WasmController.t) => Js.Promise.t<forceTsReturnResolveMedia>
+
+@module("./MediaResolvers") external resolveAudio: mediaResolveFn = "resolveAudio"
+@module("./MediaResolvers") external resolveSubtitles: mediaResolveFn = "resolveSubtitles"
+@module("./MediaResolvers") external resolveFont: mediaResolveFn = "resolveFont"
+@module("./MediaResolvers") external resolveImage: mediaResolveFn = "resolveImage"
+
+// This is pretty dumb of how genType works for typescript.
+// It only maps public types to the internal types when using public API, so we  can't do this on Promise.then
+@genType
+let resolveMedia = (name, media) => {
+  MediaLoaderObserver.dispatch(MediaItemProcessed(name, media))
+
+  MediaResolved
+}
+
+@genType
+let processImports = (~imports: Js.Dict.t<mediaImport>, ~wasmController: WasmController.t) => {
+  MediaLoaderObserver.dispatch(InitMediaProcessing(imports))
+  imports
+  ->Js.Dict.toArray
+  ->Array.keepMap(((moduleRelativePath, moduleVal)) => {
+    let name = moduleRelativePath->Utils.Path.getFilename
+
+    switch name {
+    | name if name->Js.String.endsWith(".mp3") => Some(resolveAudio)
+    | name if name->Js.String.endsWith(".vtt") => Some(resolveSubtitles)
+    | name if name->Js.String.endsWith(".ttf") || name->Js.String.endsWith(".otf") =>
+      Some(resolveFont)
+    | name
+      if name->Js.String.endsWith(".png") ||
+      name->Js.String.endsWith(".jpg") ||
+      name->Js.String.endsWith(".jpeg") =>
+      Some(resolveImage)
+    | _ => None
+    }->Option.map(resolveFn => resolveFn(name, moduleVal.default, wasmController))
+  })
+  ->Promise.all
+  ->Promise.thenResolve(_ => MediaLoaderObserver.dispatch(MediaProcessingFinished))
+}

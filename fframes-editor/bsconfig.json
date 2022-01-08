@@ -15,6 +15,7 @@
     "@rescript/react",
     "bs-webapi",
     "rescript-js",
+    "rescript-classnames",
     "@ryyppy/rescript-promise"
   ],
   "warnings": {
@@ -25,6 +26,7 @@
     "language": "typescript",
     "module": "es6",
     "importPath": "relative",
+    "exportInterfaces": false,
     "shims": {
       "Js": "Js",
       "ReScriptJs": "shims/Js"

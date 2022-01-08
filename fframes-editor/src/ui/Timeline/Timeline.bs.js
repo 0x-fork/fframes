@@ -3,7 +3,7 @@
 import * as React from "react";
 import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as Caml_option from "rescript/lib/es6/caml_option.js";
-import * as EditorContext from "../EditorContext.bs.js";
+import * as EditorContext from "../../EditorContext.bs.js";
 import * as Webapi__Canvas__Canvas2d from "bs-webapi/src/Webapi/Canvas/Webapi__Canvas__Canvas2d.bs.js";
 
 function renderRoundedRect(ctx, x, y, width, height, radius, param) {

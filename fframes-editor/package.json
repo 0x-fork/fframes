@@ -5,6 +5,7 @@
   "types": "./src/fframes-editor.tsx",
   "scripts": {
     "build": "rescript",
+    "rescript:build": "rescript build -with-deps",
     "rescript:clean": "rescript clean -with-deps",
     "dev": "concurrently 'rescript build -w' 'tailwindcss -o tw.css --watch' 'node esbuild.mjs --watch'"
   },
@@ -20,6 +21,7 @@
     "react": "^0.0.0-experimental-3b3daf557-20211210",
     "react-dom": "^0.0.0-experimental-3b3daf557-20211210",
     "rescript": "*",
+    "rescript-classnames": "^6.0.0",
     "rescript-js": "^0.6.0",
     "tailwindcss": "^3.0.1",
     "workbox-cacheable-response": "^6.4.2",
