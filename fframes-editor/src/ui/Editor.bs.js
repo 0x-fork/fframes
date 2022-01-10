@@ -5,6 +5,7 @@ import * as Utils from "../Utils.bs.js";
 import * as React from "react";
 import * as Timeline from "./Timeline/Timeline.bs.js";
 import * as $$MediaList from "./MediaList.bs.js";
+import * as ReactHelmet from "react-helmet";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as UseEditorLayout from "../hooks/useEditorLayout.bs.js";
 
@@ -12,18 +13,27 @@ function Editor(Props) {
   var layout = Hooks.useEditorLayout(undefined);
   var context = EditorContext.useEditorContext(undefined);
   var name = Utils.$$Array.last(context.videoMeta.name.split("::"));
+  var videoTitle = name !== undefined ? name : "Unknown video";
   return React.createElement("div", {
               className: "dark w-screen h-screen bg-gray-900"
-            }, React.createElement("div", {
+            }, React.createElement(ReactHelmet.Helmet, {
+                  children: null
+                }, React.createElement("title", undefined, videoTitle), React.createElement("style", {
+                      type: "text/css"
+                    }, "\n            #editor-preview > svg {\n              transform-origin: top left !important;\n              transform: scale(" + layout.preview.scale.toString() + ") !important\n            }\n          ")), React.createElement("div", {
                   className: "overflow-auto flex w-full"
                 }, React.createElement("div", {
-                      className: "col-span-2  h-full overflow-auto flex flex-col py-6",
+                      className: "col-span-2 h-full overflow-auto flex flex-col py-6 border-r border-gray-800",
                       style: UseEditorLayout.sizeToStyle(layout.mediaControls)
                     }, React.createElement("h1", {
-                          className: "text-2xl mb-2 font-medium text-white px-6"
-                        }, name !== undefined ? name : "Unknown video"), React.createElement($$MediaList.make, {})), React.createElement("div", {
+                          className: "text-2xl mb-6 font-medium text-white px-6"
+                        }, videoTitle), React.createElement($$MediaList.make, {})), React.createElement("div", {
                       className: " bg-black",
-                      style: UseEditorLayout.sizeToStyle(layout.preview)
+                      id: "editor-preview",
+                      style: UseEditorLayout.sizeToStyle(layout.preview),
+                      dangerouslySetInnerHTML: {
+                        __html: Utils.$$Option.unwrapOr(context.editorState.svg, "")
+                      }
                     })), React.createElement("div", {
                   className: "shadow-lg w-screen bg-gray-800",
                   style: UseEditorLayout.sizeToStyle(layout.timeLine)

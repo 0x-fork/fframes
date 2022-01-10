@@ -42,7 +42,6 @@ export const resolveSubtitles: MediaResolver = async (
 ) => {
   const response = await fetch(url);
   const text = await response.text();
-
   wasmController.add_subtitles_source(name, text);
 
   return resolveMedia(name, "Subtitles");

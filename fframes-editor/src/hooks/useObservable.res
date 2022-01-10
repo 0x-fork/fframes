@@ -22,12 +22,15 @@ module MakeObserver = (Observable: Observable) => {
   let get = () => mutableState.contents
   let dispatch = action => {
     mutableState := Observable.reducer(mutableState.contents, action)
+
+    listeners->Js.Array.forEach(({listener}) => listener(mutableState.contents))
   }
 
   let nextId = ref(0)
   let subscribe = listener => {
     let id = nextId.contents
     nextId := id + 1
+
     listeners->Js.Array.push({id: id, listener: listener})->ignore
 
     () => {

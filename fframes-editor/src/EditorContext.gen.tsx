@@ -13,7 +13,18 @@ import type {t as WasmController_t} from './WasmController.gen';
 import type {videoMeta as WasmController_videoMeta} from './WasmController.gen';
 
 // tslint:disable-next-line:interface-over-type-literal
-export type editorState = { readonly frame: number };
+export type playState = 
+    "Playing"
+  | "Paused"
+  | "WaitingForAction"
+  | "CantPlay";
+
+// tslint:disable-next-line:interface-over-type-literal
+export type editorState = {
+  readonly frame: number; 
+  readonly playState: playState; 
+  readonly svg?: string
+};
 
 // tslint:disable-next-line:interface-over-type-literal
 export type editorContext = {

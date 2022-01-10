@@ -30,7 +30,7 @@ type action =
   | MediaItemProcessed(string, processedMedia)
   | MediaProcessingFinished
 
-module MediaObserver = {
+module ObserverState = {
   type state = {
     allMediaLoaded: bool,
     mediaList: Belt.Map.String.t<loadableMedia>,
@@ -64,7 +64,7 @@ module MediaObserver = {
   }
 }
 
-module MediaLoaderObserver = UseObservable.MakeObserver(MediaObserver)
+module MediaLoaderObserver = UseObservable.MakeObserver(ObserverState)
 
 // This types forces typescript to correctly call handle `resolveMedia` and convert values to the rescript world
 type forceTsReturnResolveMedia = MediaResolved

@@ -16,13 +16,13 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub struct VideoMetadata {
-            duration: f64,
+            duration: i32,
         }
 
         #[wasm_bindgen]
         impl VideoMetadata {
-            #[wasm_bindgen(getter)]
-            pub fn duration(&self) -> f64 {
+            #[wasm_bindgen(getter, js_name=durationInFrames)]
+            pub fn duration_in_frames(&self) -> i32 {
                 self.duration
             }
 
@@ -42,16 +42,19 @@ macro_rules! setup_wasm_editor {
             }
         }
 
-        async fn get_duration_in_seconds() -> f64 {
+        async fn get_duration_frames() -> i32 {
             match $x::DURATION {
-                fframes::Duration::Seconds(seconds) => seconds as f64,
-                fframes::Duration::Frames(frames) => (frames * $x::FPS) as f64,
+                fframes::Duration::Frames(frames) => frames as i32,
+                fframes::Duration::Seconds(seconds) => (seconds * $x::FPS) as i32,
                 fframes::Duration::FromAudio(audio) => unsafe {
-                    load_audio_wasm_callback(audio)
+                    let duration_in_frames = load_audio_wasm_callback(audio)
                         .await
                         .unwrap()
                         .as_f64()
                         .unwrap()
+                        * $x::FPS as f64;
+
+                    duration_in_frames as i32
                 },
             }
         }
@@ -60,8 +63,7 @@ macro_rules! setup_wasm_editor {
         pub async fn prepare() -> Result<VideoMetadata, JsValue> {
             console_error_panic_hook::set_once();
 
-            let duration = get_duration_in_seconds().await;
-            // ("kek".to_owned(), VideoMetadata {})
+            let duration = get_duration_frames().await;
             Ok(VideoMetadata { duration })
         }
 

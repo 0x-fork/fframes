@@ -224,11 +224,11 @@ impl Video for MarketingVideo {
     fn render_frame(&self, frame: &Frame, ctx: FFramesContext::FFramesContext) -> String {
         const BAR_SIZE: usize = 96;
         const BAR_SIZE_F32: f32 = BAR_SIZE as f32;
-        let subtitles = ctx.get_subtitles("subtitles");
+        let subtitles = ctx.get_subtitles("subtitles.vtt");
         let audio_visualization = AudioData::visualize_audio_frame(
             frame,
             &AudioData::VisualizeFrameInput {
-                audio: ctx.get_audio_data("marketing"),
+                audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: AudioData::SampleSize::S16,
                 ctx: &ctx,
             },

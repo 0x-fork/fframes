@@ -19,6 +19,9 @@ module Option = {
     | Some(val) => val
     | None => default
     }
+
+
+  let some = (val) => Some(val)
 }
 
 module Log = {

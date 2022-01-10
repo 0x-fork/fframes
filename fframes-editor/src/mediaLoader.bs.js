@@ -46,12 +46,12 @@ function reducer(state, action) {
         };
 }
 
-var MediaObserver = {
+var ObserverState = {
   initial: initial,
   reducer: reducer
 };
 
-var MediaLoaderObserver = UseObservable.MakeObserver(MediaObserver);
+var MediaLoaderObserver = UseObservable.MakeObserver(ObserverState);
 
 var resolveAudio = MediaResolvers.resolveAudio;
 
@@ -96,7 +96,7 @@ var $$Promise$1;
 
 export {
   $$Promise$1 as $$Promise,
-  MediaObserver ,
+  ObserverState ,
   MediaLoaderObserver ,
   resolveAudio ,
   resolveSubtitles ,

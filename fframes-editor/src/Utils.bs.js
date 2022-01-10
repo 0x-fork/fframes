@@ -32,9 +32,14 @@ function unwrapOr(option, $$default) {
   }
 }
 
+function some(val) {
+  return Caml_option.some(val);
+}
+
 var $$Option = {
   unwrap: unwrap,
-  unwrapOr: unwrapOr
+  unwrapOr: unwrapOr,
+  some: some
 };
 
 function andReturn(a) {

@@ -14,6 +14,9 @@ function MakeObserver(Observable) {
   };
   var dispatch = function (action) {
     mutableState.contents = Curry._2(Observable.reducer, mutableState.contents, action);
+    listeners.forEach(function (param) {
+          return Curry._1(param.listener, mutableState.contents);
+        });
     
   };
   var nextId = {
