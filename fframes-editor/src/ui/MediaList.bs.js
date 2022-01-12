@@ -9,7 +9,7 @@ import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as MediaLoader from "../mediaLoader.bs.js";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 
-var iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-400 to-pink-400 flex justify-center items-center";
+var iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 2xl:h-12 2xl:w-12 rounded-xl bg-gradient-to-r from-indigo-400 to-pink-400 flex justify-center items-center";
 
 function MediaList$LoadedMediaIcon(Props) {
   var media = Props.media;
@@ -83,15 +83,15 @@ function MediaList$LoadedMedia(Props) {
     }
   }
   return React.createElement("div", {
-              className: "flex space-x-2"
+              className: "flex  space-x-2"
             }, React.createElement(MediaList$LoadedMediaIcon, {
                   media: media
                 }), React.createElement("div", {
                   className: "flex flex-col"
                 }, React.createElement("p", {
-                      className: "text-gray-300"
+                      className: "text-gray-300 2xl:text-lg"
                     }, name), React.createElement("p", {
-                      className: "text-gray-500 text-xs"
+                      className: "text-gray-500 text-xs 2xl:text-base"
                     }, tmp)));
 }
 
@@ -133,7 +133,7 @@ function $$MediaList(Props) {
                       
                     }
                     return React.createElement("li", {
-                                className: "px-4 py-2 h-16"
+                                className: "px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center"
                               }, tmp);
                   })));
 }

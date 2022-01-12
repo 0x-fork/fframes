@@ -47,31 +47,31 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
     let mut opt = usvg::Options::default();
     opt.fontdb.load_system_fonts();
     opt.fontdb
-        .load_font_file("/Users/dmitrijkovalenko/dev/fframes/video/media/Bubble.ttf")
+        .load_font_file("/Users/dmtrkovalneko/dev/fframes/video/media/Bubble.ttf")
         .unwrap_or_else(|_| println!("Can not load a font"));
 
     println!("decoding audio");
     let mut audio_hash = HashMap::new();
     audio_hash.insert(
         "marketing".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
+        load_audio("/Users/dmtrkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
     );
-    audio_hash.insert(
-        "me".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/me.mp3"),
-    );
-    audio_hash.insert(
-        "vlad".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/vlad.mp3"),
-    );
-    audio_hash.insert(
-        "guest".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/guest.mp3"),
-    );
-    audio_hash.insert(
-        "final".to_owned(),
-        load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/final.mp3"),
-    );
+    // audio_hash.insert(
+    //     "me".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/me.mp3"),
+    // );
+    // audio_hash.insert(
+    //     "vlad".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/vlad.mp3"),
+    // );
+    // audio_hash.insert(
+    //     "guest".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/guest.mp3"),
+    // );
+    // audio_hash.insert(
+    //     "final".to_owned(),
+    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/final.mp3"),
+    // );
 
     let mut subtitles_hash = HashMap::new();
     // subtitles_hash.insert(
@@ -174,6 +174,6 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 }
 
 fn main() {
-    // render(video::marketing::MarketingVideo::make());
-    render(video::podcast::PodcastVideo::make());
+    render(video::marketing::MarketingVideo::make());
+    // render(video::podcast::PodcastVideo::make());
 }

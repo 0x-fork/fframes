@@ -41,7 +41,7 @@ function getDefaultState(wasmController) {
     return {
             frame: 0,
             playState: /* WaitingForAction */2,
-            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(0)))
+            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(1240)))
           };
   } else {
     return {

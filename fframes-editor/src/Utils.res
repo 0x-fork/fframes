@@ -7,6 +7,15 @@ module Array = {
   let removeInPlace = (arr, ~index) => spliceInPlace(arr, ~start=index, ~remove=1)
 }
 
+module Math = {
+  let divideFloat = (a, b) => a /. b
+  let divideInt = (a, b) => a / b
+
+  let divideWithReminder = (x, y) => {
+    (Js.Math.floor(x /. y), Js.Float.mod(x, y))
+  }
+}
+
 module Option = {
   let unwrap = option =>
     switch option {
@@ -20,8 +29,7 @@ module Option = {
     | None => default
     }
 
-
-  let some = (val) => Some(val)
+  let some = val => Some(val)
 }
 
 module Log = {
@@ -37,12 +45,6 @@ module Path = {
   }
 }
 
-module Float = {
-  let divideWithReminder = (x, y) => {
-    (Js.Math.floor(x /. y), Js.Float.mod(x, y))
-  }
-}
-
 module Duration = {
   let leftPad = n =>
     n > 9.
@@ -50,8 +52,8 @@ module Duration = {
       : `0${n->Js.Float.toFixedWithPrecision(~digits=0)}`
 
   let formatSeconds = seconds => {
-    let (hours, reminder) = Float.divideWithReminder(seconds, 3600.)
-    let (minutes, seconds) = Float.divideWithReminder(reminder, 60.)
+    let (hours, reminder) = Math.divideWithReminder(seconds, 3600.)
+    let (minutes, seconds) = Math.divideWithReminder(reminder, 60.)
 
     if hours > 1.0 {
       `${hours->leftPad}:${minutes->leftPad}:${seconds->leftPad}`

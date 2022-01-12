@@ -2,7 +2,7 @@ open Belt
 open Cx
 
 module LoadedMediaIcon = {
-  let iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 rounded-xl bg-gradient-to-r from-indigo-400 to-pink-400 flex justify-center items-center"
+  let iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 2xl:h-12 2xl:w-12 rounded-xl bg-gradient-to-r from-indigo-400 to-pink-400 flex justify-center items-center"
 
   @react.component
   let make = (~media: MediaLoader.processedMedia) => {
@@ -29,11 +29,11 @@ module LoadedMediaIcon = {
 module LoadedMedia = {
   @react.component
   let make = (~name, ~media: MediaLoader.processedMedia) => {
-    <div className="flex space-x-2">
+    <div className="flex  space-x-2">
       <LoadedMediaIcon media />
       <div className="flex flex-col">
-        <p className="text-gray-300"> {name->React.string} </p>
-        <p className="text-gray-500 text-xs">
+        <p className="text-gray-300 2xl:text-lg"> {name->React.string} </p>
+        <p className="text-gray-500 text-xs 2xl:text-base">
           {switch media {
           | Audio({sampleRate, duration}) =>
             `${duration->Utils.Duration.formatSeconds}, ${sampleRate->Int.toString}hz`->React.string
@@ -65,7 +65,7 @@ let make = () => {
     ->Array.map(name => {
       let media = mediaState.mediaList->Map.String.getExn(name)
 
-      <li className="px-4 py-2 h-16">
+      <li className="px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center">
         {switch media {
         | Media(media) => <LoadedMedia name media />
         | Loading(_) => <Loading name />

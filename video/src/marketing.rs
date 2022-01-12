@@ -396,7 +396,7 @@ impl Video for MarketingVideo {
             </text>
 
             <image
-              xlink:href="/Users/dmitrijkovalenko/dev/rumotion/editor-wasm/media/code.png"
+              xlink:href="/media/code.png"
               width="900"
               height="900"
               x={frame.animate_or(&self.code_animation, -1200.0)}
@@ -411,7 +411,7 @@ impl Video for MarketingVideo {
             {if frame.get_current_second() > 16.25  {
               svgr!(
                 <g opacity={frame.animate_runtime(16.25, 0.6, 1.0, &self.spring)}>
-                  <text x="960" y="570" font-family="'Bubble Bobble'" font-size="154" text-anchor="middle">
+                  <text x="960" y="570" font-family="Bubble" font-size="154" text-anchor="middle">
                     <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
                   </text>
                   <text x="960" y="610" font-family="Chalkboard SE" font-size="30" text-anchor="middle">

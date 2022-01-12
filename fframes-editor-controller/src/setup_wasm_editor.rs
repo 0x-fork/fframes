@@ -40,6 +40,11 @@ macro_rules! setup_wasm_editor {
             pub fn name(&self) -> String {
                 type_name::<$x>().to_owned()
             }
+
+            #[wasm_bindgen(getter)]
+            pub fn fps(&self) -> f64 {
+                $x::FPS as f64
+            }
         }
 
         async fn get_duration_frames() -> i32 {
@@ -96,11 +101,11 @@ macro_rules! setup_wasm_editor {
         pub fn render_frame(frame: i64) -> String {
             VIDEO.render_frame(
                 &Frame::Frame {
-                    fps: 30,
+                    fps: $x::FPS,
                     index: frame,
                 },
                 FFramesContext::FFramesContext {
-                    fps: 30,
+                    fps: $x::FPS,
                     audio: &AUDIO_CACHE.lock().unwrap(),
                     subtitles: &SUBTITLES_CACHE.lock().unwrap(),
                 },

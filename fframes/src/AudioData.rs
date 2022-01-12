@@ -1,4 +1,4 @@
-use crate::{Frame, FFramesContext, WindowFunctions};
+use crate::{FFramesContext, Frame, WindowFunctions};
 use std::convert::TryInto;
 
 #[derive(Debug, Clone)]
@@ -142,6 +142,7 @@ pub fn get_visualization(
 
     let sample_start = *frame as i128 * audio.sample_rate as i128 / ctx.fps as i128;
     let fft_size = get_fft_size_number(sample_size);
+
 
     let res = apply_fft_to_frame(
         &sample_size,

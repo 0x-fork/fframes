@@ -3,6 +3,7 @@ type videoMeta = {
   name: string,
   width: int,
   height: int,
+  fps: int,
   durationInFrames: int,
 }
 

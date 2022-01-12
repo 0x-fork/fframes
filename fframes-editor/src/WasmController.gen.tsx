@@ -13,6 +13,7 @@ export type videoMeta = {
   readonly name: string; 
   readonly width: number; 
   readonly height: number; 
+  readonly fps: number; 
   readonly durationInFrames: number
 };
 export type VideoMeta = videoMeta;
