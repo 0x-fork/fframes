@@ -18,7 +18,7 @@ import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 
-import type {t as WasmController_t} from './WasmController.gen';
+import type {t as WasmController_t} from '../../src/WasmController.gen';
 
 // tslint:disable-next-line:interface-over-type-literal
 export type audioInfo = {

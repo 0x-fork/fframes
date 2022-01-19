@@ -21,7 +21,7 @@ int concat_files(const char *output)
   avcodec_register_all();
   av_register_all();
 
-  const char *files[12];
+  const char *files[10];
   files[0] = "some-0.mp4";
   files[1] = "some-1.mp4";
   files[2] = "some-2.mp4";
@@ -32,8 +32,6 @@ int concat_files(const char *output)
   files[7] = "some-7.mp4";
   files[8] = "some-8.mp4";
   files[9] = "some-9.mp4";
-  files[10] = "some-10.mp4";
-  files[11] = "some-11.mp4";
 
   printf("%s", files[0]);
 

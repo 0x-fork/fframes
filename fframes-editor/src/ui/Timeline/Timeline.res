@@ -2,6 +2,16 @@ open Belt
 module Canvas = Webapi.Canvas
 module Canvas2d = Webapi.Canvas.Canvas2d
 
+type canvasSize = {
+  width: float,
+  height: float,
+  scale: float,
+  scaledWidth: float,
+  scaledHeight: float,
+  maxSceneWidth: float,
+  frameToPxRatio: float,
+}
+
 @send
 external drawImage: (
   Canvas.Canvas2d.t,
@@ -15,8 +25,6 @@ external drawImage: (
 let timeline_margin_x = 64.0
 let timeline_margin_y = 64.0
 let scene_height_size = 120.0
-
-let calcMaxSceneWidth = (size: UseEditorLayout.sectionSize) => size.width -. timeline_margin_x *. 2.
 
 let renderRoundedRect = (ctx, ~x, ~y, ~width, ~height, ~radius, ()) => {
   ctx->Canvas2d.beginPath
@@ -42,23 +50,17 @@ let clipOverTimeLineElement = (ctx, ~y, ~width) => {
   ctx->Canvas2d.clip
 }
 
-let renderMainScene = (
-  ctx,
-  size: UseEditorLayout.sectionSize,
-  ~editorContext: EditorContext.editorContext,
-) => {
-  let maxSceneWidth = size.width -. timeline_margin_x *. 2.
+let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) => {
   let aspectRatio =
     editorContext.videoMeta.width->Float.fromInt /. editorContext.videoMeta.height->Float.fromInt
 
   let width = scene_height_size *. aspectRatio
 
-  ctx->clipOverTimeLineElement(~y=timeline_margin_y, ~width=maxSceneWidth)
-  let maxFramesInScene = (maxSceneWidth /. width)->Js.Math.floor->Float.toInt
+  ctx->clipOverTimeLineElement(~y=timeline_margin_y, ~width=size.maxSceneWidth)
+  let maxFramesInScene = (size.maxSceneWidth /. width)->Js.Math.floor->Float.toInt
   let framesBreak = editorContext.videoMeta.durationInFrames / maxFramesInScene
 
   Range.forEach(0, maxFramesInScene, i => {
-    Js.Console.log((i * framesBreak)->Js.BigInt.fromInt)
     let svg = editorContext.wasmController.render_frame((i * framesBreak)->Js.BigInt.fromInt)
     let image = Image.make(~width, ~height=scene_height_size)
 
@@ -67,7 +69,7 @@ let renderMainScene = (
       ctx->drawImage(
         ~imageData=image,
         ~dy=timeline_margin_y,
-        ~dx=timeline_margin_x /. 2. +. i->Js.Float.fromInt *. width,
+        ~dx=(timeline_margin_x /. 2. +. i->Js.Float.fromInt *. width)->Js.Math.floor,
         ~dirtyHeight=scene_height_size,
         ~dirtyWidth=width,
       )
@@ -77,46 +79,23 @@ let renderMainScene = (
   ()
 }
 
-let renderScenesPlaceholder = (
-  ctx,
-  size: UseEditorLayout.sectionSize,
-  editorContext: EditorContext.editorContext,
-) => {
-  let maxSceneWidth = calcMaxSceneWidth(size)
-
-  ctx->clipOverTimeLineElement(~y=32., ~width=maxSceneWidth)
+let renderScenesPlaceholder = (ctx, size, _editorContext: EditorContext.editorContext) => {
+  ctx->clipOverTimeLineElement(~y=32., ~width=size.maxSceneWidth)
   ctx->Canvas2d.setFillStyle(String, "#9ca3af")
   ctx->Canvas2d.fillRect(
     ~x=timeline_margin_x /. 2.0,
     ~y=timeline_margin_y,
-    ~w=maxSceneWidth,
+    ~w=size.maxSceneWidth,
     ~h=scene_height_size,
   )
-
-  // let sceneHeight
 }
 
-let renderCanvas = (element, context) => {
-  let width = float_of_int(Canvas.CanvasElement.width(element))
-  let height = float_of_int(Canvas.CanvasElement.height(element))
-  let centerX = width /. 2.0
-  let centerY = height /. 2.0
-
-  Js.Console.log2(width, height)
-}
-
-let renderTimeSlots = (
-  ctx,
-  size: UseEditorLayout.sectionSize,
-  editorContext: EditorContext.editorContext,
-) => {
+let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) => {
   let coordinate_step = 100
   let full_timestamp_each_steps = 2
-  let timestamp_slot_size = 40
 
-  let maxSceneWidth = calcMaxSceneWidth(size)
   let stepsCount =
-    maxSceneWidth
+    size.maxSceneWidth
     ->Utils.Math.divideFloat(coordinate_step->Float.fromInt)
     ->Js.Math.floor
     ->Float.toInt
@@ -146,36 +125,60 @@ let renderTimeSlots = (
   })
 }
 
+let renderSeekBar = (ctx, size, editorContext: EditorContext.editorContext) => {
+  let x =
+    (timeline_margin_x /. 2.0 +.
+      editorContext.editorState.frame->Float.fromInt *. size.frameToPxRatio)->Js.Math.floor
+
+  ctx->Canvas2d.beginPath
+  ctx->Canvas2d.moveTo(~x, ~y=0.)
+  ctx->Canvas2d.lineTo(~x, ~y=size.height)
+
+  ctx->Canvas2d.moveTo(~x=x -. 2., ~y=0.)
+  ctx->Canvas2d.lineTo(~x, ~y=7.)
+  ctx->Canvas2d.lineTo(~x=x +. 2., ~y=0.)
+  ctx->Canvas2d.lineTo(~x=x -. 2., ~y=0.)
+
+  ctx->Canvas2d.setStrokeStyle(String, "#fbbf24")
+  ctx->Canvas2d.stroke
+}
+
 @react.component
 let make = (~sectionSize: UseEditorLayout.sectionSize) => {
   let canvasRef = React.useRef(Js.Nullable.null)
+  let seekCanvasRef = React.useRef(Js.Nullable.null)
   let editorContext = EditorContext.useEditorContext()
+
+  let canvasSize = React.useMemo2(() => {
+    let scale = Web.Window.devicePixelRatio
+    let maxSceneWidth = sectionSize.width -. timeline_margin_x
+
+    {
+      width: sectionSize.width,
+      height: sectionSize.height,
+      scaledWidth: sectionSize.width *. scale,
+      scaledHeight: sectionSize.height *. scale,
+      scale: scale,
+      maxSceneWidth: maxSceneWidth,
+      frameToPxRatio: maxSceneWidth /. editorContext.videoMeta.durationInFrames->Float.fromInt,
+    }
+  }, (sectionSize, editorContext.videoMeta.durationInFrames))
 
   React.useEffect1(() => {
     canvasRef.current
     ->Js.Nullable.toOption
     ->Belt.Option.map(element => {
-      let context = Webapi.Canvas.CanvasElement.getContext2d(element)
-      let scale = Web.Window.devicePixelRatio
+      let ctx = Webapi.Canvas.CanvasElement.getContext2d(element)
 
-      let scaledSize: UseEditorLayout.sectionSize = {
-        width: sectionSize.width *. scale,
-        height: sectionSize.height *. scale,
-        scale: scale,
-      }
+      element->Canvas.CanvasElement.setHeight(canvasSize.scaledHeight->Js.Math.floor->Float.toInt)
+      element->Canvas.CanvasElement.setWidth(canvasSize.scaledWidth->Js.Math.floor->Float.toInt)
 
-      (element->Web.Element.style)["height"] = `${sectionSize.height->Float.toString}px`
-      (element->Web.Element.style)["width"] = `${sectionSize.width->Float.toString}px`
-
-      element->Canvas.CanvasElement.setHeight(scaledSize.height->Js.Math.floor->Float.toInt)
-      element->Canvas.CanvasElement.setWidth(scaledSize.width->Js.Math.floor->Float.toInt)
-
-      context->Canvas2d.scale(~x=scale, ~y=scale)
-      context->renderTimeSlots(sectionSize, editorContext)
+      ctx->Canvas2d.scale(~x=canvasSize.scale, ~y=canvasSize.scale)
+      ctx->renderTimeSlots(canvasSize, editorContext)
 
       switch editorContext.editorState.playState {
-      | CantPlay => context->renderScenesPlaceholder(sectionSize, editorContext)
-      | _ => context->renderMainScene(sectionSize, ~editorContext)
+      | CantPlay => ctx->renderScenesPlaceholder(canvasSize, editorContext)
+      | _ => ctx->renderMainScene(canvasSize, editorContext)
       }
 
       ()
@@ -183,11 +186,53 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
     ->ignore
 
     None
-  }, [sectionSize])
+  }, [canvasSize])
 
-  <canvas
-    width={`${sectionSize.width->Js.Math.floor->Float.toString}px`}
-    height={`${sectionSize.height->Js.Math.floor->Float.toString}px`}
-    ref={ReactDOM.Ref.domRef(canvasRef)}
-  />
+  React.useEffect1(() => {
+    seekCanvasRef.current
+    ->Js.Nullable.toOption
+    ->Belt.Option.map(seekCanvas => {
+      let ctx = Webapi.Canvas.CanvasElement.getContext2d(seekCanvas)
+
+      seekCanvas->Canvas.CanvasElement.setHeight(
+        canvasSize.scaledHeight->Js.Math.floor->Float.toInt,
+      )
+      seekCanvas->Canvas.CanvasElement.setWidth(canvasSize.scaledWidth->Js.Math.floor->Float.toInt)
+
+      ctx->Canvas2d.scale(~x=canvasSize.scale, ~y=canvasSize.scale)
+
+      switch editorContext.editorState.playState {
+      | CantPlay => ()
+      | _ => renderSeekBar(ctx, canvasSize, editorContext)
+      }->ignore
+    })
+    ->ignore
+
+    None
+  }, [])
+
+  <div className="relative">
+    <canvas
+      className="absolute inset-0"
+      style={ReactDOMStyle.make(
+        ~height=`${canvasSize.height->Float.toString}px`,
+        ~width=`${canvasSize.width->Float.toString}px`,
+        (),
+      )}
+      width={`${canvasSize.scaledWidth->Js.Math.floor->Float.toString}px`}
+      height={`${canvasSize.scaledHeight->Js.Math.floor->Float.toString}px`}
+      ref={ReactDOM.Ref.domRef(canvasRef)}
+    />
+    <canvas
+      className="absolute inset-0"
+      style={ReactDOMStyle.make(
+        ~height=`${canvasSize.height->Float.toString}px`,
+        ~width=`${canvasSize.width->Float.toString}px`,
+        (),
+      )}
+      width={`${canvasSize.width->Js.Math.floor->Float.toString}px`}
+      height={`${canvasSize.height->Js.Math.floor->Float.toString}px`}
+      ref={ReactDOM.Ref.domRef(seekCanvasRef)}
+    />
+  </div>
 }

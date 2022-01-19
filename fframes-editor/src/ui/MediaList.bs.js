@@ -6,7 +6,7 @@ import * as Icons from "./icons/Icons.bs.js";
 import * as Utils from "../Utils.bs.js";
 import * as React from "react";
 import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
-import * as MediaLoader from "../mediaLoader.bs.js";
+import * as MediaLoader from "../services/mediaLoader.bs.js";
 import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 
 var iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 2xl:h-12 2xl:w-12 rounded-xl bg-gradient-to-r from-indigo-400 to-pink-400 flex justify-center items-center";
@@ -83,7 +83,7 @@ function MediaList$LoadedMedia(Props) {
     }
   }
   return React.createElement("div", {
-              className: "flex  space-x-2"
+              className: "flex space-x-2"
             }, React.createElement(MediaList$LoadedMediaIcon, {
                   media: media
                 }), React.createElement("div", {
@@ -133,6 +133,7 @@ function $$MediaList(Props) {
                       
                     }
                     return React.createElement("li", {
+                                key: name,
                                 className: "px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center"
                               }, tmp);
                   })));

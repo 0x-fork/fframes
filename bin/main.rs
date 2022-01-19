@@ -52,26 +52,26 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 
     println!("decoding audio");
     let mut audio_hash = HashMap::new();
+    // audio_hash.insert(
+    //     "marketing".to_owned(),
+    //     load_audio("/Users/dmtrkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
+    // );
     audio_hash.insert(
-        "marketing".to_owned(),
-        load_audio("/Users/dmtrkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
+        "me.mp3".to_owned(),
+        load_audio("/Users/dmtrkovalenko/goose_duck/me.mp3"),
     );
-    // audio_hash.insert(
-    //     "me".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/me.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "vlad".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/vlad.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "guest".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/guest.mp3"),
-    // );
-    // audio_hash.insert(
-    //     "final".to_owned(),
-    //     load_audio("/Users/dmitrijkovalenko/dev/fframes/video/media/final.mp3"),
-    // );
+    audio_hash.insert(
+        "vlad.mp3".to_owned(),
+        load_audio("/Users/dmtrkovalenko/goose_duck/vlad.mp3"),
+    );
+    audio_hash.insert(
+        "guest.mp3".to_owned(),
+        load_audio("/Users/dmtrkovalenko/goose_duck/guest.mp3"),
+    );
+    audio_hash.insert(
+        "final.mp3".to_owned(),
+        load_audio("/Users/dmtrkovalenko/goose_duck/final.mp3"),
+    );
 
     let mut subtitles_hash = HashMap::new();
     // subtitles_hash.insert(
@@ -131,7 +131,6 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
                         .into_iter()
                         .enumerate()
                         .for_each(|(index, fr)| {
-                            println!("{}", fr);
                             let svg = video.render_frame(
                                 &Frame::Frame {
                                     fps,
@@ -139,6 +138,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
                                 },
                                 ctx.clone(),
                             );
+                            
 
                             if svg != last_svg {
                                 let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
@@ -174,6 +174,6 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 }
 
 fn main() {
-    render(video::marketing::MarketingVideo::make());
-    // render(video::podcast::PodcastVideo::make());
+    // render(video::marketing::MarketingVideo::make());
+    render(video::podcast::PodcastVideo::make());
 }

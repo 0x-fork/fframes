@@ -10,10 +10,6 @@ import * as Caml_option from "rescript/lib/es6/caml_option.js";
 import * as EditorContext from "../../EditorContext.bs.js";
 import * as Webapi__Canvas__Canvas2d from "bs-webapi/src/Webapi/Canvas/Webapi__Canvas__Canvas2d.bs.js";
 
-function calcMaxSceneWidth(size) {
-  return size.width - 64.0 * 2;
-}
-
 function renderRoundedRect(ctx, x, y, width, height, radius, param) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -32,19 +28,17 @@ function clipOverTimeLineElement(ctx, y, width) {
 }
 
 function renderMainScene(ctx, size, editorContext) {
-  var maxSceneWidth = size.width - 64.0 * 2;
   var aspectRatio = editorContext.videoMeta.width / editorContext.videoMeta.height;
   var width = 120.0 * aspectRatio;
-  clipOverTimeLineElement(ctx, 64.0, maxSceneWidth);
-  var maxFramesInScene = Math.floor(maxSceneWidth / width) | 0;
+  clipOverTimeLineElement(ctx, 64.0, size.maxSceneWidth);
+  var maxFramesInScene = Math.floor(size.maxSceneWidth / width) | 0;
   var framesBreak = Caml_int32.div(editorContext.videoMeta.durationInFrames, maxFramesInScene);
   Belt_Range.forEach(0, maxFramesInScene, (function (i) {
-          console.log(BigInt(Math.imul(i, framesBreak)));
           var svg = Curry._1(editorContext.wasmController.render_frame, BigInt(Math.imul(i, framesBreak)));
           var image = new Image(width, 120.0);
           image.src = "data:image/svg+xml;base64,".concat(window.btoa(svg));
           image.onload = (function (param) {
-              ctx.drawImage(image, 64.0 / 2 + i * width, 64.0, width, 120.0);
+              ctx.drawImage(image, Math.floor(64.0 / 2 + i * width), 64.0, width, 120.0);
               
             });
           
@@ -52,24 +46,15 @@ function renderMainScene(ctx, size, editorContext) {
   
 }
 
-function renderScenesPlaceholder(ctx, size, editorContext) {
-  var maxSceneWidth = calcMaxSceneWidth(size);
-  clipOverTimeLineElement(ctx, 32, maxSceneWidth);
+function renderScenesPlaceholder(ctx, size, _editorContext) {
+  clipOverTimeLineElement(ctx, 32, size.maxSceneWidth);
   Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#9ca3af");
-  ctx.fillRect(64.0 / 2.0, 64.0, maxSceneWidth, 120.0);
-  
-}
-
-function renderCanvas(element, context) {
-  var width = element.width;
-  var height = element.height;
-  console.log(width, height);
+  ctx.fillRect(64.0 / 2.0, 64.0, size.maxSceneWidth, 120.0);
   
 }
 
 function renderTimeSlots(ctx, size, editorContext) {
-  var maxSceneWidth = calcMaxSceneWidth(size);
-  var stepsCount = Math.floor(Utils.$$Math.divideFloat(maxSceneWidth, 100)) | 0;
+  var stepsCount = Math.floor(Utils.$$Math.divideFloat(size.maxSceneWidth, 100)) | 0;
   var stepDuration = Caml_int32.div(editorContext.videoMeta.durationInFrames, stepsCount);
   return Belt_Range.forEach(0, stepsCount, (function (i) {
                 var x = Math.imul(i, 100) + 64.0 / 2;
@@ -88,37 +73,95 @@ function renderTimeSlots(ctx, size, editorContext) {
               }));
 }
 
+function renderSeekBar(ctx, size, editorContext) {
+  var x = Math.floor(64.0 / 2.0 + editorContext.editorState.frame * size.frameToPxRatio);
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, size.height);
+  ctx.moveTo(x - 2, 0);
+  ctx.lineTo(x, 7);
+  ctx.lineTo(x + 2, 0);
+  ctx.lineTo(x - 2, 0);
+  Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "#fbbf24");
+  ctx.stroke();
+  
+}
+
 function Timeline(Props) {
   var sectionSize = Props.sectionSize;
   var canvasRef = React.useRef(null);
+  var seekCanvasRef = React.useRef(null);
   var editorContext = EditorContext.useEditorContext(undefined);
+  var canvasSize = React.useMemo((function () {
+          var scale = window.devicePixelRatio;
+          var maxSceneWidth = sectionSize.width - 64.0;
+          return {
+                  width: sectionSize.width,
+                  height: sectionSize.height,
+                  scale: scale,
+                  scaledWidth: sectionSize.width * scale,
+                  scaledHeight: sectionSize.height * scale,
+                  maxSceneWidth: maxSceneWidth,
+                  frameToPxRatio: maxSceneWidth / editorContext.videoMeta.durationInFrames
+                };
+        }), [
+        sectionSize,
+        editorContext.videoMeta.durationInFrames
+      ]);
   React.useEffect((function () {
           Belt_Option.map(Caml_option.nullable_to_opt(canvasRef.current), (function (element) {
-                  var context = element.getContext("2d");
-                  var scale = window.devicePixelRatio;
-                  var scaledSize_height = sectionSize.height * scale;
-                  var scaledSize_width = sectionSize.width * scale;
-                  element.style.height = String(sectionSize.height) + "px";
-                  element.style.width = String(sectionSize.width) + "px";
-                  element.height = Math.floor(scaledSize_height) | 0;
-                  element.width = Math.floor(scaledSize_width) | 0;
-                  context.scale(scale, scale);
-                  renderTimeSlots(context, sectionSize, editorContext);
+                  var ctx = element.getContext("2d");
+                  element.height = Math.floor(canvasSize.scaledHeight) | 0;
+                  element.width = Math.floor(canvasSize.scaledWidth) | 0;
+                  ctx.scale(canvasSize.scale, canvasSize.scale);
+                  renderTimeSlots(ctx, canvasSize, editorContext);
                   var match = editorContext.editorState.playState;
                   if (match >= 3) {
-                    renderScenesPlaceholder(context, sectionSize, editorContext);
+                    renderScenesPlaceholder(ctx, canvasSize, editorContext);
                   } else {
-                    renderMainScene(context, sectionSize, editorContext);
+                    renderMainScene(ctx, canvasSize, editorContext);
                   }
                   
                 }));
           
-        }), [sectionSize]);
-  return React.createElement("canvas", {
-              ref: canvasRef,
-              height: String(Math.floor(sectionSize.height)) + "px",
-              width: String(Math.floor(sectionSize.width)) + "px"
-            });
+        }), [canvasSize]);
+  React.useEffect((function () {
+          Belt_Option.map(Caml_option.nullable_to_opt(seekCanvasRef.current), (function (seekCanvas) {
+                  var ctx = seekCanvas.getContext("2d");
+                  seekCanvas.height = Math.floor(canvasSize.scaledHeight) | 0;
+                  seekCanvas.width = Math.floor(canvasSize.scaledWidth) | 0;
+                  ctx.scale(canvasSize.scale, canvasSize.scale);
+                  var match = editorContext.editorState.playState;
+                  if (match >= 3) {
+                    
+                  } else {
+                    renderSeekBar(ctx, canvasSize, editorContext);
+                  }
+                  
+                }));
+          
+        }), []);
+  return React.createElement("div", {
+              className: "relative"
+            }, React.createElement("canvas", {
+                  ref: canvasRef,
+                  className: "absolute inset-0",
+                  style: {
+                    height: String(canvasSize.height) + "px",
+                    width: String(canvasSize.width) + "px"
+                  },
+                  height: String(Math.floor(canvasSize.scaledHeight)) + "px",
+                  width: String(Math.floor(canvasSize.scaledWidth)) + "px"
+                }), React.createElement("canvas", {
+                  ref: seekCanvasRef,
+                  className: "absolute inset-0",
+                  style: {
+                    height: String(canvasSize.height) + "px",
+                    width: String(canvasSize.width) + "px"
+                  },
+                  height: String(Math.floor(canvasSize.height)) + "px",
+                  width: String(Math.floor(canvasSize.width)) + "px"
+                }));
 }
 
 var Canvas;
@@ -139,13 +182,12 @@ export {
   timeline_margin_x ,
   timeline_margin_y ,
   scene_height_size ,
-  calcMaxSceneWidth ,
   renderRoundedRect ,
   clipOverTimeLineElement ,
   renderMainScene ,
   renderScenesPlaceholder ,
-  renderCanvas ,
   renderTimeSlots ,
+  renderSeekBar ,
   make ,
   
 }

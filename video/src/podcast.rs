@@ -2,17 +2,12 @@ use crate::image;
 use fframes::{AudioData, FFramesContext, Frame, Video::Video};
 use svgr_macro::{self, svgr};
 
-struct SpectrumValue {
-    color: String,
-    val: f32,
-}
-
 pub struct PodcastVideo {}
 
 impl Video for PodcastVideo {
     const FPS: usize = 30;
-    const HEIGHT: usize = 1920;
-    const WIDTH: usize = 1080;
+    const HEIGHT: usize = 1080;
+    const WIDTH: usize = 1920;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("final.mp3");
 
     fn make() -> Self {
@@ -24,7 +19,7 @@ impl Video for PodcastVideo {
             frame,
             &AudioData::VisualizeFrameInput {
                 ctx: &ctx,
-                audio: ctx.get_audio_data("me"),
+                audio: ctx.get_audio_data("me.mp3"),
                 sample_size: AudioData::SampleSize::S32,
             },
         );
@@ -33,7 +28,7 @@ impl Video for PodcastVideo {
             frame,
             &AudioData::VisualizeFrameInput {
                 ctx: &ctx,
-                audio: ctx.get_audio_data("vlad"),
+                audio: ctx.get_audio_data("vlad.mp3"),
                 sample_size: AudioData::SampleSize::S32,
             },
         );
@@ -41,7 +36,7 @@ impl Video for PodcastVideo {
             frame,
             &AudioData::VisualizeFrameInput {
                 ctx: &ctx,
-                audio: ctx.get_audio_data("guest"),
+                audio: ctx.get_audio_data("guest.mp3"),
                 sample_size: AudioData::SampleSize::S32,
             },
         );
@@ -97,27 +92,27 @@ impl Video for PodcastVideo {
                  </clipPath>
                  <pattern id="image" x="0%" y="0%" height="100%" width="100%"
                           viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href={image::getMe()}></image>
+                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/Photo-1x1.jpeg"></image>
                  </pattern>
                  <pattern id="vlad" x="0%" y="0%" height="100%" width="100%"
                           viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href={image::getVlad()}></image>
+                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/photo-square-3.jpg"></image>
                  </pattern>
                  <pattern id="guest" x="0%" y="0%" height="100%" width="100%"
                           viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmitrijkovalenko/dev/rumotion/video/media/sitnik.jpeg"></image>
+                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/goose_duck/oleg.jpg"></image>
                  </pattern>
                </defs>
 
                <circle r="180" cx="400" stroke="black" stroke-width="16" cy="680" fill="url(#image)" />
 
-                  {
+              {
                  me_vis
                  .iter()
                  .enumerate()
                  .map(|(i, fr)|  {
 
-                   let db = 20.0*libm::log10f(*fr);
+                   let db = 10.0*libm::log10f(*fr);
                    let save_height = if db.is_nan() || db < 10.0 { &10.0 } else { &db };
 
                    svgr_macro::svgr!(
@@ -138,18 +133,18 @@ impl Video for PodcastVideo {
                <circle r="180" cx="960" stroke="black" stroke-width="16" cy="680" fill="url(#guest)" />
                <rect y={950 - 50} x={1920 / 2 - (48 + me_vis.len() * 20) / 2} rx="32" ry="32" fill="black" width={48 + me_vis.len() * 20} height={100} />
         {
-                 me_vis
+                 guest_vis
                  .iter()
                  .enumerate()
                  .map(|(i, fr)|  {
 
-                   let db = 20.0*libm::log10f(*fr);
+                   let db = 10.0*libm::log10f(*fr);
                    let save_height = if db.is_nan() || db < 10.0 { &10.0 } else { &db };
 
                    svgr_macro::svgr!(
                      <rect
                        y={(950) as f32 - save_height / 2.0}
-                       x={240 + (i * 20)}
+                       x={800 + (i * 20)}
                        fill="#E7D850"
                        height={save_height}
                        width="16"
@@ -170,14 +165,14 @@ impl Video for PodcastVideo {
                  .enumerate()
                  .map(|(i, fr)|  {
 
-                   let db = 20.0*libm::log10f(*fr);
+                   let db = 10.0*libm::log10f(*fr);
                    let save_height = if db.is_nan() || db < 10.0 { &10.0 } else { &db };
 
                    svgr_macro::svgr!(
                      <rect
                        y={(950) as f32 - save_height / 2.0}
                        x={1360 + (i * 20)}
-                       fill="black"
+                       fill="#000"
                        height={save_height}
                        width="16"
                        rx="4"

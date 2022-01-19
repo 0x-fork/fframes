@@ -18,7 +18,7 @@ module LoadedMediaIcon = {
         {switch nonImageMedia {
         | Audio(_) => <Icons.MusicalNotesIcon color="currentColor" className="h-7 w-7" />
         | Font(_) => <Icons.FontIcon color="currentColor" className="h-7 w-7" />
-        | Subtitles(_) => <Icons.CaptionsIcon color="currentColor" className="h-7 w-7" />
+        | Subtitles => <Icons.CaptionsIcon color="currentColor" className="h-7 w-7" />
         | _ => React.null
         }}
       </div>
@@ -29,7 +29,7 @@ module LoadedMediaIcon = {
 module LoadedMedia = {
   @react.component
   let make = (~name, ~media: MediaLoader.processedMedia) => {
-    <div className="flex  space-x-2">
+    <div className="flex space-x-2">
       <LoadedMediaIcon media />
       <div className="flex flex-col">
         <p className="text-gray-300 2xl:text-lg"> {name->React.string} </p>
@@ -40,7 +40,6 @@ module LoadedMedia = {
           | Font(fontInfo) => React.string(fontInfo)
           | Subtitles => React.string("s")
           | Image({width, height}) => `${width->Int.toString}x${height->Int.toString}`->React.string
-          | _ => React.null
           }}
         </p>
       </div>
@@ -65,7 +64,7 @@ let make = () => {
     ->Array.map(name => {
       let media = mediaState.mediaList->Map.String.getExn(name)
 
-      <li className="px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center">
+      <li key={name} className="px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center">
         {switch media {
         | Media(media) => <LoadedMedia name media />
         | Loading(_) => <Loading name />

@@ -3,7 +3,6 @@ use fframes_editor_controller::setup_wasm_editor;
 use lazy_static::lazy_static;
 use std::{any::type_name, cmp::Ordering, collections::HashMap, sync::Mutex};
 use video::marketing::MarketingVideo;
-use video::podcast::PodcastVideo;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures;
 

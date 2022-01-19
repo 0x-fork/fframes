@@ -66,7 +66,7 @@ module ObserverState = {
 
 module MediaLoaderObserver = UseObservable.MakeObserver(ObserverState)
 
-// This types forces typescript to correctly call handle `resolveMedia` and convert values to the rescript world
+// This type forces typescript implementation to correctly call the `resolveMedia` and convert values to the rescript world
 type forceTsReturnResolveMedia = MediaResolved
 
 @genType.as("MediaResolver")
@@ -78,7 +78,7 @@ type mediaResolveFn = (string, string, WasmController.t) => Js.Promise.t<forceTs
 @module("./MediaResolvers") external resolveImage: mediaResolveFn = "resolveImage"
 
 // This is pretty dumb of how genType works for typescript.
-// It only maps public types to the internal types when using public API, so we  can't do this on Promise.then
+// It only maps public types to the internal types when using public API, so we can't do this on Promise.then step
 @genType
 let resolveMedia = (name, media) => {
   MediaLoaderObserver.dispatch(MediaItemProcessed(name, media))

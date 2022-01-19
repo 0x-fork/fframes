@@ -1,5 +1,10 @@
 open Hooks
 
+
+
+@genType
+let a = Js.Dict.empty
+
 @genType.as("Editor") @react.component
 let make = () => {
   let layout = useEditorLayout()
@@ -11,7 +16,7 @@ let make = () => {
     }
   }
 
-  <div className="dark w-screen h-screen bg-gray-900">
+  <div className="w-screen h-screen bg-gray-900">
     <ReactHelmet>
       <title> {videoTitle} </title>
       <style type_="text/css">

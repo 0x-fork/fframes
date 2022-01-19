@@ -9,13 +9,17 @@ import * as ReactHelmet from "react-helmet";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as UseEditorLayout from "../hooks/useEditorLayout.bs.js";
 
+function a(prim) {
+  return {};
+}
+
 function Editor(Props) {
   var layout = Hooks.useEditorLayout(undefined);
   var context = EditorContext.useEditorContext(undefined);
   var name = Utils.$$Array.last(context.videoMeta.name.split("::"));
   var videoTitle = name !== undefined ? name : "Unknown video";
   return React.createElement("div", {
-              className: "dark w-screen h-screen bg-gray-900"
+              className: "w-screen h-screen bg-gray-900"
             }, React.createElement(ReactHelmet.Helmet, {
                   children: null
                 }, React.createElement("title", undefined, videoTitle), React.createElement("style", {
@@ -45,6 +49,7 @@ function Editor(Props) {
 var make = Editor;
 
 export {
+  a ,
   make ,
   
 }

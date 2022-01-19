@@ -9,7 +9,7 @@ type sectionSize = {
   scale: float,
 }
 
-let sizeToStyle = ({width, height, scale}: sectionSize) => {
+let sizeToStyle = ({width, height}: sectionSize) => {
   ReactDOMStyle.make(
     ~width=`${width->Belt.Float.toString}px`,
     ~height=`${height->Belt.Float.toString}px`,

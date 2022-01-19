@@ -4,7 +4,7 @@ import * as Curry from "rescript/lib/es6/curry.js";
 import * as Utils from "./Utils.bs.js";
 import * as React from "react";
 import * as Pervasives from "rescript/lib/es6/pervasives.js";
-import * as MediaLoader from "./mediaLoader.bs.js";
+import * as MediaLoader from "./services/mediaLoader.bs.js";
 
 function editorReducer(state, action) {
   if (action) {
@@ -41,7 +41,7 @@ function getDefaultState(wasmController) {
     return {
             frame: 0,
             playState: /* WaitingForAction */2,
-            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(1240)))
+            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(0)))
           };
   } else {
     return {

@@ -37,7 +37,7 @@ module EditorContext = {
     | state if state.allMediaLoaded => {
         frame: 0,
         playState: WaitingForAction,
-        svg: wasmController.render_frame(1240->Js.BigInt.fromInt)->Utils.Option.some,
+        svg: wasmController.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
       }
     | _ => {
         frame: 0,

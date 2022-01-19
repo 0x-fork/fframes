@@ -4,7 +4,7 @@ import * as ReactDOM from "react-dom";
 import { Editor } from "./ui/Editor.gen";
 import { EditorContext, Props } from "./EditorContext.gen";
 import type { WasmController } from "./WasmController.gen";
-import { processImports } from "./mediaLoader.gen";
+import { processImports } from "./services/mediaLoader.gen";
 
 export function renderEditor(
   imports: Parameters<typeof processImports>[0]["imports"],

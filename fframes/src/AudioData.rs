@@ -170,7 +170,7 @@ pub fn visualize_audio_frame(frame: &Frame::Frame, input: &VisualizeFrameInput) 
             ];
 
             (0..frames_to_smooth[1].len())
-                .into_iter()
+                .into_iter()        
                 .map(|frame| {
                     frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
                         / frames_to_smooth.len() as f32
