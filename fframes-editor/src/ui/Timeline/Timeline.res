@@ -53,7 +53,6 @@ let clipOverTimeLineElement = (ctx, ~y, ~width) => {
 let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) => {
   let aspectRatio =
     editorContext.videoMeta.width->Float.fromInt /. editorContext.videoMeta.height->Float.fromInt
-
   let width = scene_height_size *. aspectRatio
 
   ctx->clipOverTimeLineElement(~y=timeline_margin_y, ~width=size.maxSceneWidth)
@@ -66,6 +65,7 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
 
     image->Image.setSrc(svg->Image.btoa |> Js.String.concat("data:image/svg+xml;base64,"))
     image->Image.onLoad(() => {
+      ctx->Canvas2d.save
       ctx->drawImage(
         ~imageData=image,
         ~dy=timeline_margin_y,
@@ -73,6 +73,7 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
         ~dirtyHeight=scene_height_size,
         ~dirtyWidth=width,
       )
+      ctx->Canvas2d.restore
     })
   })
 
@@ -80,7 +81,7 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
 }
 
 let renderScenesPlaceholder = (ctx, size, _editorContext: EditorContext.editorContext) => {
-  ctx->clipOverTimeLineElement(~y=32., ~width=size.maxSceneWidth)
+  ctx->clipOverTimeLineElement(~y=timeline_margin_y, ~width=size.maxSceneWidth)
   ctx->Canvas2d.setFillStyle(String, "#9ca3af")
   ctx->Canvas2d.fillRect(
     ~x=timeline_margin_x /. 2.0,
@@ -89,6 +90,40 @@ let renderScenesPlaceholder = (ctx, size, _editorContext: EditorContext.editorCo
     ~h=scene_height_size,
   )
 }
+
+let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => {
+  editorContext.videoMeta.audioMap->Option.forEach(audioMap =>
+    audioMap->Js.Dict.keysToArray->Js.Array.reduce((startY, audioName) => {
+      let (start_frame, end_frame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
+
+      let start_frame = start_frame->Js.Float.fromInt
+      let end_frame = end_frame->Js.Float.fromInt
+
+      let y = timeline_margin_y +. scene_height_size +. startY
+      let x = timeline_margin_x /. 2.0 +. start_frame *. size.frameToPxRatio
+      let width = (end_frame -. start_frame) *. size.frameToPxRatio
+
+      ctx->Canvas2d.save
+      ctx->Canvas2d.beginPath
+
+      ctx->renderRoundedRect(~x, ~y, ~width, ~height=scene_height_size /. 2.0, ~radius=4.0, ())
+      ctx->Canvas2d.clip
+
+      ctx->Canvas2d.setFillStyle(String, "#059669")
+      ctx->Canvas2d.fillRect(~x, ~y, ~w=width, ~h=scene_height_size /. 2.0)
+
+      ctx->Canvas2d.setFillStyle(String, "#e2e8f0")
+      audioName->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=y +. 16.)
+
+      ctx->Canvas2d.closePath
+      ctx->Canvas2d.restore
+
+      startY +. scene_height_size /. 2.0 +. 420.
+    }, 32.)->ignore
+  )
+}
+
+/// TODO MOVE
 
 let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) => {
   let coordinate_step = 100
@@ -141,6 +176,7 @@ let renderSeekBar = (ctx, size, editorContext: EditorContext.editorContext) => {
 
   ctx->Canvas2d.setStrokeStyle(String, "#fbbf24")
   ctx->Canvas2d.stroke
+  ctx->Canvas2d.closePath
 }
 
 @react.component
@@ -149,7 +185,7 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
   let seekCanvasRef = React.useRef(Js.Nullable.null)
   let editorContext = EditorContext.useEditorContext()
 
-  let canvasSize = React.useMemo2(() => {
+  let canvasSize = React.useMemo4(() => {
     let scale = Web.Window.devicePixelRatio
     let maxSceneWidth = sectionSize.width -. timeline_margin_x
 
@@ -162,7 +198,12 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
       maxSceneWidth: maxSceneWidth,
       frameToPxRatio: maxSceneWidth /. editorContext.videoMeta.durationInFrames->Float.fromInt,
     }
-  }, (sectionSize, editorContext.videoMeta.durationInFrames))
+  }, (
+    sectionSize.height,
+    sectionSize.width,
+    sectionSize.scale,
+    editorContext.videoMeta.durationInFrames,
+  ))
 
   React.useEffect1(() => {
     canvasRef.current
@@ -178,7 +219,14 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
 
       switch editorContext.editorState.playState {
       | CantPlay => ctx->renderScenesPlaceholder(canvasSize, editorContext)
-      | _ => ctx->renderMainScene(canvasSize, editorContext)
+      | _ => {
+          ctx->Canvas2d.save
+          ctx->renderAudioMap(canvasSize, editorContext)
+          ctx->Canvas2d.restore
+          ctx->renderMainScene(canvasSize, editorContext)
+
+          ()
+        }
       }
 
       ()
@@ -188,7 +236,7 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
     None
   }, [canvasSize])
 
-  React.useEffect1(() => {
+  React.useEffect2(() => {
     seekCanvasRef.current
     ->Js.Nullable.toOption
     ->Belt.Option.map(seekCanvas => {
@@ -209,7 +257,7 @@ let make = (~sectionSize: UseEditorLayout.sectionSize) => {
     ->ignore
 
     None
-  }, [])
+  }, (canvasSize, editorContext.editorState.frame))
 
   <div className="relative">
     <canvas

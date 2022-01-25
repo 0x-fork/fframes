@@ -23,7 +23,8 @@ export type playState =
 export type editorState = {
   readonly frame: number; 
   readonly playState: playState; 
-  readonly svg?: string
+  readonly svg?: string; 
+  readonly wasmController: WasmController_t
 };
 
 // tslint:disable-next-line:interface-over-type-literal

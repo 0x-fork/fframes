@@ -5,22 +5,51 @@ import * as Utils from "./Utils.bs.js";
 import * as React from "react";
 import * as Pervasives from "rescript/lib/es6/pervasives.js";
 import * as MediaLoader from "./services/mediaLoader.bs.js";
+import * as AnimationRuntime from "./services/AnimationRuntime.bs.js";
+import * as Webapi__Dom__Window from "bs-webapi/src/Webapi/Dom/Webapi__Dom__Window.bs.js";
+import * as Webapi__Dom__EventTarget from "bs-webapi/src/Webapi/Dom/Webapi__Dom__EventTarget.bs.js";
 
 function editorReducer(state, action) {
-  if (action) {
-    return {
-            frame: action._0,
-            playState: state.playState,
-            svg: action._1
-          };
+  if (typeof action === "number") {
+    switch (action) {
+      case /* AllowPlay */0 :
+          return {
+                  frame: state.frame,
+                  playState: /* WaitingForAction */2,
+                  svg: state.svg,
+                  wasmController: state.wasmController
+                };
+      case /* Play */1 :
+          return {
+                  frame: state.frame,
+                  playState: /* Playing */0,
+                  svg: state.svg,
+                  wasmController: state.wasmController
+                };
+      case /* Pause */2 :
+          return {
+                  frame: state.frame,
+                  playState: /* Paused */1,
+                  svg: state.svg,
+                  wasmController: state.wasmController
+                };
+      
+    }
   } else {
+    var indexOrDelta = action._0;
+    var frame;
+    frame = indexOrDelta.TAG === /* FrameIndex */0 ? indexOrDelta._0 : Math.round(indexOrDelta._0 * 60 / 1000) | 0;
+    var svg = Curry._1(state.wasmController.render_frame, BigInt(frame));
     return {
-            frame: state.frame,
-            playState: /* WaitingForAction */2,
-            svg: state.svg
+            frame: frame,
+            playState: state.playState,
+            svg: svg,
+            wasmController: state.wasmController
           };
   }
 }
+
+var DocumentEvent = Webapi__Dom__EventTarget.Impl({});
 
 var editorContext = React.createContext(undefined);
 
@@ -41,13 +70,15 @@ function getDefaultState(wasmController) {
     return {
             frame: 0,
             playState: /* WaitingForAction */2,
-            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(0)))
+            svg: Utils.$$Option.some(Curry._1(wasmController.render_frame, BigInt(0))),
+            wasmController: wasmController
           };
   } else {
     return {
             frame: 0,
             playState: /* CantPlay */3,
-            svg: undefined
+            svg: undefined,
+            wasmController: wasmController
           };
   }
 }
@@ -61,17 +92,51 @@ function EditorContext$EditorContext(Props) {
   var editorState = match[0];
   React.useLayoutEffect((function () {
           return Curry._1(MediaLoader.MediaLoaderObserver.subscribe, (function (state) {
-                        if (!(state.allMediaLoaded && editorState.playState === /* CantPlay */3)) {
-                          return ;
+                        if (state.allMediaLoaded && editorState.playState === /* CantPlay */3) {
+                          Curry._1(dispatch, /* AllowPlay */0);
+                          return Curry._1(dispatch, /* NewFrame */{
+                                      _0: {
+                                        TAG: /* FrameIndex */0,
+                                        _0: editorState.frame
+                                      }
+                                    });
                         }
-                        Curry._1(dispatch, /* AllowPlay */0);
-                        var previewSvg = Curry._1(wasmController.render_frame, BigInt(editorState.frame));
-                        return Curry._1(dispatch, /* NewFrame */{
-                                    _0: editorState.frame,
-                                    _1: previewSvg
-                                  });
+                        
                       }));
         }), []);
+  var onFrame = function (msDelta, fps) {
+    Curry._1(dispatch, /* NewFrame */{
+          _0: {
+            TAG: /* DeltaTime */1,
+            _0: msDelta
+          }
+        });
+    
+  };
+  var start = React.useCallback((function (param) {
+          Curry._1(dispatch, /* Play */1);
+          return AnimationRuntime.RafAnimation.startAnimation(onFrame);
+        }), [dispatch]);
+  React.useEffect((function () {
+          var handleKeydown = function (e) {
+            console.log(editorState);
+            var match = e.key;
+            if (match === " ") {
+              if (editorState.playState === /* Playing */0) {
+                Curry._1(dispatch, /* Pause */2);
+                return AnimationRuntime.RafAnimation.stop(undefined);
+              } else {
+                return Curry._1(start, undefined);
+              }
+            }
+            
+          };
+          window.addEventListener("keydown", handleKeydown);
+          return (function (param) {
+                    window.removeEventListener("keydown", handleKeydown);
+                    
+                  });
+        }), [editorState]);
   return React.createElement(providerElement, {
               value: {
                 wasmController: wasmController,
@@ -90,9 +155,10 @@ var EditorContext = {
 
 export {
   editorReducer ,
+  DocumentEvent ,
   editorContext ,
   useEditorContext ,
   EditorContext ,
   
 }
-/* editorContext Not a pure module */
+/* DocumentEvent Not a pure module */

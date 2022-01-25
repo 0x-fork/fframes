@@ -9,6 +9,7 @@ macro_rules! setup_wasm_editor {
 
         lazy_static! {
             static ref VIDEO: $x = $x::make();
+            static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
             static ref AUDIO_CACHE: Mutex<HashMap<String, AudioData>> = Mutex::new(HashMap::new());
             static ref SUBTITLES_CACHE: Mutex<HashMap<String, Subtitles>> =
                 Mutex::new(HashMap::new());
@@ -17,6 +18,20 @@ macro_rules! setup_wasm_editor {
         #[wasm_bindgen]
         pub struct VideoMetadata {
             duration: i32,
+        }
+
+        fn audio_ts_to_frame(audio_ts: AudioTimestamp, name: &str) -> usize {
+            match audio_ts {
+                AudioTimestamp::Frame(frame) => frame,
+                // TODO fix case when audio not processed
+                AudioTimestamp::Eof => AUDIO_DURATIONS
+                    .lock()
+                    .unwrap()
+                    .get(&name.to_owned())
+                    .unwrap()
+                    .to_owned() as usize,
+                AudioTimestamp::Second(second) => second * MarketingVideo::FPS,
+            }
         }
 
         #[wasm_bindgen]
@@ -41,6 +56,26 @@ macro_rules! setup_wasm_editor {
                 type_name::<$x>().to_owned()
             }
 
+            #[wasm_bindgen(getter, js_name = audioMap)]
+            pub fn audio_map(&self) -> JsValue {
+                let audio_map_frames_hash = MarketingVideo::audio().0.map(|audio_map| {
+                    audio_map
+                        .into_iter()
+                        .map(|(name, (start_ts, end_ts))| {
+                            (
+                                name,
+                                (
+                                    audio_ts_to_frame(start_ts, name),
+                                    audio_ts_to_frame(end_ts, name),
+                                ),
+                            )
+                        })
+                        .collect::<HashMap<_, _>>()
+                });
+
+                JsValue::from_serde(&audio_map_frames_hash).unwrap()
+            }
+
             #[wasm_bindgen(getter)]
             pub fn fps(&self) -> f64 {
                 $x::FPS as f64
@@ -52,14 +87,17 @@ macro_rules! setup_wasm_editor {
                 fframes::Duration::Frames(frames) => frames as i32,
                 fframes::Duration::Seconds(seconds) => (seconds * $x::FPS) as i32,
                 fframes::Duration::FromAudio(audio) => unsafe {
-                    let duration_in_frames = load_audio_wasm_callback(audio)
+                    let duration_in_frames = (load_audio_wasm_callback(audio)
                         .await
                         .unwrap()
                         .as_f64()
                         .unwrap()
-                        * $x::FPS as f64;
+                        * $x::FPS as f64) as i32;
 
-                    duration_in_frames as i32
+                    let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
+                    durations_hash.insert(audio.to_owned(), duration_in_frames);
+
+                    duration_in_frames
                 },
             }
         }

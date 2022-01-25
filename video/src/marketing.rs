@@ -1,4 +1,9 @@
-use fframes::Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween};
+use std::collections::HashMap;
+
+use fframes::{
+    Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween},
+    AudioMap, AudioTimestamp,
+};
 pub use fframes::{
     AudioData, FFramesContext, Frame::Frame, Subtitles, Video::Video, WindowFunctions,
 };
@@ -132,6 +137,19 @@ impl Video for MarketingVideo {
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
+
+    fn audio() -> AudioMap {
+        AudioMap::from([
+            (
+                "marketing.mp3",
+                (AudioTimestamp::Second(0), AudioTimestamp::Eof),
+            ),
+            (
+                "marketing.mp3",
+                (AudioTimestamp::Second(0), AudioTimestamp::Eof),
+            ),
+        ])
+    }
 
     fn make() -> Self {
         let spring = Animation::Easing::Spring(SpringOptions {

@@ -38,7 +38,9 @@ function renderMainScene(ctx, size, editorContext) {
           var image = new Image(width, 120.0);
           image.src = "data:image/svg+xml;base64,".concat(window.btoa(svg));
           image.onload = (function (param) {
+              ctx.save();
               ctx.drawImage(image, Math.floor(64.0 / 2 + i * width), 64.0, width, 120.0);
+              ctx.restore();
               
             });
           
@@ -47,10 +49,34 @@ function renderMainScene(ctx, size, editorContext) {
 }
 
 function renderScenesPlaceholder(ctx, size, _editorContext) {
-  clipOverTimeLineElement(ctx, 32, size.maxSceneWidth);
+  clipOverTimeLineElement(ctx, 64.0, size.maxSceneWidth);
   Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#9ca3af");
   ctx.fillRect(64.0 / 2.0, 64.0, size.maxSceneWidth, 120.0);
   
+}
+
+function renderAudioMap(ctx, size, editorContext) {
+  return Belt_Option.forEach(editorContext.videoMeta.audioMap, (function (audioMap) {
+                Object.keys(audioMap).reduce((function (startY, audioName) {
+                        var match = Utils.$$Option.unwrap(audioMap[audioName]);
+                        var start_frame = match[0];
+                        var y = 64.0 + 120.0 + startY;
+                        var x = 64.0 / 2.0 + start_frame * size.frameToPxRatio;
+                        var width = (match[1] - start_frame) * size.frameToPxRatio;
+                        ctx.save();
+                        ctx.beginPath();
+                        renderRoundedRect(ctx, x, y, width, 120.0 / 2.0, 4.0, undefined);
+                        ctx.clip();
+                        Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#059669");
+                        ctx.fillRect(x, y, width, 120.0 / 2.0);
+                        Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#e2e8f0");
+                        ctx.fillText(audioName, x + 8, y + 16, undefined);
+                        ctx.closePath();
+                        ctx.restore();
+                        return startY + 120.0 / 2.0 + 420;
+                      }), 32);
+                
+              }));
 }
 
 function renderTimeSlots(ctx, size, editorContext) {
@@ -84,6 +110,7 @@ function renderSeekBar(ctx, size, editorContext) {
   ctx.lineTo(x - 2, 0);
   Webapi__Canvas__Canvas2d.setStrokeStyle(ctx, /* String */0, "#fbbf24");
   ctx.stroke();
+  ctx.closePath();
   
 }
 
@@ -105,7 +132,9 @@ function Timeline(Props) {
                   frameToPxRatio: maxSceneWidth / editorContext.videoMeta.durationInFrames
                 };
         }), [
-        sectionSize,
+        sectionSize.height,
+        sectionSize.width,
+        sectionSize.scale,
         editorContext.videoMeta.durationInFrames
       ]);
   React.useEffect((function () {
@@ -119,6 +148,9 @@ function Timeline(Props) {
                   if (match >= 3) {
                     renderScenesPlaceholder(ctx, canvasSize, editorContext);
                   } else {
+                    ctx.save();
+                    renderAudioMap(ctx, canvasSize, editorContext);
+                    ctx.restore();
                     renderMainScene(ctx, canvasSize, editorContext);
                   }
                   
@@ -140,7 +172,10 @@ function Timeline(Props) {
                   
                 }));
           
-        }), []);
+        }), [
+        canvasSize,
+        editorContext.editorState.frame
+      ]);
   return React.createElement("div", {
               className: "relative"
             }, React.createElement("canvas", {
@@ -186,6 +221,7 @@ export {
   clipOverTimeLineElement ,
   renderMainScene ,
   renderScenesPlaceholder ,
+  renderAudioMap ,
   renderTimeSlots ,
   renderSeekBar ,
   make ,

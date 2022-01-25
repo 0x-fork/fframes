@@ -1,3 +1,4 @@
+use fframes::AudioMap;
 pub use fframes::{AudioData, FFramesContext, Frame, Video::Video};
 use svgr_macro::{self, svgr};
 
@@ -8,6 +9,10 @@ impl Video for TestVideo {
     const HEIGHT: usize = 1920;
     const WIDTH: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::Frames(100);
+
+    fn audio() -> AudioMap {
+        AudioMap::none()
+    }
 
     fn make() -> Self {
         TestVideo {}

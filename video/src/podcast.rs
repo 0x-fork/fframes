@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use crate::image;
-use fframes::{AudioData, FFramesContext, Frame, Video::Video};
+use fframes::{AudioData, AudioMap, AudioTimestamp, FFramesContext, Frame, Video::Video};
 use svgr_macro::{self, svgr};
 
 pub struct PodcastVideo {}
@@ -9,6 +11,13 @@ impl Video for PodcastVideo {
     const HEIGHT: usize = 1080;
     const WIDTH: usize = 1920;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("final.mp3");
+
+    fn audio() -> AudioMap {
+        AudioMap::from([(
+            "final.mp3",
+            (AudioTimestamp::Second(0), AudioTimestamp::Eof),
+        )])
+    }
 
     fn make() -> Self {
         PodcastVideo {}

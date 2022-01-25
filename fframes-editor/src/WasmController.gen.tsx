@@ -4,6 +4,8 @@
 
 import type {Js_BigInt_t as ReScriptJs_Js_BigInt_t} from './shims/Js.shim';
 
+import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
+
 import type {Js_Float32Array_t as ReScriptJs_Js_Float32Array_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
@@ -14,7 +16,8 @@ export type videoMeta = {
   readonly width: number; 
   readonly height: number; 
   readonly fps: number; 
-  readonly durationInFrames: number
+  readonly durationInFrames: number; 
+  readonly audioMap?: ReScriptJs_Js_Dict_t<[number, number]>
 };
 export type VideoMeta = videoMeta;
 
