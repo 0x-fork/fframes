@@ -1,7 +1,8 @@
+use crate::Span;
 use nom::character::complete::{digit1, newline, space0};
-use nom::error::context;
+use nom::error::{context, Error};
 use nom::{
-    bytes::complete::{is_not, tag, take_until},
+    bytes::complete::{is_not, tag, take, take_until},
     combinator::opt,
     multi::{many0, many1},
     sequence::{preceded, separated_pair},
@@ -11,7 +12,7 @@ use nom::{
 use crate::cue_settings_parser::parse_cue_settings;
 use crate::{Cue, Time, Vtt, START_MARKER};
 
-fn parse_note(input: &str) -> IResult<&str, Option<String>> {
+fn parse_note(input: Span) -> IResult<Span, Option<String>> {
     let (rest, line) = take_until("\n")(input)?;
 
     if !line.contains("NOTE ") {
@@ -23,10 +24,10 @@ fn parse_note(input: &str) -> IResult<&str, Option<String>> {
     let (note_body, _) = tag("NOTE ")(line)?;
     let (rest, _) = newline(rest)?;
 
-    Ok((rest, Some(note_body.to_owned())))
+    Ok((rest, Some(note_body.to_string().to_owned())))
 }
 
-pub(crate) fn parse_number<TNumber: std::str::FromStr>(input: &str) -> IResult<&str, TNumber> {
+pub(crate) fn parse_number<TNumber: std::str::FromStr>(input: Span) -> IResult<Span, TNumber> {
     let (input, digit) = digit1(input)?;
 
     digit
@@ -40,7 +41,7 @@ pub(crate) fn parse_number<TNumber: std::str::FromStr>(input: &str) -> IResult<&
         })
 }
 
-fn parse_time(input: &str) -> IResult<&str, Time> {
+fn parse_time(input: Span) -> IResult<Span, Time> {
     let (input, minute) = parse_number::<u64>(input)?;
     let (input, _) = tag(":")(input)?;
     let (input, second) = parse_number::<u64>(input)?;
@@ -50,7 +51,7 @@ fn parse_time(input: &str) -> IResult<&str, Time> {
     Ok((input, Time(minute * 60000 + second * 1000 + millisecond)))
 }
 
-fn parse_cue_identifier(input: &str) -> IResult<&str, Option<String>> {
+fn parse_cue_identifier(input: Span) -> IResult<Span, Option<String>> {
     let (rest, line) = take_until("\n")(input)?;
 
     if line.contains("-->") {
@@ -58,11 +59,11 @@ fn parse_cue_identifier(input: &str) -> IResult<&str, Option<String>> {
         Ok((input, None))
     } else {
         let (rest, _) = newline(rest)?;
-        Ok((rest, Some(line.to_owned())))
+        Ok((rest, Some(line.to_string().to_owned())))
     }
 }
 
-fn parse_cue(input: &str) -> IResult<&str, Cue> {
+fn parse_cue(input: Span) -> IResult<Span, Cue> {
     let (input, _) = opt(newline)(input)?;
     let (input, _) = opt(newline)(input)?;
 
@@ -73,7 +74,11 @@ fn parse_cue(input: &str) -> IResult<&str, Cue> {
     let (input, end) = parse_time(input)?;
     let (input, cue_settings) = opt(parse_cue_settings)(input)?;
     let (input, _) = opt(newline)(input)?;
-    let (input, text) = take_until("\n")(input)?;
+
+    let (input, text) = match take_until::<_, _, Error<_>>("\n")(input) {
+        Ok(val) => val,
+        Err(_) => take(input.len())(input)?,
+    };
 
     Ok((
         input,
@@ -91,7 +96,7 @@ fn parse_cue(input: &str) -> IResult<&str, Cue> {
     ))
 }
 
-pub fn parse(text: &str) -> IResult<&str, Vtt> {
+pub fn parse(text: Span) -> IResult<Span, Vtt> {
     let (text, _) = context("WebVTT file must start with WEBVTT", tag(START_MARKER))(text)?;
     let (subtitles_part, slug_part) = take_until("\n\n")(text)?;
 
@@ -105,8 +110,6 @@ pub fn parse(text: &str) -> IResult<&str, Vtt> {
     let (rest, _) = many0(newline)(rest)?;
 
     if !rest.is_empty() {
-        // If after parsing many cue groups and all newlines nom does not leave an empty string – we have an error
-        // So run the parser again to get the location and error kind.
         let _ = parse_cue(rest)?;
     }
 
@@ -117,7 +120,7 @@ pub fn parse(text: &str) -> IResult<&str, Vtt> {
             style: None,
             slugs: slugs
                 .into_iter()
-                .map(|(key, val)| (key.to_owned(), val.to_owned()))
+                .map(|(key, val)| (key.to_string(), val.to_string()))
                 .collect::<std::collections::HashMap<_, _>>(),
         },
     ))
