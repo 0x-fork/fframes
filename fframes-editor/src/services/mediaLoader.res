@@ -5,6 +5,8 @@ type audioInfo = {
   duration: float,
   sampleRate: int,
   arrayBuffer: Js.ArrayBuffer.t,
+  audioData: WebAudio.AudioBuffer.t,
+  monoPcmData: Js.Float32Array.t
 }
 
 type imageInfo = {

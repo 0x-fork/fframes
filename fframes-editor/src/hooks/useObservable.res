@@ -9,20 +9,34 @@ module type Observable = {
 
 type unlisten = unit => unit
 
-module MakeObserver = (Observable: Observable) => {
-  type t = Observable.state
-  type action = Observable.action
+module type Observer = (ObservableT: Observable) =>
+{
+  type t = ObservableT.state
+  type action = ObservableT.action
+  type listener = t => unit
 
-  type listener = Observable.state => unit
+  let dispatch: action => unit
+  let get: unit => t
+  let subscribe: (listener, unit) => unit
+  let useObservable: unit => t
+}
+
+module type PubsubInit = {
+  type t
+  let initial: t
+}
+
+module Pubsub = (Init: PubsubInit) => {
+  type listener = Init.t => unit
   type listenerId = {id: int, listener: listener}
 
-  let mutableState = ref(Observable.initial)
+  let mutableState = ref(Init.initial)
   let listeners: array<listenerId> = []
 
   let get = () => mutableState.contents
-  let dispatch = action => {
-    mutableState := Observable.reducer(mutableState.contents, action)
 
+  let set = newState => {
+    mutableState := newState
     listeners->Js.Array.forEach(({listener}) => listener(mutableState.contents))
   }
 
@@ -50,5 +64,21 @@ module MakeObserver = (Observable: Observable) => {
     })
 
     get()
+  }
+}
+
+module MakeObserver: Observer = (Observable: Observable) => {
+  type t = Observable.state
+  type action = Observable.action
+
+  module ObserverPubSubState = {
+    type t = Observable.state
+    let initial = Observable.initial
+  }
+
+  include Pubsub(ObserverPubSubState)
+
+  let dispatch = action => {
+    set(Observable.reducer(mutableState.contents, action))
   }
 }

@@ -108,44 +108,51 @@ var Loading = {
   make: MediaList$Loading
 };
 
-function $$MediaList(Props) {
-  var mediaState = Curry._1(MediaLoader.MediaLoaderObserver.useObservable, undefined);
-  return React.createElement("ul", {
-              className: "divide-y divide-gray-800"
-            }, Belt_Array.map(Belt_MapString.keysToArray(mediaState.mediaList), (function (name) {
-                    var media = Belt_MapString.getExn(mediaState.mediaList, name);
-                    var tmp;
-                    switch (media.TAG | 0) {
-                      case /* Loading */0 :
-                          tmp = React.createElement(MediaList$Loading, {
-                                name: name
-                              });
-                          break;
-                      case /* Media */1 :
-                          tmp = React.createElement(MediaList$LoadedMedia, {
-                                name: name,
-                                media: media._0
-                              });
-                          break;
-                      case /* Error */2 :
-                          tmp = null;
-                          break;
-                      
-                    }
-                    return React.createElement("li", {
-                                key: name,
-                                className: "px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center"
-                              }, tmp);
-                  })));
+function memo(__x) {
+  return React.memo(__x, (function (param, param$1) {
+                return true;
+              }));
 }
 
-var make = $$MediaList;
+var make = React.memo((function (Props) {
+        var mediaState = Curry._1(MediaLoader.MediaLoaderObserver.useObservable, undefined);
+        return React.createElement("ul", {
+                    className: "divide-y divide-gray-800"
+                  }, Belt_Array.map(Belt_MapString.keysToArray(mediaState.mediaList), (function (name) {
+                          var media = Belt_MapString.getExn(mediaState.mediaList, name);
+                          var tmp;
+                          switch (media.TAG | 0) {
+                            case /* Loading */0 :
+                                tmp = React.createElement(MediaList$Loading, {
+                                      name: name
+                                    });
+                                break;
+                            case /* Media */1 :
+                                tmp = React.createElement(MediaList$LoadedMedia, {
+                                      name: name,
+                                      media: media._0
+                                    });
+                                break;
+                            case /* Error */2 :
+                                tmp = null;
+                                break;
+                            
+                          }
+                          return React.createElement("li", {
+                                      key: name,
+                                      className: "px-4 py-2 h-16 2xl:h-20 flex flex-col justify-center"
+                                    }, tmp);
+                        })));
+      }), (function (param, param$1) {
+        return true;
+      }));
 
 export {
   LoadedMediaIcon ,
   LoadedMedia ,
   Loading ,
+  memo ,
   make ,
   
 }
-/* Icons Not a pure module */
+/* make Not a pure module */

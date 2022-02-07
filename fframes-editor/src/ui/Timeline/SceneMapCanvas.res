@@ -1,0 +1,259 @@
+open Belt
+open CanvasSize
+
+module Canvas = Webapi.Canvas
+module Canvas2d = Webapi.Canvas.Canvas2d
+
+@send
+external drawImage: (
+  Canvas.Canvas2d.t,
+  ~imageData: Image.t,
+  ~dx: int,
+  ~dy: int,
+  ~dirtyWidth: int,
+  ~dirtyHeight: int,
+) => unit = "drawImage"
+
+let renderRoundedRect = (ctx, ~x, ~y, ~width, ~height, ~radius, ()) => {
+  ctx->Canvas2d.beginPath
+  ctx->Canvas2d.moveTo(~x=x +. radius, ~y)
+
+  ctx->Canvas2d.arcTo(~x1=x +. width, ~y1=y, ~x2=x +. width, ~y2=y +. height, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x +. width, ~y1=y +. height, ~x2=x, ~y2=y +. height, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x, ~y1=y +. height, ~x2=x, ~y2=y, ~r=radius)
+  ctx->Canvas2d.arcTo(~x1=x, ~y1=y, ~x2=x +. width, ~y2=y, ~r=radius)
+
+  ctx->Canvas2d.stroke
+}
+
+let clipOverTimeLineElement = (ctx, ~y, ~width) => {
+  ctx->renderRoundedRect(
+    ~x=Float.fromInt(timeline_margin_x / 2),
+    ~y,
+    ~width,
+    ~height=Float.fromInt(scene_height_size),
+    ~radius=8.0,
+    (),
+  )
+  ctx->Canvas2d.clip
+}
+
+let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) => {
+  let aspectRatio =
+    editorContext.videoMeta.width->Float.fromInt /. editorContext.videoMeta.height->Float.fromInt
+
+  let width = (Float.fromInt(scene_height_size) *. aspectRatio)->Utils.Math.floor
+
+  ctx->clipOverTimeLineElement(~y=timeline_margin_y->Float.fromInt, ~width=size.maxSceneWidth)
+
+  let maxFramesInScene = size.maxSceneWidth->Float.toInt / width
+  let framesBreak = editorContext.videoMeta.durationInFrames / maxFramesInScene
+
+  Range.forEach(0, maxFramesInScene, i => {
+    let svg = editorContext.wasmController.render_frame((i * framesBreak)->Js.BigInt.fromInt)
+
+    let image = Image.make(~width=Float.fromInt(width), ~height=scene_height_size->Float.fromInt)
+
+    image->Image.setSrc(svg->Image.btoa |> Js.String.concat("data:image/svg+xml;base64,"))
+    image->Image.onLoad(() => {
+      ctx->Canvas2d.save
+      ctx->drawImage(
+        ~imageData=image,
+        ~dy=timeline_margin_y,
+        ~dx=timeline_margin_x / 2 + i * width,
+        ~dirtyHeight=scene_height_size,
+        ~dirtyWidth=width,
+      )
+      ctx->Canvas2d.restore
+    })
+  })
+
+  ()
+}
+
+let renderScenesPlaceholder = (ctx, size, _editorContext: EditorContext.editorContext) => {
+  ctx->clipOverTimeLineElement(~y=timeline_margin_y->Float.fromInt, ~width=size.maxSceneWidth)
+  ctx->Canvas2d.setFillStyle(String, "#9ca3af")
+  ctx->Canvas2d.fillRect(
+    ~x=Float.fromInt(timeline_margin_x / 2),
+    ~y=timeline_margin_y->Float.fromInt,
+    ~w=size.maxSceneWidth,
+    ~h=scene_height_size->Float.fromInt,
+  )
+}
+
+let renderAudioWaveForm = (
+  ctx,
+  ~endFrame,
+  ~startFrame,
+  ~x0,
+  ~y0,
+  ~audioSpaceWidth,
+  ~audioName,
+  ~editorContext: EditorContext.editorContext,
+) => {
+  let media = MediaLoader.MediaLoaderObserver.get().mediaList->Belt.Map.String.get(audioName)
+  let audioInfo = switch media {
+  | Some(Media(Audio(audioInfo))) => audioInfo
+  | _ => failwith(`Unknown audio type ${audioName}`)
+  }
+
+  let positionStart = 0
+  let positionEnd = (endFrame - startFrame) / editorContext.videoMeta.fps * audioInfo.sampleRate
+  let length = positionEnd - positionStart
+
+  let step = 1.
+  let sector = length->Js.Float.fromInt /. audioSpaceWidth *. step
+
+  let position = ref(positionStart)
+  let mid = Float.fromInt(audio_height / 2)
+  let x = ref(x0)
+
+  ctx->Canvas2d.beginPath
+  ctx->Canvas2d.setStrokeStyle(String, "#e2e8f0")
+
+  while x.contents < audioSpaceWidth || position.contents < positionEnd {
+    let pcm = audioInfo.monoPcmData->Web.Float32Array.get(position.contents)
+
+    let y = mid +. y0 +. pcm /. 32768. *. mid
+    ctx->Canvas2d.lineTo(~x=x.contents, ~y)
+
+    position := (position.contents->Float.fromInt +. sector)->Utils.Math.floor
+    x := (x.contents +. step)->Js.Math.floor
+  }
+
+  ctx->Canvas2d.stroke
+}
+
+let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => {
+  editorContext.videoMeta.audioMap->Option.forEach(audioMap =>
+    audioMap->Js.Dict.keysToArray->Js.Array.reduce((startY, audioName) => {
+      let (startFrame, endFrame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
+
+      let y = Float.fromInt(timeline_margin_y + scene_height_size + startY)
+      let x = Float.fromInt(timeline_margin_x / 2 + startFrame) *. size.frameToPxRatio
+      let width = Float.fromInt(endFrame - startFrame) *. size.frameToPxRatio
+
+      ctx->Canvas2d.save
+      ctx->Canvas2d.beginPath
+
+      ctx->renderRoundedRect(
+        ~x,
+        ~y,
+        ~width,
+        ~height=Float.fromInt(scene_height_size / 2),
+        ~radius=4.0,
+        (),
+      )
+      ctx->Canvas2d.clip
+
+      ctx->Canvas2d.setFillStyle(String, "#059669")
+      ctx->Canvas2d.fillRect(~x, ~y, ~w=width, ~h=Float.fromInt(scene_height_size / 2))
+
+      ctx->Canvas2d.setFillStyle(String, "#e2e8f0")
+      audioName->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=y +. 16.)
+
+      ctx
+      ->renderAudioWaveForm(
+        ~x0=x,
+        ~y0=y,
+        ~audioName,
+        ~audioSpaceWidth=width,
+        ~editorContext,
+        ~startFrame,
+        ~endFrame,
+      )
+      ->ignore
+
+      ctx->Canvas2d.closePath
+      ctx->Canvas2d.restore
+
+      startY + audio_height + audio_height / 2
+    }, 32)->ignore
+  )
+}
+
+let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) => {
+  let coordinate_step = 100
+  let full_timestamp_each_steps = 2
+
+  let stepsCount =
+    size.maxSceneWidth
+    ->Utils.Math.divideFloat(coordinate_step->Float.fromInt)
+    ->Js.Math.floor
+    ->Float.toInt
+
+  let stepDuration = editorContext.videoMeta.durationInFrames / stepsCount
+
+  Range.forEach(0, stepsCount, i => {
+    let x = (i * coordinate_step + timeline_margin_x / 2)->Float.fromInt
+
+    ctx->Canvas2d.beginPath
+    ctx->Canvas2d.moveTo(~x, ~y=0.)
+    ctx->Canvas2d.lineTo(~x, ~y=18.)
+
+    ctx->Canvas2d.setStrokeStyle(String, "#475569")
+    ctx->Canvas2d.stroke
+
+    if mod(i, full_timestamp_each_steps) === 0 {
+      ctx->Canvas2d.font("12px sans-serif")
+      ctx->Canvas2d.setFillStyle(String, "#64748b")
+
+      (i * stepDuration)
+      ->Float.fromInt
+      ->Utils.Math.divideFloat(editorContext.videoMeta.fps->Float.fromInt)
+      ->Utils.Duration.formatSeconds
+      ->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=14.)
+    }
+  })
+}
+
+@react.component
+let make = (~size: canvasSize) => {
+  let canvasRef = React.useRef(Js.Nullable.null)
+  let editorContext = EditorContext.useEditorContext()
+  let (player, _) = editorContext.usePlayer()
+
+  React.useEffect2(() => {
+    canvasRef.current
+    ->Js.Nullable.toOption
+    ->Belt.Option.map(element => {
+      let ctx = Webapi.Canvas.CanvasElement.getContext2d(element)
+
+      element->Canvas.CanvasElement.setHeight(size.scaledHeight->Js.Math.floor->Float.toInt)
+      element->Canvas.CanvasElement.setWidth(size.scaledWidth->Js.Math.floor->Float.toInt)
+
+      ctx->Canvas2d.scale(~x=size.scale, ~y=size.scale)
+      ctx->renderTimeSlots(size, editorContext)
+
+      switch player.playState {
+      | CantPlay => ctx->renderScenesPlaceholder(size, editorContext)
+      | _ => {
+          ctx->Canvas2d.save
+          ctx->renderAudioMap(size, editorContext)
+          ctx->Canvas2d.restore
+          ctx->renderMainScene(size, editorContext)
+
+          ()
+        }
+      }
+
+      ()
+    })
+    ->ignore
+
+    None
+  }, (size, player.playState))
+
+  <canvas
+    className="absolute inset-0"
+    style={ReactDOMStyle.make(
+      ~height=`${size.height->Float.toString}px`,
+      ~width=`${size.width->Float.toString}px`,
+      (),
+    )}
+    width={`${size.scaledWidth->Js.Math.floor->Float.toString}px`}
+    height={`${size.scaledHeight->Js.Math.floor->Float.toString}px`}
+    ref={ReactDOM.Ref.domRef(canvasRef)}
+  />
+}

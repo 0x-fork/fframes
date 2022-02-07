@@ -109,7 +109,7 @@ impl Video for PodcastVideo {
                  </pattern>
                  <pattern id="guest" x="0%" y="0%" height="100%" width="100%"
                           viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/goose_duck/oleg.jpg"></image>
+                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/patsura.jpg"></image>
                  </pattern>
                </defs>
 

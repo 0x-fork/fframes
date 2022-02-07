@@ -2,6 +2,8 @@ import { MediaResolver, resolveMedia } from "./mediaLoader.gen";
 import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
 import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
 
+const audioContext = new AudioContext();
+
 export const resolveAudio: MediaResolver = async (
   name,
   url,
@@ -24,13 +26,16 @@ export const resolveAudio: MediaResolver = async (
   }
 
   wasmController.add_audio_source(name, monoPcm);
+  const audioData = await audioContext.decodeAudioData(arrayBuffer);
 
   return resolveMedia(name, {
     tag: "Audio",
     value: {
       arrayBuffer,
+      audioData,
+      monoPcmData: monoPcm,
       sampleRate: data.samplingRate,
-      duration: length / data.samplingRate,
+      duration: monoPcm.length / data.samplingRate,
     },
   });
 };

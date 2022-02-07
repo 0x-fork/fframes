@@ -145,8 +145,8 @@ impl Video for MarketingVideo {
                 (AudioTimestamp::Second(0), AudioTimestamp::Eof),
             ),
             (
-                "marketing.mp3",
-                (AudioTimestamp::Second(0), AudioTimestamp::Eof),
+                "test.mp3",
+                (AudioTimestamp::Second(0), AudioTimestamp::Second(4)),
             ),
         ])
     }
@@ -330,7 +330,7 @@ impl Video for MarketingVideo {
             </defs>
 
             <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
-
+            
            {
               pretty_spectrum
               .iter()

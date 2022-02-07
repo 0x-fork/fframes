@@ -5,3 +5,8 @@ module Window = {
 module Element = {
   @get external style: Webapi.Dom.Element.t => {..} = "style"
 }
+
+module Float32Array = {
+  @get external length: Js.Float32Array.t => float = "length"
+  @get_index external get: (Js.Float32Array.t, int) => float = ""
+}

@@ -5,9 +5,12 @@ var $$Window = {};
 
 var $$Element = {};
 
+var $$Float32Array = {};
+
 export {
   $$Window ,
   $$Element ,
+  $$Float32Array ,
   
 }
 /* No side effect */

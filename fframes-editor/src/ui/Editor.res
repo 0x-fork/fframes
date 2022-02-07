@@ -8,13 +8,16 @@ let a = Js.Dict.empty
 @genType.as("Editor") @react.component
 let make = () => {
   let layout = useEditorLayout()
+
   let context = EditorContext.useEditorContext()
-  let videoTitle = {
+  let (player, _) = context.usePlayer()
+
+  let videoTitle = React.useMemo1(() => {
     switch context.videoMeta.name->Js.String.split("::")->Utils.Array.last {
     | Some(name) => React.string(name)
     | _ => React.string("Unknown video")
     }
-  }
+  }, [context.videoMeta])
 
   <div className="w-screen h-screen bg-gray-900">
     <ReactHelmet>
@@ -43,7 +46,7 @@ let make = () => {
         style={layout.preview->UseEditorLayout.sizeToStyle}
         className=" bg-black"
         dangerouslySetInnerHTML={{
-          "__html": context.editorState.svg->Utils.Option.unwrapOr(~default=""),
+          "__html": player.svg->Utils.Option.unwrapOr(~default=""),
         }}
       />
     </div>

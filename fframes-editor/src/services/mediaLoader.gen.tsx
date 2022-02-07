@@ -12,9 +12,13 @@ const Curry: any = Curry__Es6Import;
 import * as mediaLoaderBS__Es6Import from './mediaLoader.bs';
 const mediaLoaderBS: any = mediaLoaderBS__Es6Import;
 
+import type {AudioBuffer_t as WebAudio_AudioBuffer_t} from '../../src/bindings/WebAudio.gen';
+
 import type {Js_ArrayBuffer_t as ReScriptJs_Js_ArrayBuffer_t} from './shims/Js.shim';
 
 import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
+
+import type {Js_Float32Array_t as ReScriptJs_Js_Float32Array_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 
@@ -24,7 +28,9 @@ import type {t as WasmController_t} from '../../src/WasmController.gen';
 export type audioInfo = {
   readonly duration: number; 
   readonly sampleRate: number; 
-  readonly arrayBuffer: ReScriptJs_Js_ArrayBuffer_t
+  readonly arrayBuffer: ReScriptJs_Js_ArrayBuffer_t; 
+  readonly audioData: WebAudio_AudioBuffer_t; 
+  readonly monoPcmData: ReScriptJs_Js_Float32Array_t
 };
 
 // tslint:disable-next-line:interface-over-type-literal

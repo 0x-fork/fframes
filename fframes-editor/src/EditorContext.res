@@ -1,44 +1,16 @@
 open Webapi
 
-type playState = Playing | Paused | WaitingForAction | CantPlay
-
-type editorState = {
-  frame: int,
-  playState: playState,
-  svg: option<string>,
-  wasmController: WasmController.t,
-}
-
-type newFrameAction = FrameIndex(int) | DeltaTime(float)
-type action = NewFrame(newFrameAction) | AllowPlay | Play | Pause
-
-let editorReducer = (state, action) => {
-  switch action {
-  | NewFrame(indexOrDelta) => {
-      let frame = switch indexOrDelta {
-      | FrameIndex(index) => index
-      | DeltaTime(delta) =>
-        (delta *. 60->Belt.Float.fromInt /. 1000.)->Js.Math.round->Belt.Int.fromFloat
-      }
-
-      let svg = state.wasmController.render_frame(frame->Js.BigInt.fromInt)
-      {...state, frame: frame, svg: Some(svg)}
-    }
-  | AllowPlay => {...state, playState: WaitingForAction}
-  | Play => {...state, playState: Playing}
-  | Pause => {...state, playState: Paused}
-  }
-}
+module DocumentEvent = Dom.EventTarget.Impl(Dom.Window)
 
 @genType
 type editorContext = {
   wasmController: WasmController.t,
   videoMeta: WasmController.videoMeta,
-  editorState: editorState,
+  usePlayer: unit => (Player.state, Player.action => unit),
 }
 
-module DocumentEvent = Dom.EventTarget.Impl(Dom.Window)
 let editorContext = React.createContext(None)
+let providerElement = React.Context.provider(editorContext)
 
 let useEditorContext = () => {
   let context = React.useContext(editorContext)
@@ -49,66 +21,33 @@ let useEditorContext = () => {
   }
 }
 
-module EditorContext = {
-  let providerElement = React.Context.provider(editorContext)
-
-  let getDefaultState = (~wasmController: WasmController.t) => {
-    switch MediaLoader.MediaLoaderObserver.get() {
-    | state if state.allMediaLoaded => {
-        frame: 0,
-        playState: WaitingForAction,
-        wasmController: wasmController,
-        svg: wasmController.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
-      }
-    | _ => {
-        frame: 0,
-        playState: CantPlay,
-        wasmController: wasmController,
-        svg: None,
-      }
-    }
-  }
+module MakeEditorContext = (Wasm: Player.WasmBridge) => {
+  module PlayerObserver = Player.MakePlayer(Wasm)
 
   @react.component @genType
-  let make = (
-    ~wasmController: WasmController.t,
-    ~videoMeta: WasmController.videoMeta,
-    ~children,
-  ) => {
-    let (editorState, dispatch) = React.useReducer(editorReducer, getDefaultState(~wasmController))
-
+  let make = (~children) => {
     React.useLayoutEffect0(() => {
       Some(
         MediaLoader.MediaLoaderObserver.subscribe(state => {
-          if state.allMediaLoaded && editorState.playState === CantPlay {
-            dispatch(AllowPlay)
+          let player = PlayerObserver.get()
 
-            dispatch(NewFrame(FrameIndex(editorState.frame)))
+          if state.allMediaLoaded && player.playState === CantPlay {
+            PlayerObserver.dispatch(AllowPlay)
+            PlayerObserver.dispatch(NewFrame(player.frame))
           }
         }),
       )
     })
 
-    let onFrame = (~msDelta, ~fps) => {
-      NewFrame(DeltaTime(msDelta))->dispatch->ignore
-    }
-
-    let start = React.useCallback1(() => {
-      dispatch(Play)
-      AnimationRuntime.RafAnimation.startAnimation(~onFrame)
-    }, [dispatch])
-
-    let pause = () => {
-      dispatch(Pause)
-      AnimationRuntime.RafAnimation.stop()
+    let usePlayer = () => {
+      (PlayerObserver.useObservable(), PlayerObserver.dispatch)
     }
 
     React.useEffect1(() => {
       let handleKeydown = e => {
-        Js.Console.log(editorState)
         switch e->Dom.KeyboardEvent.key {
-        | " " if editorState.playState === Playing => pause()
-        | " " => start()
+        | " " if PlayerObserver.get().playState === Playing => PlayerObserver.dispatch(Pause)
+        | " " => PlayerObserver.dispatch(Play)
         | _ => ()
         }
       }
@@ -123,18 +62,38 @@ module EditorContext = {
           |> DocumentEvent.asEventTarget
           |> Dom.EventTarget.removeKeyDownEventListener(handleKeydown),
       )
-    }, [editorState])
+    }, [])
 
     React.createElement(
       providerElement,
       {
         "value": Some({
-          wasmController: wasmController,
-          videoMeta: videoMeta,
-          editorState: editorState,
+          wasmController: Wasm.controller,
+          videoMeta: Wasm.videoMeta,
+          usePlayer: usePlayer,
         }),
         "children": children,
       },
     )
   }
+}
+
+@genType.as("EditorContext")
+let makeEditorContextComponent = (
+  ~wasmController: WasmController.t,
+  ~videoMeta: WasmController.videoMeta,
+) => {
+  module Bridge = {
+    let controller = wasmController
+    let videoMeta = videoMeta
+  }
+
+  module Context = MakeEditorContext(Bridge)
+
+  @react.component
+  let make = (~children) => {
+    <Context> {children} </Context>
+  }
+
+  make
 }

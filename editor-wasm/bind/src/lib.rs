@@ -8,10 +8,5 @@ use video::marketing::MarketingVideo;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = console)]
-    fn log(s: &str);
-}
 
 setup_wasm_editor!(MarketingVideo);

@@ -8,8 +8,16 @@ module Array = {
 }
 
 module Math = {
+  @inline
   let divideFloat = (a, b) => a /. b
+  @inline
   let divideInt = (a, b) => a / b
+
+  @scope("Math") @val
+  external floor: float => int = "floor"
+
+  @scope("Math") @val
+  external round: float => int = "round"
 
   let divideWithReminder = (x, y) => {
     (Js.Math.floor(x /. y), Js.Float.mod(x, y))

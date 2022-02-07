@@ -2,7 +2,7 @@ import "../tw.css";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Editor } from "./ui/Editor.gen";
-import { EditorContext, Props } from "./EditorContext.gen";
+import { EditorContext } from "./EditorContext.gen";
 import type { WasmController } from "./WasmController.gen";
 import { processImports } from "./services/mediaLoader.gen";
 
@@ -18,12 +18,12 @@ export function renderEditor(
           // @ts-expect-error REACT 18 BINDINGS are missing aaaaa
           .createRoot(document.getElementById("root"))
           .render(
-            <EditorContext.make
-              videoMeta={videoMeta}
+            <EditorContext
               wasmController={wasmController}
+              videoMeta={videoMeta}
             >
               <Editor />
-            </EditorContext.make>
+            </EditorContext>
           );
       }),
     ]);

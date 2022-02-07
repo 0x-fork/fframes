@@ -54,8 +54,10 @@ module Loading = {
   }
 }
 
+let memo = React.memoCustomCompareProps(_, (_, _) => true);
+
 @react.component
-let make = () => {
+let make = memo(() => {
   let mediaState = MediaLoader.MediaLoaderObserver.useObservable()
 
   <ul className="divide-y divide-gray-800">
@@ -74,4 +76,4 @@ let make = () => {
     })
     ->React.array}
   </ul>
-}
+})
