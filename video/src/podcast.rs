@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::image;
-use fframes::{AudioData, AudioMap, AudioTimestamp, FFramesContext, Frame, Video::Video};
+use fframes::{audio_data, AudioMap, AudioTimestamp, fframes_context, frame, video::Video};
 use svgr_macro::{self, svgr};
 
 pub struct PodcastVideo {}
@@ -23,30 +23,30 @@ impl Video for PodcastVideo {
         PodcastVideo {}
     }
 
-    fn render_frame(&self, frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String {
-        let me_vis = AudioData::visualize_audio_frame(
+    fn render_frame(&self, frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String {
+        let me_vis = audio_data::visualize_audio_frame(
             frame,
-            &AudioData::VisualizeFrameInput {
+            &audio_data::VisualizeFrameInput {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("me.mp3"),
-                sample_size: AudioData::SampleSize::S32,
+                sample_size: audio_data::SampleSize::S32,
             },
         );
 
-        let vlad_vis = AudioData::visualize_audio_frame(
+        let vlad_vis = audio_data::visualize_audio_frame(
             frame,
-            &AudioData::VisualizeFrameInput {
+            &audio_data::VisualizeFrameInput {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("vlad.mp3"),
-                sample_size: AudioData::SampleSize::S32,
+                sample_size: audio_data::SampleSize::S32,
             },
         );
-        let guest_vis = AudioData::visualize_audio_frame(
+        let guest_vis = audio_data::visualize_audio_frame(
             frame,
-            &AudioData::VisualizeFrameInput {
+            &audio_data::VisualizeFrameInput {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("guest.mp3"),
-                sample_size: AudioData::SampleSize::S32,
+                sample_size: audio_data::SampleSize::S32,
             },
         );
 

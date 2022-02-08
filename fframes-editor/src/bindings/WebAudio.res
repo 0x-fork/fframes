@@ -42,7 +42,7 @@ module AudioBuffer = {
   type t
 }
 
-module Node = {
+module AudioNode = {
   type t = {"gain": {@set "value": float}}
 
   @send external connect: (t, t) => unit = "connect"
@@ -60,23 +60,24 @@ module Node = {
     gainNode->getGain->AudioParam.setValueAtTime(~value, ~startTime)
 }
 
-module Context = {
+module AudioContext = {
   type t = { 
-    destination: Node.t
+    destination: AudioNode.t,
+    currentTime: float
   }
 
   @new external create: unit => t = "AudioContext"
-  @get external getDestination: t => Node.t = "destination"
+  @get external getDestination: t => AudioNode.t = "destination"
   @get external getCurrentTime: t => float = "currentTime"
-  @send external createGain: t => Node.t = "createGain"
-  @send external createOscillator: t => Node.t = "create"
+  @send external createGain: t => AudioNode.t = "createGain"
+  @send external createOscillator: t => AudioNode.t = "create"
   @send
-  external createMediaElementSource: (t, Dom.element) => Node.t = "createMediaElementSource"
+  external createMediaElementSource: (t, Dom.element) => AudioNode.t = "createMediaElementSource"
   @send
-  external createBufferSource: t => Node.t = "createBufferSource"
+  external createBufferSource: t => AudioNode.t = "createBufferSource"
 
   // AudioNode
-  @get external fromAudioNode: Node.t => t = "context"
+  @get external fromAudioNode: AudioNode.t => t = "context"
   @send
   external decodeAudioData: Js.ArrayBuffer.t => Js.Promise.t<AudioBuffer.t> = "decodeAudioData"
 }

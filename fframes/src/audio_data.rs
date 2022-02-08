@@ -1,4 +1,4 @@
-use crate::{FFramesContext, Frame, WindowFunctions};
+use crate::{fframes_context, frame, audio_window_functions};
 use std::convert::TryInto;
 
 #[derive(Debug, Clone)]
@@ -39,18 +39,18 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
 pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
-    pub ctx: &'a FFramesContext::FFramesContext<'a>,
+    pub ctx: &'a fframes_context::FFramesContext<'a>,
 }
 
 fn apply_fft_to_frame(
     sample_size: &SampleSize,
-    window: Option<WindowFunctions::Window>,
+    window: Option<audio_window_functions::Window>,
     start_index: usize,
     samples: &Vec<f32>,
 ) -> Vec<microfft::Complex32> {
     let apply_window = |samples: &[f32]| -> Vec<f32> {
         if let Some(window_function) = window {
-            WindowFunctions::apply_window_function(window_function, samples)
+            audio_window_functions::apply_window_function(window_function, samples)
         } else {
             samples.to_vec()
         }
@@ -146,7 +146,7 @@ pub fn get_visualization(
 
     let res = apply_fft_to_frame(
         &sample_size,
-        Some(WindowFunctions::Window::Hamming),
+        Some(audio_window_functions::Window::Hamming),
         sample_start as usize,
         &audio.samples,
     )
@@ -157,7 +157,7 @@ pub fn get_visualization(
     res
 }
 
-pub fn visualize_audio_frame(frame: &Frame::Frame, input: &VisualizeFrameInput) -> Vec<f32> {
+pub fn visualize_audio_frame(frame: &frame::Frame, input: &VisualizeFrameInput) -> Vec<f32> {
     let res = match frame.index {
         0 => get_visualization(&frame.index, input),
         1 => get_visualization(&frame.index, input),

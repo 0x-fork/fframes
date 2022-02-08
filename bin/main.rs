@@ -1,8 +1,8 @@
 mod encoder;
 use ffmpeg_next::sys::exit;
 use fframes::Duration;
-use fframes::Subtitles::Subtitles;
-use fframes::{AudioData, FFramesContext, Frame, Video::Video};
+use fframes::subtitles::Subtitles;
+use fframes::{audio_data, fframes_context, frame, video::Video};
 use rayon::prelude::*;
 use std::ffi::CString;
 use std::ops::Range;
@@ -11,10 +11,10 @@ use std::{borrow::BorrowMut, collections::HashMap, sync::mpsc};
 
 use crate::encoder::{Encoder, EncoderFrame};
 
-fn load_audio(path: &str) -> AudioData::AudioData {
+fn load_audio(path: &str) -> audio_data::AudioData {
     let (sample_reate, samples) = media_loader::decode_mp3(path);
 
-    AudioData::AudioData {
+    audio_data::AudioData {
         sample_rate: sample_reate,
         samples,
         max_magnitude: 0.0,
@@ -92,7 +92,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
         Duration::Frames(frames) => frames,
     };
 
-    let ctx = FFramesContext::FFramesContext {
+    let ctx = fframes_context::FFramesContext {
         fps,
         audio: &audio_hash,
         subtitles: &subtitles_hash,
@@ -132,7 +132,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
                         .enumerate()
                         .for_each(|(index, fr)| {
                             let svg = video.render_frame(
-                                &Frame::Frame {
+                                &frame::Frame {
                                     fps,
                                     index: fr as i64,
                                 },

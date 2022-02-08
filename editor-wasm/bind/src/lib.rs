@@ -1,5 +1,5 @@
 use fframes::{
-    AudioData::AudioData, AudioTimestamp, FFramesContext, Frame, Subtitles::Subtitles, Video::Video,
+    audio_data::AudioData, AudioTimestamp, fframes_context, frame, subtitles::Subtitles, video::Video,
 };
 use fframes_editor_controller::setup_wasm_editor;
 use lazy_static::lazy_static;

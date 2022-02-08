@@ -1,9 +1,9 @@
 use std::{array, collections::HashMap, hash::Hash};
 
-use crate::{AudioData, FFramesContext, Frame};
+use crate::{audio_data, fframes_context, frame};
 
 pub struct EnvContext {
-    pub audio: HashMap<String, AudioData::AudioData>,
+    pub audio: HashMap<String, audio_data::AudioData>,
 }
 pub enum Duration {
     FromAudio(&'static str),
@@ -43,5 +43,5 @@ pub trait Video: Sized {
         Self: Sync + Sized;
 
     fn audio() -> AudioMap;
-    fn render_frame(&self, frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String;
+    fn render_frame(&self, frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String;
 }

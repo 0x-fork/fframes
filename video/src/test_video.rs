@@ -1,5 +1,5 @@
 use fframes::AudioMap;
-pub use fframes::{AudioData, FFramesContext, Frame, Video::Video};
+pub use fframes::{audio_data, fframes_context, frame, video::Video};
 use svgr_macro::{self, svgr};
 
 pub struct TestVideo {}
@@ -18,7 +18,7 @@ impl Video for TestVideo {
         TestVideo {}
     }
 
-    fn render_frame(&self, frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String {
+    fn render_frame(&self, frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String {
         svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"

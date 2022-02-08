@@ -5,7 +5,7 @@ use fframes::{
     AudioMap, AudioTimestamp,
 };
 pub use fframes::{
-    AudioData, FFramesContext, Frame::Frame, Subtitles, Video::Video, WindowFunctions,
+    audio_data, fframes_context, frame::Frame, subtitles, video::Video, audio_window_functions,
 };
 use svgr_macro::{self, svgr};
 
@@ -139,15 +139,11 @@ impl Video for MarketingVideo {
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
 
     fn audio() -> AudioMap {
+        use AudioTimestamp::{Eof, Second};
+
         AudioMap::from([
-            (
-                "marketing.mp3",
-                (AudioTimestamp::Second(0), AudioTimestamp::Eof),
-            ),
-            (
-                "test.mp3",
-                (AudioTimestamp::Second(0), AudioTimestamp::Second(4)),
-            ),
+            ("marketing.mp3", (Second(0), Eof)),
+            ("test.mp3", (Second(0), Second(4))),
         ])
     }
 
@@ -239,15 +235,15 @@ impl Video for MarketingVideo {
         }
     }
 
-    fn render_frame(&self, frame: &Frame, ctx: FFramesContext::FFramesContext) -> String {
+    fn render_frame(&self, frame: &Frame, ctx: fframes_context::FFramesContext) -> String {
         const BAR_SIZE: usize = 96;
         const BAR_SIZE_F32: f32 = BAR_SIZE as f32;
         let subtitles = ctx.get_subtitles("subtitles.vtt");
-        let audio_visualization = AudioData::visualize_audio_frame(
+        let audio_visualization = audio_data::visualize_audio_frame(
             frame,
-            &AudioData::VisualizeFrameInput {
+            &audio_data::VisualizeFrameInput {
                 audio: ctx.get_audio_data("marketing.mp3"),
-                sample_size: AudioData::SampleSize::S16,
+                sample_size: audio_data::SampleSize::S16,
                 ctx: &ctx,
             },
         );
@@ -330,7 +326,7 @@ impl Video for MarketingVideo {
             </defs>
 
             <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
-            
+
            {
               pretty_spectrum
               .iter()

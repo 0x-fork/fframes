@@ -10,17 +10,17 @@ function setGainValue(gainNode, value, startTime) {
   
 }
 
-var $$Node = {
+var $$AudioNode = {
   setGainValue: setGainValue
 };
 
-var Context = {};
+var $$AudioContext = {};
 
 export {
   $$AudioParam ,
   $$AudioBuffer ,
-  $$Node ,
-  Context ,
+  $$AudioNode ,
+  $$AudioContext ,
   
 }
 /* No side effect */

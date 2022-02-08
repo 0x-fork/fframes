@@ -1,12 +1,12 @@
 use fframes::*;
 use svgr_macro::svgr;
 
-pub fn render_frame(frame: &Frame::Frame, ctx: FFramesContext::FFramesContext) -> String {
-    let audio_visualization = AudioData::visualize_audio_frame(
+pub fn render_frame(frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String {
+    let audio_visualization = audio_data::visualize_audio_frame(
         frame,
-        &AudioData::VisualizeFrameInput {
+        &audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data("marketing"),
-            sample_size: AudioData::SampleSize::S16,
+            sample_size: audio_data::SampleSize::S16,
             ctx: &ctx,
         },
     );

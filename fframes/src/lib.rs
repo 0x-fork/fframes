@@ -1,15 +1,15 @@
 pub mod Animation;
-pub mod AudioData;
-pub mod FFramesContext;
-pub mod Frame;
-pub mod Subtitles;
-pub mod Video;
-pub mod WindowFunctions;
+pub mod audio_data;
+pub mod fframes_context;
+pub mod frame;
+pub mod subtitles;
+pub mod video;
+pub mod audio_window_functions;
 
 pub use Animation::*;
-pub use AudioData::*;
-pub use FFramesContext::*;
-pub use Frame::*;
-pub use Subtitles::*;
-pub use Video::*;
-pub use WindowFunctions::*;
+pub use audio_data::*;
+pub use fframes_context::*;
+pub use frame::*;
+pub use subtitles::*;
+pub use video::*;
+pub use audio_window_functions::*;
