@@ -8,7 +8,7 @@ use syn::{
     Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
 };
 
-use crate::{node::*, punctuation::*};
+use crate::{node::*, punctuation::*, validate_svg::validate_attribute};
 
 type TransformBlockFn = dyn Fn(ParseStream) -> Result<Option<TokenStream>>;
 
@@ -280,25 +280,30 @@ impl Parser {
                 children: vec![],
             })
         } else {
-            let key = self.node_name(fork)?;
-            let eq = fork.parse::<Option<Token![=]>>()?;
-            let value = if eq.is_some() {
+            let name = self.node_name(fork)?;
+
+            validate_attribute(input, &name)?;
+
+            let value = fork.parse::<Option<Token![=]>>()?.map(|_eq| {
                 if fork.is_empty() {
-                    return Err(Error::new(key.span(), "missing attribute value"));
+                    return Err(Error::new(name.span(), "missing attribute value"));
                 }
 
                 if fork.peek(Brace) {
-                    Some(self.block_expr(fork)?)
+                    Ok(self.block_expr(fork)?)
                 } else {
-                    Some(fork.parse()?)
+                    if name.to_string() == "xlink:href" {
+                        return Err(fork.error("Instead of hardcoding images please use xlink:href={ctx.get_image_link(\"image.png\"}"));
+                    }
+
+                    Ok(fork.parse()?)
                 }
-            } else {
-                None
-            };
+            }).transpose()?;
+
             input.advance_to(fork);
 
             Ok(Node {
-                name: Some(key),
+                name: Some(name),
                 node_type: NodeType::Attribute,
                 value,
                 attributes: vec![],
@@ -334,6 +339,7 @@ impl Parser {
         } else if input.peek(Ident::peek_any) {
             let mut segments = Punctuated::new();
             let ident = Ident::parse_any(input)?;
+
             segments.push_value(PathSegment::from(ident));
             Ok(NodeName::Path(ExprPath {
                 attrs: vec![],

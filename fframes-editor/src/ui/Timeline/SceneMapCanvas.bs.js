@@ -66,9 +66,7 @@ function renderAudioWaveForm(ctx, endFrame, startFrame, x0, y0, audioSpaceWidth,
     switch (media.TAG | 0) {
       case /* Media */1 :
           var audioInfo$1 = media._0;
-          audioInfo = typeof audioInfo$1 === "number" ? Pervasives.failwith("Unknown audio type " + audioName) : (
-              audioInfo$1.TAG === /* Audio */2 ? audioInfo$1._0 : Pervasives.failwith("Unknown audio type " + audioName)
-            );
+          audioInfo = audioInfo$1.TAG === /* Audio */3 ? audioInfo$1._0 : Pervasives.failwith("Unknown audio type " + audioName);
           break;
       case /* Loading */0 :
       case /* Error */2 :

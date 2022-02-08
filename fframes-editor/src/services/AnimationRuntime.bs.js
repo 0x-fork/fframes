@@ -51,10 +51,10 @@ function connectCurrentlyPlayingAudio(ctx, frame, videoMeta) {
                     switch (media.TAG | 0) {
                       case /* Media */1 :
                           var media$1 = media._0;
-                          if (typeof media$1 === "number" || media$1.TAG !== /* Audio */2) {
-                            return ;
-                          } else {
+                          if (media$1.TAG === /* Audio */3) {
                             return media$1._0;
+                          } else {
+                            return ;
                           }
                       case /* Loading */0 :
                       case /* Error */2 :

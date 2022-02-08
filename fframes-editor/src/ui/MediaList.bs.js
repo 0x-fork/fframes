@@ -13,7 +13,7 @@ var iconClassName = "overflow-hidden bg-gray-400 h-10 w-10 2xl:h-12 2xl:w-12 rou
 
 function MediaList$LoadedMediaIcon(Props) {
   var media = Props.media;
-  if (typeof media !== "number" && media.TAG === /* Image */1) {
+  if (media.TAG === /* Image */2) {
     return React.createElement("div", {
                 className: Cx.cx([
                       "bg-cover bg-no-repeat bg-center",
@@ -25,30 +25,29 @@ function MediaList$LoadedMediaIcon(Props) {
               });
   }
   var tmp;
-  if (typeof media === "number") {
-    tmp = React.createElement(Icons.CaptionsIcon.make, {
-          color: "currentColor",
-          className: "h-7 w-7"
-        });
-  } else {
-    switch (media.TAG | 0) {
-      case /* Font */0 :
-          tmp = React.createElement(Icons.FontIcon.make, {
-                color: "currentColor",
-                className: "h-7 w-7"
-              });
-          break;
-      case /* Image */1 :
-          tmp = null;
-          break;
-      case /* Audio */2 :
-          tmp = React.createElement(Icons.MusicalNotesIcon.make, {
-                color: "currentColor",
-                className: "h-7 w-7"
-              });
-          break;
-      
-    }
+  switch (media.TAG | 0) {
+    case /* Font */0 :
+        tmp = React.createElement(Icons.FontIcon.make, {
+              color: "currentColor",
+              className: "h-7 w-7"
+            });
+        break;
+    case /* Subtitles */1 :
+        tmp = React.createElement(Icons.CaptionsIcon.make, {
+              color: "currentColor",
+              className: "h-7 w-7"
+            });
+        break;
+    case /* Image */2 :
+        tmp = null;
+        break;
+    case /* Audio */3 :
+        tmp = React.createElement(Icons.MusicalNotesIcon.make, {
+              color: "currentColor",
+              className: "h-7 w-7"
+            });
+        break;
+    
   }
   return React.createElement("div", {
               className: iconClassName
@@ -64,23 +63,22 @@ function MediaList$LoadedMedia(Props) {
   var name = Props.name;
   var media = Props.media;
   var tmp;
-  if (typeof media === "number") {
-    tmp = "s";
-  } else {
-    switch (media.TAG | 0) {
-      case /* Font */0 :
-          tmp = media._0;
-          break;
-      case /* Image */1 :
-          var match = media._0;
-          tmp = String(match.width) + "x" + String(match.height);
-          break;
-      case /* Audio */2 :
-          var match$1 = media._0;
-          tmp = Utils.Duration.formatSeconds(match$1.duration) + ", " + String(match$1.sampleRate) + "hz";
-          break;
-      
-    }
+  switch (media.TAG | 0) {
+    case /* Font */0 :
+        tmp = media._0;
+        break;
+    case /* Subtitles */1 :
+        tmp = String(media._0) + " phrases";
+        break;
+    case /* Image */2 :
+        var match = media._0;
+        tmp = String(match.width) + "x" + String(match.height);
+        break;
+    case /* Audio */3 :
+        var match$1 = media._0;
+        tmp = Utils.Duration.formatSeconds(match$1.duration) + ", " + String(match$1.sampleRate) + "hz";
+        break;
+    
   }
   return React.createElement("div", {
               className: "flex space-x-2"

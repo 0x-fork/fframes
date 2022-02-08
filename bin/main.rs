@@ -1,13 +1,10 @@
 mod encoder;
-use ffmpeg_next::sys::exit;
 use fframes::Duration;
-use fframes::subtitles::Subtitles;
 use fframes::{audio_data, fframes_context, frame, video::Video};
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::ops::Range;
-use std::thread;
-use std::{borrow::BorrowMut, collections::HashMap, sync::mpsc};
 
 use crate::encoder::{Encoder, EncoderFrame};
 
@@ -138,7 +135,6 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
                                 },
                                 ctx.clone(),
                             );
-                            
 
                             if svg != last_svg {
                                 let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
+pub use fframes::{
+    audio_data, audio_window_functions, fframes_context, frame::Frame, subtitles, video::Video,
+};
 use fframes::{
     Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween},
     AudioMap, AudioTimestamp,
-};
-pub use fframes::{
-    audio_data, fframes_context, frame::Frame, subtitles, video::Video, audio_window_functions,
 };
 use svgr_macro::{self, svgr};
 
@@ -410,9 +410,9 @@ impl Video for MarketingVideo {
             </text>
 
             <image
-              xlink:href="/media/code.png"
               width="900"
               height="900"
+              xlink:href={ctx.get_image_link("code.png")}
               x={frame.animate_or(&self.code_animation, -1200.0)}
               y="10"
             />

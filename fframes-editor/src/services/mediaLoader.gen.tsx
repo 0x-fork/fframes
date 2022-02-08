@@ -2,8 +2,6 @@
 /* eslint-disable import/first */
 
 
-const $$toRE445030416: { [key: string]: any } = {"Subtitles": 0};
-
 // @ts-ignore: Implicit any on import
 import * as Curry__Es6Import from 'rescript/lib/es6/curry.js';
 const Curry: any = Curry__Es6Import;
@@ -42,8 +40,8 @@ export type imageInfo = {
 
 // tslint:disable-next-line:interface-over-type-literal
 export type processedMedia = 
-    "Subtitles"
-  | { tag: "Font"; value: string }
+    { tag: "Font"; value: string }
+  | { tag: "Subtitles"; value: number }
   | { tag: "Image"; value: imageInfo }
   | { tag: "Audio"; value: audioInfo };
 
@@ -58,13 +56,13 @@ export type mediaResolveFn = (_1:string, _2:string, _3:WasmController_t) => ReSc
 export type MediaResolver = mediaResolveFn;
 
 export const resolveMedia: (name:string, media:processedMedia) => forceTsReturnResolveMedia = function (Arg1: any, Arg2: any) {
-  const result = Curry._2(mediaLoaderBS.resolveMedia, Arg1, typeof(Arg2) === 'object'
-    ? Arg2.tag==="Font"
-      ? {TAG: 0, _0:Arg2.value} as any
-      : Arg2.tag==="Image"
-      ? {TAG: 1, _0:Arg2.value} as any
-      : {TAG: 2, _0:Arg2.value} as any
-    : $$toRE445030416[Arg2]);
+  const result = Curry._2(mediaLoaderBS.resolveMedia, Arg1, Arg2.tag==="Font"
+    ? {TAG: 0, _0:Arg2.value} as any
+    : Arg2.tag==="Subtitles"
+    ? {TAG: 1, _0:Arg2.value} as any
+    : Arg2.tag==="Image"
+    ? {TAG: 2, _0:Arg2.value} as any
+    : {TAG: 3, _0:Arg2.value} as any);
   return "MediaResolved"
 };
 

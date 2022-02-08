@@ -24,7 +24,8 @@ export type VideoMeta = videoMeta;
 // tslint:disable-next-line:interface-over-type-literal
 export type t = {
   readonly add_audio_source: (_1:string, _2:ReScriptJs_Js_Float32Array_t) => void; 
-  readonly add_subtitles_source: (_1:string, _2:string) => void; 
+  readonly add_image_source: (_1:string, _2:string) => void; 
+  readonly add_subtitles_source: (_1:string, _2:string) => number; 
   readonly default: () => ReScriptJs_Js_Promise_t<void>; 
   readonly prepare: () => ReScriptJs_Js_Promise_t<videoMeta>; 
   readonly render_frame: (_1:ReScriptJs_Js_BigInt_t) => string

@@ -18,7 +18,7 @@ module LoadedMediaIcon = {
         {switch nonImageMedia {
         | Audio(_) => <Icons.MusicalNotesIcon color="currentColor" className="h-7 w-7" />
         | Font(_) => <Icons.FontIcon color="currentColor" className="h-7 w-7" />
-        | Subtitles => <Icons.CaptionsIcon color="currentColor" className="h-7 w-7" />
+        | Subtitles(_) => <Icons.CaptionsIcon color="currentColor" className="h-7 w-7" />
         | _ => React.null
         }}
       </div>
@@ -38,7 +38,7 @@ module LoadedMedia = {
           | Audio({sampleRate, duration}) =>
             `${duration->Utils.Duration.formatSeconds}, ${sampleRate->Int.toString}hz`->React.string
           | Font(fontInfo) => React.string(fontInfo)
-          | Subtitles => React.string("s")
+          | Subtitles(phrasesCount) => React.string(`${phrasesCount->Int.toString} phrases`)
           | Image({width, height}) => `${width->Int.toString}x${height->Int.toString}`->React.string
           }}
         </p>

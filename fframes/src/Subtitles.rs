@@ -8,6 +8,12 @@ pub struct Subtitles {
 }
 
 impl Subtitles {
+    pub fn get_phrases_count(&self) -> usize {
+        self.subtitles.cues.len()
+    }
+}
+
+impl Subtitles {
     pub fn from_str(content: &str) -> Self {
         Subtitles {
             subtitles: parse_vtt(content).unwrap(),

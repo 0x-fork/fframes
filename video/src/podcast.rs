@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::image;
-use fframes::{audio_data, AudioMap, AudioTimestamp, fframes_context, frame, video::Video};
+use fframes::{audio_data, fframes_context, frame, video::Video, AudioMap, AudioTimestamp};
 use svgr_macro::{self, svgr};
 
 pub struct PodcastVideo {}
@@ -51,8 +51,8 @@ impl Video for PodcastVideo {
         );
 
         svgr!(
-             <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" fill="none">
-              <g clip-path="url(#clip0)">
+          <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" fill="none">
+            <g clip-path="url(#clip0)">
               <rect width="1920" height="1080" fill="white"/>
               <rect x="-648" y="-373" width="1946" height="2512" fill="#E7D850"/>
               <rect width="723" height="722.346" transform="translate(598 -20)" fill="#E7D850"/>
@@ -99,17 +99,14 @@ impl Video for PodcastVideo {
                  <clipPath id="clip1">
                    <path fill="#fff" transform="matrix(-1 0 0 1 1257.75 110.456)" d="M0 0h350.203v350.203H0z" />
                  </clipPath>
-                 <pattern id="image" x="0%" y="0%" height="100%" width="100%"
-                          viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/Photo-1x1.jpeg"></image>
+                 <pattern id="image" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
+                   <image x="0%" y="0%" width="480" height="480" xlink:href={ctx.get_image_link("me.jpg")}></image>
                  </pattern>
-                 <pattern id="vlad" x="0%" y="0%" height="100%" width="100%"
-                          viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/photo-square-3.jpg"></image>
+                 <pattern id="vlad" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
+                   <image x="0%" y="0%" width="480" height="480" xlink:href={ctx.get_image_link("vlad.jpg")}></image>
                  </pattern>
-                 <pattern id="guest" x="0%" y="0%" height="100%" width="100%"
-                          viewBox="0 0 480 480">
-                   <image x="0%" y="0%" width="480" height="480" xlink:href="/Users/dmtrkovalenko/Downloads/patsura.jpg"></image>
+                 <pattern id="guest" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
+                   <image x="0%" y="0%" width="480" height="480" xlink:href={ctx.get_image_link("guest.jpg")}></image>
                  </pattern>
                </defs>
 

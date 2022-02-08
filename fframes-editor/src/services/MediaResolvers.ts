@@ -47,9 +47,12 @@ export const resolveSubtitles: MediaResolver = async (
 ) => {
   const response = await fetch(url);
   const text = await response.text();
-  wasmController.add_subtitles_source(name, text);
+  const phrasesCount = wasmController.add_subtitles_source(name, text);
 
-  return resolveMedia(name, "Subtitles");
+  return resolveMedia(name, {
+    tag: "Subtitles",
+    value: phrasesCount,
+  });
 };
 
 export const resolveFont: MediaResolver = async (name, url, wasmController) => {
@@ -79,6 +82,7 @@ export const resolveImage: MediaResolver = async (
   wasmController
 ) => {
   const image = await loadImage(url);
+  wasmController.add_image_source(name, url);
 
   return resolveMedia(name, {
     tag: "Image",

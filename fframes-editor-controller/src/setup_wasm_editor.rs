@@ -11,6 +11,7 @@ macro_rules! setup_wasm_editor {
             static ref VIDEO: $x = $x::make();
             static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
             static ref AUDIO_CACHE: Mutex<HashMap<String, AudioData>> = Mutex::new(HashMap::new());
+            static ref IMAGE_CACHE: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
             static ref SUBTITLES_CACHE: Mutex<HashMap<String, Subtitles>> =
                 Mutex::new(HashMap::new());
         }
@@ -128,24 +129,36 @@ macro_rules! setup_wasm_editor {
         }
 
         #[wasm_bindgen]
-        pub fn add_subtitles_source(file: String, content: String) {
+        pub fn add_subtitles_source(file: String, content: String) -> usize {
+            let parsed_subtitle = Subtitles::from_str(content.as_str());
+            let phrases_count = parsed_subtitle.get_phrases_count();
+
             SUBTITLES_CACHE
                 .lock()
                 .unwrap()
-                .insert(file, Subtitles::from_str(content.as_str()));
+                .insert(file, parsed_subtitle);
+
+            phrases_count
+        }
+
+        #[wasm_bindgen]
+        pub fn add_image_source(file: String, url: String) {
+            IMAGE_CACHE.lock().unwrap().insert(file, url);
         }
 
         #[wasm_bindgen]
         pub fn render_frame(frame: i64) -> String {
             VIDEO.render_frame(
-                &Frame::Frame {
+                &frame::Frame {
                     fps: $x::FPS,
                     index: frame,
                 },
-                FFramesContext::FFramesContext {
+                fframes_context::FFramesContext {
+                    mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
                     audio: &AUDIO_CACHE.lock().unwrap(),
                     subtitles: &SUBTITLES_CACHE.lock().unwrap(),
+                    images: &IMAGE_CACHE.lock().unwrap(),
                 },
             )
         }

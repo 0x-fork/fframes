@@ -4,11 +4,20 @@ use crate::{
 };
 use std::collections::HashMap;
 
+#[derive(Clone, Copy)]
+pub enum FFramesMode {
+    Editor,
+    EditorTimelinePreview,
+    Renderer,
+}
+
 #[derive(Clone)]
 pub struct FFramesContext<'a> {
     pub fps: usize,
     pub audio: &'a HashMap<String, audio_data::AudioData>,
     pub subtitles: &'a HashMap<String, subtitles::Subtitles>,
+    pub images: &'a HashMap<String, String>,
+    pub mode: FFramesMode,
 }
 
 impl FFramesContext<'_> {
@@ -23,6 +32,16 @@ impl FFramesContext<'_> {
         match self.subtitles.get(filename) {
             Some(data) => data,
             None => panic!("Subtitles {file} not found! Please make sure that media folder contains {file}.vtt", file=filename)
+        }
+    }
+
+    pub fn get_image_link(&self, filename: &str) -> &str {
+        match self.images.get(filename) {
+            Some(data) => data,
+            None => panic!(
+                "Image {file} not found! Please make sure that media folder contains {file}.vtt",
+                file = filename
+            ),
         }
     }
 }

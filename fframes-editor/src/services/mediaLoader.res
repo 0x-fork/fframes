@@ -18,7 +18,7 @@ type imageInfo = {
 @genType
 type processedMedia =
   | Font(string)
-  | Subtitles
+  | Subtitles(int)
   | Image(imageInfo)
   | Audio(audioInfo)
 
