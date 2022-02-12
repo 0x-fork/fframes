@@ -1,15 +1,16 @@
-open Belt
 open WebAudio
+open Belt
 
 /* @returns whether continue execution or not */
 type onFrame = (~secondsFromStart: float) => bool
 
 module AudioRuntime = {
   let rafId: ref<option<Webapi.rafId>> = ref(None)
+  let playingSources: ref<array<(string, AudioNode.t)>> = ref([])
   let audioContext = ref(None)
   let startTime = ref(0.)
 
-  let rec frame = (~onFrame: onFrame, timestamp) => {
+  let rec frame = (~onFrame: onFrame, _timestamp) => {
     let secondsFromStart =
       audioContext.contents->Utils.Option.unwrap->AudioContext.getCurrentTime -. startTime.contents
 
@@ -18,64 +19,85 @@ module AudioRuntime = {
     }
   }
 
-  let stop = () => {
-    rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
-  }
-
-  let connectCurrentlyPlayingAudio = (ctx, frame, videoMeta: WasmController.videoMeta) => {
+  let connectAudioFiles = (ctx, videoMeta: WasmController.videoMeta) => {
     let {mediaList} = MediaLoader.MediaLoaderObserver.get()
-
     videoMeta.audioMap
     ->Utils.Option.unwrap
     ->Js.Dict.keysToArray
     ->Array.keepMap(audioName => {
-      let value =
-        videoMeta.audioMap->Utils.Option.unwrap->Js.Dict.get(audioName)->Utils.Option.unwrap
-
-      switch value {
-      | (start, end) if frame >= start && frame <= end =>
-        mediaList
-        ->Map.String.getExn(audioName)
-        ->(
-          (media: MediaLoader.loadableMedia) =>
+      mediaList
+      ->Map.String.getExn(audioName)
+      ->(
+        (media: MediaLoader.loadableMedia) =>
+          switch media {
+          | Media(media) =>
             switch media {
-            | Media(media) =>
-              switch media {
-              | Audio(info) => Some(info)
-              | _ => None
-              }
+            | Audio(info) => Some((audioName, info))
             | _ => None
             }
-        )
-
-      | _ => None
-      }
+          | _ => None
+          }
+      )
     })
-    ->Array.map(audioInfo => {
+    ->Array.map(res => {
+      let (name, info) = res
       let source = ctx->AudioContext.createBufferSource
-      source->AudioNode.setBuffer(audioInfo.audioData)
+      source->AudioNode.setBuffer(info.audioData)
 
-      source
+      (name, source)
     })
   }
 
-  let startAnimation = (~onFrame, ~videoMeta) => {
+  let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
     let ctx = AudioContext.create()
     audioContext := Some(ctx)
 
-    let playingSources = ctx->connectCurrentlyPlayingAudio(0, videoMeta)
+    playingSources := ctx->connectAudioFiles(videoMeta)
 
     let gain = ctx->AudioContext.createGain
-    gain["gain"]["value"] = 0.4
+    gain["gain"]["value"] = 0.2
 
     gain->AudioNode.connect(ctx.destination)->ignore
     startTime := ctx.currentTime
 
-    playingSources->Array.forEach(source => {
-      source->AudioNode.connect(gain)
-      source->AudioNode.start(startTime.contents)
+    videoMeta.audioMap->Belt.Option.forEach(audioMap => {
+      playingSources.contents->Array.forEach(nameAndSource => {
+        let (name, source) = nameAndSource
+        let (startFrame, endFrame) = audioMap->Js.Dict.get(name)->Utils.Option.unwrap
+
+        let offset = (currentFrame - startFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
+        let duration = if startFrame > currentFrame {
+          (endFrame - startFrame - currentFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
+        } else {
+          (endFrame - currentFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
+        }->Js.Math.max(0.)
+
+        Js.Console.log2(duration, offset)
+
+        source->AudioNode.connect(gain)
+
+        if offset < 0. {
+          source->AudioNode.startWithOffset(
+            ~startTime=startTime.contents +. Js.Math.abs(offset),
+            ~offset=0.,
+            ~duration,
+          )
+        } else {
+          source->AudioNode.startWithOffset(~startTime=startTime.contents, ~offset, ~duration)
+        }
+      })
     })
 
     Webapi.requestAnimationFrame(frame(~onFrame))
+  }
+
+  let stop = () => {
+    rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
+    playingSources.contents->Array.forEach(nameAndSource => {
+      let (_, source) = nameAndSource
+
+      Js.Console.log(source)
+      source->AudioNode.stop
+    })
   }
 }

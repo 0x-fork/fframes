@@ -21,7 +21,7 @@ let useEditorContext = () => {
   }
 }
 
-module MakeEditorContext = (Wasm: Player.WasmBridge) => {
+module MakeEditorContext = (Wasm: WasmController.WasmBridge) => {
   module PlayerObserver = Player.MakePlayer(Wasm)
 
   @react.component @genType

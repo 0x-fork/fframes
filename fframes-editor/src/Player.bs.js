@@ -82,21 +82,29 @@ function MakePlayer(Wasm) {
     }
   };
   var sideEffect = function (action, dispatch) {
-    if (action !== 1) {
+    if (typeof action !== "number") {
       return ;
     }
-    if (Curry._1(get, undefined).playState === /* Playing */0) {
-      return ;
+    switch (action) {
+      case /* AllowPlay */0 :
+          return ;
+      case /* Play */1 :
+          if (Curry._1(get, undefined).playState === /* Playing */0) {
+            return ;
+          }
+          var onFrame = function (secondsFromStart) {
+            var nextFrame = secondsFromStart * Wasm.videoMeta.fps + Curry._1(get, undefined).startPlayingFrame;
+            Curry._1(dispatch, /* NewFrame */{
+                  _0: Math.floor(nextFrame)
+                });
+            return Curry._1(get, undefined).playState === /* Playing */0;
+          };
+          AnimationRuntime.AudioRuntime.startAnimation(onFrame, Curry._1(get, undefined).frame, Wasm.videoMeta);
+          return ;
+      case /* Pause */2 :
+          return AnimationRuntime.AudioRuntime.stop(undefined);
+      
     }
-    var onFrame = function (secondsFromStart) {
-      var nextFrame = secondsFromStart * Wasm.videoMeta.fps + Curry._1(get, undefined).startPlayingFrame;
-      Curry._1(dispatch, /* NewFrame */{
-            _0: Math.floor(nextFrame)
-          });
-      return Curry._1(get, undefined).playState === /* Playing */0;
-    };
-    AnimationRuntime.AudioRuntime.startAnimation(onFrame, Wasm.videoMeta);
-    
   };
   var dispatch = function (action) {
     sideEffect(action, dispatch);

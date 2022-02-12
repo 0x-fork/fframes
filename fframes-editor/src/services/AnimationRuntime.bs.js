@@ -12,6 +12,10 @@ var rafId = {
   contents: undefined
 };
 
+var playingSources = {
+  contents: []
+};
+
 var audioContext = {
   contents: undefined
 };
@@ -20,7 +24,7 @@ var startTime = {
   contents: 0
 };
 
-function frame(onFrame, timestamp) {
+function frame(onFrame, _timestamp) {
   var secondsFromStart = Utils.$$Option.unwrap(audioContext.contents).currentTime - startTime.contents;
   if (Curry._1(onFrame, secondsFromStart)) {
     rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
@@ -31,28 +35,19 @@ function frame(onFrame, timestamp) {
   
 }
 
-function stop(param) {
-  Belt_Option.map(rafId.contents, (function (prim) {
-          cancelAnimationFrame(prim);
-          
-        }));
-  
-}
-
-function connectCurrentlyPlayingAudio(ctx, frame, videoMeta) {
+function connectAudioFiles(ctx, videoMeta) {
   var match = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var mediaList = match.mediaList;
   return Belt_Array.map(Belt_Array.keepMap(Object.keys(Utils.$$Option.unwrap(videoMeta.audioMap)), (function (audioName) {
-                    var value = Utils.$$Option.unwrap(Utils.$$Option.unwrap(videoMeta.audioMap)[audioName]);
-                    if (!(frame >= value[0] && frame <= value[1])) {
-                      return ;
-                    }
                     var media = Belt_MapString.getExn(mediaList, audioName);
                     switch (media.TAG | 0) {
                       case /* Media */1 :
                           var media$1 = media._0;
                           if (media$1.TAG === /* Audio */3) {
-                            return media$1._0;
+                            return [
+                                    audioName,
+                                    media$1._0
+                                  ];
                           } else {
                             return ;
                           }
@@ -61,25 +56,41 @@ function connectCurrentlyPlayingAudio(ctx, frame, videoMeta) {
                           return ;
                       
                     }
-                  })), (function (audioInfo) {
+                  })), (function (res) {
                 var source = ctx.createBufferSource();
-                source.buffer = audioInfo.audioData;
-                return source;
+                source.buffer = res[1].audioData;
+                return [
+                        res[0],
+                        source
+                      ];
               }));
 }
 
-function startAnimation(onFrame, videoMeta) {
+function startAnimation(onFrame, currentFrame, videoMeta) {
   var ctx = new AudioContext();
   audioContext.contents = ctx;
-  var playingSources = connectCurrentlyPlayingAudio(ctx, 0, videoMeta);
+  playingSources.contents = connectAudioFiles(ctx, videoMeta);
   var gain = ctx.createGain();
-  gain.gain.value = 0.4;
+  gain.gain.value = 0.2;
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
-  Belt_Array.forEach(playingSources, (function (source) {
-          source.connect(gain);
-          source.start(startTime.contents);
-          
+  Belt_Option.forEach(videoMeta.audioMap, (function (audioMap) {
+          return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
+                        var source = nameAndSource[1];
+                        var match = Utils.$$Option.unwrap(audioMap[nameAndSource[0]]);
+                        var endFrame = match[1];
+                        var startFrame = match[0];
+                        var offset = (currentFrame - startFrame | 0) / videoMeta.fps;
+                        var duration = Math.max(startFrame > currentFrame ? ((endFrame - startFrame | 0) - currentFrame | 0) / videoMeta.fps : (endFrame - currentFrame | 0) / videoMeta.fps, 0);
+                        console.log(duration, offset);
+                        source.connect(gain);
+                        if (offset < 0) {
+                          source.start(startTime.contents + Math.abs(offset), 0, duration);
+                        } else {
+                          source.start(startTime.contents, offset, duration);
+                        }
+                        
+                      }));
         }));
   requestAnimationFrame(function (param) {
         return frame(onFrame, param);
@@ -87,14 +98,28 @@ function startAnimation(onFrame, videoMeta) {
   
 }
 
+function stop(param) {
+  Belt_Option.map(rafId.contents, (function (prim) {
+          cancelAnimationFrame(prim);
+          
+        }));
+  return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
+                var source = nameAndSource[1];
+                console.log(source);
+                source.stop();
+                
+              }));
+}
+
 var AudioRuntime = {
   rafId: rafId,
+  playingSources: playingSources,
   audioContext: audioContext,
   startTime: startTime,
   frame: frame,
-  stop: stop,
-  connectCurrentlyPlayingAudio: connectCurrentlyPlayingAudio,
-  startAnimation: startAnimation
+  connectAudioFiles: connectAudioFiles,
+  startAnimation: startAnimation,
+  stop: stop
 };
 
 export {

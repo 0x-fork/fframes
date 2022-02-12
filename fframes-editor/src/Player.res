@@ -1,10 +1,5 @@
 open Belt
 
-module type WasmBridge = {
-  let videoMeta: WasmController.videoMeta
-  let controller: WasmController.t
-}
-
 type playState = Playing | Paused | WaitingForAction | CantPlay
 
 @genType
@@ -19,7 +14,7 @@ type state = {
 type action = NewFrame(int) | AllowPlay | Play | Pause
 
 /// This state should only contain a state that changes or affect the animation runtime and will likely change 60 t/s
-module MakePlayer = (Wasm: WasmBridge) => {
+module MakePlayer = (Wasm: WasmController.WasmBridge) => {
   module PlayerState = {
     type t = state
 
@@ -71,15 +66,21 @@ module MakePlayer = (Wasm: WasmBridge) => {
     | Play if get().playState !== Playing => {
         let onFrame = (~secondsFromStart) => {
           let nextFrame =
-            secondsFromStart *. Wasm.videoMeta.fps->Float.fromInt +. get().startPlayingFrame->Float.fromInt
+            secondsFromStart *. Wasm.videoMeta.fps->Float.fromInt +.
+              get().startPlayingFrame->Float.fromInt
 
           NewFrame(nextFrame->Utils.Math.floor)->dispatch
           get().playState === Playing
         }
 
-        AnimationRuntime.AudioRuntime.startAnimation(~onFrame, ~videoMeta=Wasm.videoMeta)
+        AnimationRuntime.AudioRuntime.startAnimation(
+          ~onFrame,
+          ~currentFrame=get().frame,
+          ~videoMeta=Wasm.videoMeta,
+        )
         ()
       }
+    | Pause => AnimationRuntime.AudioRuntime.stop()
     | _ => ()
     }
   }

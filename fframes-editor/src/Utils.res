@@ -19,6 +19,9 @@ module Math = {
   @scope("Math") @val
   external round: float => int = "round"
 
+  @scope("Math") @val
+  external maxI: (int, int) => int = "max"
+
   let divideWithReminder = (x, y) => {
     (Js.Math.floor(x /. y), Js.Float.mod(x, y))
   }

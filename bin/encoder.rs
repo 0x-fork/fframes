@@ -63,7 +63,7 @@ impl Stream {
         av_dict_set(opts, crf, crfval, 0);
 
         let response = avcodec_open2(c, codec, opts);
-        assert!(response >= 0, "Could not open videeo codec");
+        assert!(response >= 0, "Could not open video codec");
 
         let response = avcodec_parameters_from_context((*st).codecpar, c);
         assert!(response >= 0, "Could not copy the stream parameters");
@@ -91,7 +91,7 @@ impl Encoder {
         let filename = CString::new(filename).unwrap();
         let mut oc: *mut AVFormatContext = std::ptr::null_mut();
 
-        let alloc_res = avformat_alloc_output_context2(
+        let res = avformat_alloc_output_context2(
             &mut oc,
             std::ptr::null_mut(),
             std::ptr::null_mut(),
@@ -99,8 +99,8 @@ impl Encoder {
         );
 
         assert!(
-            alloc_res >= 0,
-            "Could not deduce output format from file extension: using MPEG.\n"
+            res >= 0,
+            "Could not deduce output format from file extension."
         );
 
         let fmt = (*oc).oformat;

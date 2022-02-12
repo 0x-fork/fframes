@@ -18,4 +18,9 @@ type t = {
   render_frame: Js.BigInt.t => string,
 }
 
+module type WasmBridge = {
+  let videoMeta: videoMeta
+  let controller: t
+}
+
 external getFrame: (t, Js.BigInt.t) => string = "getFrame"

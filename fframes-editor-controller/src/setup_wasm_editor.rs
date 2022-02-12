@@ -125,7 +125,11 @@ macro_rules! setup_wasm_editor {
             };
 
             let mut audio_cache = AUDIO_CACHE.lock().unwrap();
-            audio_cache.insert(file, audio_data);
+            audio_cache.insert(file.clone(), audio_data);
+
+            let duration_in_frames = input.len() as f64 / 44100 as f64 * $x::FPS as f64;
+            let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
+            durations_hash.insert(file, duration_in_frames as i32);
         }
 
         #[wasm_bindgen]

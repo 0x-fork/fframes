@@ -143,7 +143,7 @@ impl Video for MarketingVideo {
 
         AudioMap::from([
             ("marketing.mp3", (Second(0), Eof)),
-            ("test.mp3", (Second(0), Second(4))),
+            ("test.mp3", (Second(3), Eof)),
         ])
     }
 
