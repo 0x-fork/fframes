@@ -10,10 +10,12 @@ macro_rules! setup_wasm_editor {
         lazy_static! {
             static ref VIDEO: $x = $x::make();
             static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
-            static ref AUDIO_CACHE: Mutex<HashMap<String, AudioData>> = Mutex::new(HashMap::new());
-            static ref IMAGE_CACHE: Mutex<HashMap<String, String>> = Mutex::new(HashMap::new());
-            static ref SUBTITLES_CACHE: Mutex<HashMap<String, Subtitles>> =
-                Mutex::new(HashMap::new());
+            static ref MEDIA_PROVIDER: Mutex<fframes::media_provider::MediaProvider> =
+                Mutex::new(fframes::media_provider::MediaProvider {
+                    audio: HashMap::new(),
+                    images: HashMap::new(),
+                    subtitles: HashMap::new()
+                });
         }
 
         #[wasm_bindgen]
@@ -124,8 +126,8 @@ macro_rules! setup_wasm_editor {
                     .sqrt(),
             };
 
-            let mut audio_cache = AUDIO_CACHE.lock().unwrap();
-            audio_cache.insert(file.clone(), audio_data);
+            let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
+            media_provider.audio.insert(file.clone(), audio_data);
 
             let duration_in_frames = input.len() as f64 / 44100 as f64 * $x::FPS as f64;
             let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
@@ -137,9 +139,10 @@ macro_rules! setup_wasm_editor {
             let parsed_subtitle = Subtitles::from_str(content.as_str());
             let phrases_count = parsed_subtitle.get_phrases_count();
 
-            SUBTITLES_CACHE
+            let mut media_provider = MEDIA_PROVIDER
                 .lock()
                 .unwrap()
+                .subtitles
                 .insert(file, parsed_subtitle);
 
             phrases_count
@@ -147,7 +150,8 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub fn add_image_source(file: String, url: String) {
-            IMAGE_CACHE.lock().unwrap().insert(file, url);
+            let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
+            media_provider.images.insert(file, url);
         }
 
         #[wasm_bindgen]
@@ -160,9 +164,7 @@ macro_rules! setup_wasm_editor {
                 fframes_context::FFramesContext {
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
-                    audio: &AUDIO_CACHE.lock().unwrap(),
-                    subtitles: &SUBTITLES_CACHE.lock().unwrap(),
-                    images: &IMAGE_CACHE.lock().unwrap(),
+                    media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
             )
         }

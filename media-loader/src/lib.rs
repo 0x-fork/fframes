@@ -1,7 +1,7 @@
 use minimp3::{Decoder as Mp3Decoder, Error as Mp3Error, Frame as Mp3Frame};
-use std::fs::File;
+use std::{fs::File, path::Path};
 
-pub fn decode_mp3(audio_path: &str) -> (i32, Vec<f32>) {
+pub fn decode_mp3<P: AsRef<Path>>(audio_path: P) -> (i32, Vec<f32>) {
     let mut decoder = Mp3Decoder::new(File::open(audio_path).unwrap());
 
     let mut sample_rate = 0;

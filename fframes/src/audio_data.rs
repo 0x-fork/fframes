@@ -39,7 +39,7 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
 pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
-    pub ctx: &'a fframes_context::FFramesContext<'a>,
+    pub ctx:  &'a fframes_context::FFramesContext,
 }
 
 fn apply_fft_to_frame(

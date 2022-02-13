@@ -1,12 +1,16 @@
 mod encoder;
+use ffmpeg_next::media;
 use fframes::Duration;
 use fframes::{audio_data, fframes_context, frame, video::Video};
+use handlebars::RenderContext;
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::ops::Range;
 
 use crate::encoder::{Encoder, EncoderFrame};
+
+mod media_processor;
 
 fn load_audio(path: &str) -> audio_data::AudioData {
     let (sample_reate, samples) = media_loader::decode_mp3(path);
@@ -40,49 +44,24 @@ pub fn divide_round_up(a: usize, b: usize) -> usize {
     (a + (b - 1)) / b
 }
 
-fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
+#[derive(Default, Debug)]
+pub struct RenderOptions<'a> {
+    resources_dir: &'a str,
+}
+
+fn render<TVideo: Video + Sync + Sized>(video: TVideo, options: RenderOptions) {
+    let fps = TVideo::FPS;
     let mut opt = usvg::Options::default();
     opt.fontdb.load_system_fonts();
     opt.fontdb
         .load_font_file("/Users/dmtrkovalneko/dev/fframes/video/media/Bubble.ttf")
         .unwrap_or_else(|_| println!("Can not load a font"));
 
-    println!("decoding audio");
-    let mut audio_hash = HashMap::new();
-    // audio_hash.insert(
-    //     "marketing".to_owned(),
-    //     load_audio("/Users/dmtrkovalenko/dev/fframes/editor-wasm/media/marketing.mp3"),
-    // );
-    audio_hash.insert(
-        "me.mp3".to_owned(),
-        load_audio("/Users/dmtrkovalenko/goose_duck/me.mp3"),
-    );
-    audio_hash.insert(
-        "vlad.mp3".to_owned(),
-        load_audio("/Users/dmtrkovalenko/goose_duck/vlad.mp3"),
-    );
-    audio_hash.insert(
-        "guest.mp3".to_owned(),
-        load_audio("/Users/dmtrkovalenko/goose_duck/guest.mp3"),
-    );
-    audio_hash.insert(
-        "final.mp3".to_owned(),
-        load_audio("/Users/dmtrkovalenko/goose_duck/final.mp3"),
-    );
-
-    let mut subtitles_hash = HashMap::new();
-    // subtitles_hash.insert(
-    //     "subtitles".to_owned(),
-    //     Subtitles::from_file("/Users/dmitrijkovalenko/dev/fframes/editor-wasm/media/subtitles.vtt"),
-    // );
-
-    println!("audio decoding completed");
-
-    let fps = TVideo::FPS;
-
+    let media_provider = media_processor::load_media_from_folder(options.resources_dir).unwrap();
+    println!("{:#?}", media_provider.audio.len());
     let duration_in_frames = match TVideo::DURATION {
         Duration::FromAudio(audio) => {
-            let main_audio = audio_hash.get(audio).unwrap();
+            let main_audio = media_provider.audio.get(audio).unwrap();
             main_audio.samples.len() / main_audio.sample_rate as usize * fps as usize
         }
         Duration::Seconds(seconds) => seconds * fps,
@@ -90,9 +69,9 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
     };
 
     let ctx = fframes_context::FFramesContext {
+        mode: fframes::FFramesMode::Renderer,
         fps,
-        audio: &audio_hash,
-        subtitles: &subtitles_hash,
+        media_provider,
     };
 
     println!("rendering {} frames", duration_in_frames);
@@ -103,6 +82,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
         .map(|file| std::ffi::CStr::as_ptr(&CString::new(file).unwrap()))
         .collect::<Vec<_>>()
         .as_ptr();
+
     let opt_ref = &opt.to_ref();
     unsafe {
         split_ffmpeg_chunks(
@@ -171,5 +151,11 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo) {
 
 fn main() {
     // render(video::marketing::MarketingVideo::make());
-    render(video::podcast::PodcastVideo::make());
+    render(
+        video::test_video::TestVideo::make(),
+        RenderOptions {
+            // resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
+            resources_dir: "/Users/dmtrkovalenko/dev/fframes/fframes-editor-controller",
+        },
+    );
 }

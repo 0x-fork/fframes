@@ -201,7 +201,7 @@ impl Display for Cue {
 }
 
 /// The subtitle file and metadata
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Vtt {
     pub slugs: HashMap<String, String>,
     pub style: Option<String>,
