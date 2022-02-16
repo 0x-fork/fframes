@@ -14,7 +14,12 @@ pub fn load_media_from_folder(folder_path: &str) -> io::Result<MediaProvider> {
 
     let folder_path = Path::new(folder_path);
 
-    assert!(folder_path.is_dir(), "resources_dir must be a folder");
+    if !folder_path.is_dir() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput, // todo change to NotADirectory when this https://github.com/rust-lang/rust/issues/86442 will be stable
+            "resources_dir must be a folder",
+        ));
+    }
 
     fs::read_dir(folder_path)?
         .filter_map(|path_buf| {

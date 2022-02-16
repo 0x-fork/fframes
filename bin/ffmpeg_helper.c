@@ -18,8 +18,6 @@ AVStream *o_video_stream;
 
 int concat_files(const char *output)
 {
-  avcodec_register_all();
-  av_register_all();
 
   const char *files[10];
   files[0] = "some-0.mp4";
@@ -49,7 +47,7 @@ int concat_files(const char *output)
     return -1;
   }
 
-  //av_dump_format(i_fmt_ctx, 0, argv[1], 0);
+  // av_dump_format(i_fmt_ctx, 0, argv[1], 0);
 
   /* find first video stream */
   for (unsigned i = 0; i < i_fmt_ctx->nb_streams; i++)
@@ -67,9 +65,9 @@ int concat_files(const char *output)
   avformat_alloc_output_context2(&o_fmt_ctx, NULL, NULL, output);
 
   /*
-* since all input files are supposed to be identical (framerate, dimension, color format, ...)
-* we can safely set output codec values from first input file
-*/
+   * since all input files are supposed to be identical (framerate, dimension, color format, ...)
+   * we can safely set output codec values from first input file
+   */
   o_video_stream = avformat_new_stream(o_fmt_ctx, 0);
   {
     AVCodecContext *c;
@@ -163,7 +161,7 @@ int concat_files(const char *output)
 
       i_pkt.flags |= AV_PKT_FLAG_KEY;
 
-      // This calculates the delta in pts based on the duration when this file must be appeared  
+      // This calculates the delta in pts based on the duration when this file must be appeared
       delta = av_rescale_q(start_time,
                            AV_TIME_BASE_Q,
                            o_video_stream->time_base);
@@ -182,7 +180,7 @@ int concat_files(const char *output)
 
       av_packet_rescale_ts(&i_pkt, i_video_stream->time_base, o_video_stream->time_base);
       av_interleaved_write_frame(o_fmt_ctx, &i_pkt);
-     }
+    }
 
     start_time += i_fmt_ctx->duration;
 
@@ -197,6 +195,7 @@ int concat_files(const char *output)
 
   avio_close(o_fmt_ctx->pb);
   av_free(o_fmt_ctx);
+  avformat_free_context(o_fmt_ctx);
 
   return 0;
 }

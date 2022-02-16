@@ -1,16 +1,17 @@
 mod encoder;
-use ffmpeg_next::media;
 use fframes::Duration;
 use fframes::{audio_data, fframes_context, frame, video::Video};
-use handlebars::RenderContext;
 use rayon::prelude::*;
-use std::collections::HashMap;
+use renderer_error::FFramesError;
 use std::ffi::CString;
 use std::ops::Range;
 
 use crate::encoder::{Encoder, EncoderFrame};
 
+mod concatenator;
+mod ffmpeg_helper;
 mod media_processor;
+mod renderer_error;
 
 fn load_audio(path: &str) -> audio_data::AudioData {
     let (sample_reate, samples) = media_loader::decode_mp3(path);
@@ -49,7 +50,10 @@ pub struct RenderOptions<'a> {
     resources_dir: &'a str,
 }
 
-fn render<TVideo: Video + Sync + Sized>(video: TVideo, options: RenderOptions) {
+fn render<TVideo: Video + Sync + Sized>(
+    video: TVideo,
+    options: RenderOptions,
+) -> Result<(), FFramesError> {
     let fps = TVideo::FPS;
     let mut opt = usvg::Options::default();
     opt.fontdb.load_system_fonts();
@@ -58,7 +62,7 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo, options: RenderOptions) {
         .unwrap_or_else(|_| println!("Can not load a font"));
 
     let media_provider = media_processor::load_media_from_folder(options.resources_dir).unwrap();
-    println!("{:#?}", media_provider.audio.len());
+
     let duration_in_frames = match TVideo::DURATION {
         Duration::FromAudio(audio) => {
             let main_audio = media_provider.audio.get(audio).unwrap();
@@ -84,69 +88,62 @@ fn render<TVideo: Video + Sync + Sized>(video: TVideo, options: RenderOptions) {
         .as_ptr();
 
     let opt_ref = &opt.to_ref();
-    unsafe {
-        split_ffmpeg_chunks(
-            duration_in_frames,
-            divide_round_up(duration_in_frames, rayon::current_num_threads()),
-        )
-        .par_iter()
-        .enumerate()
-        .for_each(|(i, chunk_range)| {
-            println!("{:?}", chunk_range);
-            Encoder::with_output(
-                1920,
-                1080,
-                fps as i32,
-                format!("some-{}.mp4", i).as_str(),
-                &mut |encoder| {
-                    let mut last_svg = "".to_owned();
-                    let frame = EncoderFrame::make(&encoder.video_stream);
-                    let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
 
-                    chunk_range
-                        .to_owned()
-                        .into_iter()
-                        .enumerate()
-                        .for_each(|(index, fr)| {
-                            let svg = video.render_frame(
-                                &frame::Frame {
-                                    fps,
-                                    index: fr as i64,
-                                },
-                                ctx.clone(),
-                            );
+    let files = split_ffmpeg_chunks(
+        duration_in_frames,
+        divide_round_up(duration_in_frames, rayon::current_num_threads()),
+    )
+    .par_iter()
+    .enumerate()
+    .map(|(i, chunk_range)| unsafe {
+        let file = format!("some-{}.mp4", i);
+        Encoder::with_output(1920, 1080, fps as i32, &file.as_str(), &mut |encoder| {
+            let mut last_svg = "".to_owned();
+            let frame = EncoderFrame::make(&encoder.video_stream);
+            let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
 
-                            if svg != last_svg {
-                                let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
-                                resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut())
-                                    .unwrap();
+            chunk_range
+                .to_owned()
+                .into_iter()
+                .enumerate()
+                .for_each(|(index, fr)| {
+                    let svg = video.render_frame(
+                        &frame::Frame {
+                            fps,
+                            index: fr as i64,
+                        },
+                        ctx.clone(),
+                    );
 
-                                last_svg = svg;
-                            }
+                    if svg != last_svg {
+                        let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
+                        resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut()).unwrap();
 
-                            encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()));
-                        });
-
-                    let frames_to_generate = chunk_range.end - chunk_range.start;
-                    let submitted_frames = encoder.video_stream.get_frames_in_stream() as usize;
-
-                    if submitted_frames < frames_to_generate {
-                        let intra_frames_to_add = frames_to_generate - submitted_frames;
-
-                        for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
-                            // frame.set_index(intra_frame as i64);
-                            encoder.send_frame(frame.frame);
-                        }
+                        last_svg = svg;
                     }
-                },
-            )
+
+                    encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()));
+                });
+
+            let frames_to_generate = chunk_range.end - chunk_range.start;
+            let submitted_frames = encoder.video_stream.get_frames_in_stream() as usize;
+
+            if submitted_frames < frames_to_generate {
+                let intra_frames_to_add = frames_to_generate - submitted_frames;
+
+                for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
+                    // frame.set_index(intra_frame as i64);
+                    encoder.send_frame(frame.frame);
+                }
+            }
         });
 
-        encoder::concat_files(
-            std::ffi::CStr::as_ptr(&CString::new(output).unwrap()),
-            files,
-        );
-    }
+        file
+    })
+    .collect::<Vec<String>>();
+    
+
+    unsafe { concatenator::concat_files(files.as_slice(), output).map_err(Into::into) }
 }
 
 fn main() {
@@ -157,5 +154,5 @@ fn main() {
             // resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             resources_dir: "/Users/dmtrkovalenko/dev/fframes/fframes-editor-controller",
         },
-    );
+    ).unwrap();
 }
