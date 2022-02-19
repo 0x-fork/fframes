@@ -1,6 +1,3 @@
-use fframes::FFramesContext;
-use handlebars::RenderError;
-
 #[derive(Debug)]
 pub enum FFmpegError {
     MissingVideoStreamInFile(String),
@@ -15,7 +12,7 @@ pub type FFmpegResult<T> = Result<T, FFmpegError>;
 #[derive(Debug)]
 pub enum FFramesError {
     FFmpegError(FFmpegError),
-    MediaError(std::io::Error)
+    MediaError(std::io::Error),
 }
 
 impl From<FFmpegError> for FFramesError {
@@ -24,7 +21,7 @@ impl From<FFmpegError> for FFramesError {
     }
 }
 
-impl From<std::io::Error> for FFramesError{
+impl From<std::io::Error> for FFramesError {
     fn from(io_error: std::io::Error) -> Self {
         Self::MediaError(io_error)
     }

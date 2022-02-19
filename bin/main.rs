@@ -1,10 +1,10 @@
 mod encoder;
 use fframes::Duration;
-use fframes::{audio_data, fframes_context, frame, video::Video};
+use fframes::{fframes_context, frame, video::Video};
 use rayon::prelude::*;
 use renderer_error::FFramesError;
-use std::ffi::CString;
 use std::ops::Range;
+use uuid::Uuid;
 
 use crate::encoder::{Encoder, EncoderFrame};
 
@@ -12,16 +12,6 @@ mod concatenator;
 mod ffmpeg_helper;
 mod media_processor;
 mod renderer_error;
-
-fn load_audio(path: &str) -> audio_data::AudioData {
-    let (sample_reate, samples) = media_loader::decode_mp3(path);
-
-    audio_data::AudioData {
-        sample_rate: sample_reate,
-        samples,
-        max_magnitude: 0.0,
-    }
-}
 
 fn split_ffmpeg_chunks(duration_in_frames: usize, chunk_size: usize) -> Vec<Range<usize>> {
     let mut chunks = vec![];
@@ -78,15 +68,13 @@ fn render<TVideo: Video + Sync + Sized>(
         media_provider,
     };
 
+    let session = Uuid::new_v4();
+    let directory = std::env::temp_dir().join(format!("fframes-{session}"));
+    std::fs::create_dir(&directory)?;
+
     println!("rendering {} frames", duration_in_frames);
 
     let output = "out.mp4";
-    let files = vec!["some-0.mp4", "some-1.mp4"]
-        .into_iter()
-        .map(|file| std::ffi::CStr::as_ptr(&CString::new(file).unwrap()))
-        .collect::<Vec<_>>()
-        .as_ptr();
-
     let opt_ref = &opt.to_ref();
 
     let files = split_ffmpeg_chunks(
@@ -96,8 +84,13 @@ fn render<TVideo: Video + Sync + Sized>(
     .par_iter()
     .enumerate()
     .map(|(i, chunk_range)| unsafe {
-        let file = format!("some-{}.mp4", i);
-        Encoder::with_output(1920, 1080, fps as i32, &file.as_str(), &mut |encoder| {
+        let file = directory
+            .join(format!("{i}.mp4"))
+            .into_os_string()
+            .into_string()
+            .unwrap();
+
+        Encoder::with_output(1920, 1080, fps as i32, file.as_str(), &mut |encoder| {
             let mut last_svg = "".to_owned();
             let frame = EncoderFrame::make(&encoder.video_stream);
             let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
@@ -117,7 +110,13 @@ fn render<TVideo: Video + Sync + Sized>(
 
                     if svg != last_svg {
                         let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
-                        resvg::render(&rtree, usvg::FitTo::Original, pixmap.as_mut()).unwrap();
+                        resvg::render(
+                            &rtree,
+                            usvg::FitTo::Original,
+                            tiny_skia::Transform::default(),
+                            pixmap.as_mut(),
+                        )
+                        .unwrap();
 
                         last_svg = svg;
                     }
@@ -141,9 +140,17 @@ fn render<TVideo: Video + Sync + Sized>(
         file
     })
     .collect::<Vec<String>>();
-    
 
-    unsafe { concatenator::concat_files(files.as_slice(), output).map_err(Into::into) }
+    unsafe {
+        concatenator::concat_files(files.as_slice(), output)?;
+    }
+
+    println!(
+        "resources_dir: {}",
+        directory.to_str().unwrap_or("unknown directory")
+    );
+
+    Ok(())
 }
 
 fn main() {
@@ -154,5 +161,6 @@ fn main() {
             // resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             resources_dir: "/Users/dmtrkovalenko/dev/fframes/fframes-editor-controller",
         },
-    ).unwrap();
+    )
+    .unwrap();
 }

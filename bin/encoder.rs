@@ -9,7 +9,7 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
 
 extern "C" {
     pub fn log_averror(err: i32);
-    pub fn concat_files(output: *const c_char, files: *const *const c_char);
+    pub fn concat_files(output: *const c_char);
 }
 
 #[derive(Clone, Copy)]

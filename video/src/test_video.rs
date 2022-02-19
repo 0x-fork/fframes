@@ -8,7 +8,7 @@ impl Video for TestVideo {
     const FPS: usize = 30;
     const HEIGHT: usize = 1920;
     const WIDTH: usize = 1080;
-    const DURATION: fframes::Duration = fframes::Duration::Frames(100);
+    const DURATION: fframes::Duration = fframes::Duration::Seconds(100);
 
     fn audio() -> AudioMap {
         AudioMap::none()
@@ -28,7 +28,8 @@ impl Video for TestVideo {
           >
             <rect width="1920" height="1080" x="0" y="0" fill="white" />
             <text x="100" y="100" font-size="100">
-              {format!("Frame number: {}, second: {}", frame.index + 1, frame.get_current_second())}
+
+              {format!("Hey! Frame number: {}, second: {}", frame.index + 1, frame.get_current_second())}
             </text>
           </svg>
         )

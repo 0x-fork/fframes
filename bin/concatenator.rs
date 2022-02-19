@@ -61,7 +61,7 @@ unsafe fn copy_codec_params(
 
     (*codec).time_base = (*input_video_stream).time_base;
     (*output_video_stream).time_base = (*codec).time_base;
-    
+
     (*codec).width = (*(*input_video_stream).codec).width;
     (*codec).height = (*(*input_video_stream).codec).height;
     (*codec).pix_fmt = (*(*input_video_stream).codec).pix_fmt;
@@ -119,9 +119,13 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), FFmpegE
     avformat_close_input(&mut input_format_ctx);
     avformat_write_header(output_format_ctx, std::ptr::null_mut());
 
+    av_dump_format(output_format_ctx, 0, output_file.as_ptr(), 1);
+
     let mut last_pts = 0;
     let mut last_dts = 0;
     let mut start_time = 0;
+
+    let mut packet = av_packet_alloc();
 
     for (i, file) in files.into_iter().enumerate() {
         let c_filename = CString::new(file.as_str()).unwrap();
@@ -130,15 +134,7 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), FFmpegE
         let input_video_stream = open_file_video_stream(&file, &mut input_format_ctx)?;
         av_dump_format(input_format_ctx, 0, c_filename.as_ptr(), 0);
 
-        let mut delta = 0;
-
         loop {
-            let packet = std::ptr::null_mut();
-            av_init_packet(packet);
-
-            (*packet).size = 0;
-            (*packet).data = std::ptr::null_mut();
-
             let res = av_read_frame(input_format_ctx, packet);
             if res < 0 {
                 break;
@@ -147,7 +143,7 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), FFmpegE
             (*packet).flags |= AV_PKT_FLAG_KEY;
 
             // This calculates the delta in pts based on the duration when this file must be appeared
-            delta = av_rescale_q(start_time, AV_TIME_BASE_Q, (*output_video_stream).time_base);
+            let delta = av_rescale_q(start_time, AV_TIME_BASE_Q, (*output_video_stream).time_base);
 
             (*packet).pts += delta;
             (*packet).dts += delta;
@@ -182,7 +178,7 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), FFmpegE
     avcodec_close(codec);
 
     avio_close((*output_format_ctx).pb);
-    avformat_free_context(output_format_ctx);
+    // avformat_free_context(output_format_ctx);
 
     Ok(())
 }

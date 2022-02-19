@@ -7,8 +7,8 @@ edition = "2018"
 
 [dependencies]
 tiny-skia = "0.6.1"
-resvg = "0.19.0"
-usvg = "0.19.0"
+resvg = "0.21.0"
+usvg = "0.21.0"
 handlebars = "4.0.1"
 serde_json = "1.0.64"
 num_cpus = "1.0"
@@ -16,7 +16,7 @@ rayon = "1.5.1"
 quote = "1"
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
 ffmpeg-next = "4.4.0"
-
+uuid = { version = "0.8", features = ["v4"] }
 
 svgr-macro = { path="../svgr-macro" }
 fframes = {path="../fframes"}
