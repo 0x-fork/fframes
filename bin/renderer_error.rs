@@ -18,9 +18,16 @@ impl fmt::Display for AVError {
             match self {
                 Self::MissingVideoStreamInFile(file) =>
                     format!("Missing video stream in file {file}"),
-                Self::CantOpenFile(file) => format!("Missing video stream in file {file}"),
+                Self::CantOpenFile(file) => format!("Missing video stream in file {}", file.cyan()),
                 Self::CantAllocateCtx => "Can not allocate encoding context".to_owned(),
-                _ => "wtf".to_owned(),
+                Self::FFmpegError(code, description) =>
+                    format!("libav error {code}: {description}"),
+                Self::CantWriteFrame(file) =>
+                    format!("Can not write frame to file {}", file.cyan()),
+                Self::UnknownExtension(file) => format!(
+                    "Can not deduce file format for from extension {}",
+                    file.cyan()
+                ),
             }
         )
     }
@@ -45,8 +52,9 @@ impl fmt::Debug for FFramesError {
                     "Rendering chunk {chunk} failed.\nReason: {error}",
                     chunk = chunk.to_string().cyan()
                 ),
-                Self:: FFmpegError(err) => format!("libav error:, {err}"),
-                _ => "wtf".to_owned(),
+                Self::FFmpegError(err) => format!("{err}"),
+                Self::MediaError(err) =>
+                    format!("{}\n{}", "Can't load or process media".bold(), err),
             }
         )
     }
