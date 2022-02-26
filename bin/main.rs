@@ -7,6 +7,7 @@ use std::ops::Range;
 use uuid::Uuid;
 
 use crate::encoder::{Encoder, EncoderFrame};
+use crate::renderer_error::{AVResult, FFramesResult};
 
 mod concatenator;
 mod ffmpeg_helper;
@@ -83,63 +84,72 @@ fn render<TVideo: Video + Sync + Sized>(
     )
     .par_iter()
     .enumerate()
-    .map(|(i, chunk_range)| unsafe {
+    .map(|(i, chunk_range)| {
         let file = directory
             .join(format!("{i}.mp4"))
             .into_os_string()
             .into_string()
             .unwrap();
 
-        Encoder::with_output(1920, 1080, fps as i32, file.as_str(), &mut |encoder| {
-            let mut last_svg = "".to_owned();
-            let frame = EncoderFrame::make(&encoder.video_stream);
-            let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
+        unsafe {
+            Encoder::with_output(1920, 1080, fps as i32, file.as_str(), &mut |encoder| {
+                let mut last_svg = "".to_owned();
+                let frame = EncoderFrame::make(&encoder.video_stream);
+                let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
 
-            chunk_range
-                .to_owned()
-                .into_iter()
-                .enumerate()
-                .for_each(|(index, fr)| {
-                    let svg = video.render_frame(
-                        &frame::Frame {
-                            fps,
-                            index: fr as i64,
-                        },
-                        ctx.clone(),
-                    );
-
-                    if svg != last_svg {
-                        let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
-                        resvg::render(
-                            &rtree,
-                            usvg::FitTo::Original,
-                            tiny_skia::Transform::default(),
-                            pixmap.as_mut(),
-                        )
-                        .unwrap();
-
-                        last_svg = svg;
-                    }
-
-                    encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()));
-                });
-
-            let frames_to_generate = chunk_range.end - chunk_range.start;
-            let submitted_frames = encoder.video_stream.get_frames_in_stream() as usize;
-
-            if submitted_frames < frames_to_generate {
-                let intra_frames_to_add = frames_to_generate - submitted_frames;
-
-                for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
-                    // frame.set_index(intra_frame as i64);
-                    encoder.send_frame(frame.frame);
+                if (i == 3) {
+                    return Err(renderer_error::AVError::UnknownExtension("f".to_owned()));
                 }
-            }
-        });
 
-        file
+                chunk_range
+                    .to_owned()
+                    .into_iter()
+                    .enumerate()
+                    .try_for_each(|(index, fr)| {
+                        let svg = video.render_frame(
+                            &frame::Frame {
+                                fps,
+                                index: fr as i64,
+                            },
+                            ctx.clone(),
+                        );
+
+                        if svg != last_svg {
+                            let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
+                            resvg::render(
+                                &rtree,
+                                usvg::FitTo::Original,
+                                tiny_skia::Transform::default(),
+                                pixmap.as_mut(),
+                            )
+                            .unwrap();
+
+                            last_svg = svg;
+                        }
+
+                        encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()))
+                    })?;
+
+                let frames_to_generate = chunk_range.end - chunk_range.start;
+                let submitted_frames = encoder.video_stream.get_frames_in_stream() as usize;
+
+                if submitted_frames < frames_to_generate {
+                    let intra_frames_to_add = frames_to_generate - submitted_frames;
+
+                    for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
+                        encoder.send_frame(frame.frame)?;
+                    }
+                }
+
+                Ok(())
+            })
+        }
+        .and_then(std::convert::identity)
+        .map_err(|av_err| FFramesError::RenderChunkError(i, av_err))?;
+
+        Ok(file)
     })
-    .collect::<Vec<String>>();
+    .collect::<FFramesResult<Vec<_>>>()?;
 
     unsafe {
         concatenator::concat_files(files.as_slice(), output)?;
@@ -155,7 +165,7 @@ fn render<TVideo: Video + Sync + Sized>(
 
 fn main() {
     // render(video::marketing::MarketingVideo::make());
-    render(
+    let result = render(
         video::test_video::TestVideo::make(),
         RenderOptions {
             // resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",

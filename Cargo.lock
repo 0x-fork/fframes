@@ -203,6 +203,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
+
+[[package]]
 name = "console_error_panic_hook"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -463,6 +474,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "fframes-editor-bind"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "fframes",
+ "fframes-editor-controller",
+ "js-sys",
+ "lazy_static",
+ "svgr-macro",
+ "video",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "fframes-editor-controller"
 version = "0.1.0"
 dependencies = [
@@ -472,6 +498,26 @@ dependencies = [
  "serde",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "fframes-renderer"
+version = "0.1.0"
+dependencies = [
+ "cc",
+ "colored",
+ "ffmpeg-next",
+ "fframes",
+ "handlebars",
+ "media-loader",
+ "rayon",
+ "resvg",
+ "svgr-macro",
+ "syn",
+ "tiny-skia",
+ "usvg",
+ "uuid",
+ "video",
 ]
 
 [[package]]
@@ -1109,43 +1155,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "921904a62e410e37e215c40381b7117f830d9d89ba60ab5236170541dd25646b"
 dependencies = [
  "xmlparser",
-]
-
-[[package]]
-name = "rumotion"
-version = "0.1.0"
-dependencies = [
- "cc",
- "ffmpeg-next",
- "fframes",
- "handlebars",
- "media-loader",
- "num_cpus",
- "quote",
- "rayon",
- "resvg",
- "serde_json",
- "svgr-macro",
- "syn",
- "tiny-skia",
- "usvg",
- "uuid",
- "video",
-]
-
-[[package]]
-name = "rumotion-bind"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "fframes",
- "fframes-editor-controller",
- "js-sys",
- "lazy_static",
- "svgr-macro",
- "video",
- "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]

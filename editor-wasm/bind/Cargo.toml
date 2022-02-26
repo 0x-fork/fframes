@@ -1,5 +1,5 @@
 [package]
-name = "rumotion-bind"
+name = "fframes-editor-bind"
 version = "0.1.0"
 authors = ["Dmitriy Kovalenko <dmtr.kovalenko@outlook.com>"]
 edition = "2018"

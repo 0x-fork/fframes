@@ -1,10 +1,9 @@
 #include <stdio.h>;
 #include <libavutil/opt.h>
 
-char log_averror(int error_code)
+const char *av_error_to_string(int error_code)
 {
-  fprintf(stderr, "Error sending a frame to the encoder: %s\n",
-          av_err2str(error_code));
+  return av_err2str(error_code);
 }
 
 #include <stdio.h>

@@ -1,5 +1,5 @@
 [package]
-name = "rumotion"
+name = "fframes-renderer"
 version = "0.1.0"
 edition = "2018"
 
@@ -10,10 +10,9 @@ tiny-skia = "0.6.1"
 resvg = "0.21.0"
 usvg = "0.21.0"
 handlebars = "4.0.1"
-serde_json = "1.0.64"
-num_cpus = "1.0"
 rayon = "1.5.1"
-quote = "1"
+colored = "2"
+
 syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
 ffmpeg-next = "4.4.0"
 uuid = { version = "0.8", features = ["v4"] }
@@ -27,5 +26,5 @@ video = { path = "../video" }
 cc = "1.0"
 
 [[bin]]
-name = "rumotion"
+name = "fframes"
 path = "main.rs"

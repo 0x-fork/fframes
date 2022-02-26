@@ -1,6 +1,11 @@
 use ffmpeg_next::sys::*;
 use std::{ffi::CString, os::raw::c_char};
 
+use crate::{
+    ffmpeg_action, ffmpeg_loggable_action,
+    renderer_error::{self, AVError, AVResult},
+};
+
 #[inline(always)]
 #[allow(non_snake_case)]
 pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
@@ -8,7 +13,7 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
 }
 
 extern "C" {
-    pub fn log_averror(err: i32);
+    pub fn av_error_to_string(err: i32) -> *mut c_char;
     pub fn concat_files(output: *const c_char);
 }
 
@@ -33,13 +38,15 @@ impl Stream {
         fps: i32,
         oc: *mut AVFormatContext,
         codec_id: AVCodecID,
-    ) -> Self {
+    ) -> AVResult<Self> {
         let codec = avcodec_find_encoder(codec_id);
         let st = avformat_new_stream(oc, std::ptr::null_mut());
         (*st).id = ((*oc).nb_streams - 1) as i32;
 
         let c = avcodec_alloc_context3(codec);
-        assert!(!c.is_null(), "Could not alloc an encoding context");
+        if c.is_null() {
+            return Err(AVError::CantAllocateCtx);
+        }
 
         (*c).codec_id = codec_id;
         (*c).width = width;
@@ -62,13 +69,10 @@ impl Stream {
         let crfval = CString::new("28").unwrap().as_ptr();
         av_dict_set(opts, crf, crfval, 0);
 
-        let response = avcodec_open2(c, codec, opts);
-        assert!(response >= 0, "Could not open video codec");
+        ffmpeg_loggable_action!(avcodec_open2(c, codec, opts));
+        ffmpeg_loggable_action!(avcodec_parameters_from_context((*st).codecpar, c));
 
-        let response = avcodec_parameters_from_context((*st).codecpar, c);
-        assert!(response >= 0, "Could not copy the stream parameters");
-
-        Stream { st, enc: c }
+        Ok(Stream { st, enc: c })
     }
 }
 
@@ -85,33 +89,30 @@ impl Encoder {
         fps: i32,
         filename: &str,
         function: &mut F,
-    ) -> T {
+    ) -> AVResult<T> {
         av_log_set_level(AV_LOG_FATAL);
 
-        let filename = CString::new(filename).unwrap();
+        let c_filename = CString::new(filename).unwrap();
         let mut oc: *mut AVFormatContext = std::ptr::null_mut();
 
-        let res = avformat_alloc_output_context2(
-            &mut oc,
-            std::ptr::null_mut(),
-            std::ptr::null_mut(),
-            filename.as_ptr(),
-        );
-
-        assert!(
-            res >= 0,
-            "Could not deduce output format from file extension."
+        ffmpeg_action!(
+            avformat_alloc_output_context2(
+                &mut oc,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                c_filename.as_ptr(),
+            ),
+            AVError::UnknownExtension(filename.to_owned())
         );
 
         let fmt = (*oc).oformat;
-        let video_stream = Stream::make(width, height, fps, oc, (*fmt).video_codec);
+        let video_stream = Stream::make(width, height, fps, oc, (*fmt).video_codec)?;
 
-        av_dump_format(oc, 0, filename.as_ptr(), 1);
-        let ret = avio_open(&mut (*oc).pb, filename.as_ptr(), 2);
-        assert!(
-            ret >= 0,
-            "Could not open output file {filename}",
-            filename = filename.to_str().unwrap_or_default()
+        av_dump_format(oc, 0, c_filename.as_ptr(), 1);
+
+        ffmpeg_action!(
+            avio_open(&mut (*oc).pb, c_filename.as_ptr(), 2),
+            AVError::CantOpenFile(filename.to_owned())
         );
 
         avformat_write_header(oc, std::ptr::null_mut());
@@ -132,18 +133,24 @@ impl Encoder {
         avio_closep(&mut (*oc).pb);
         avformat_free_context(oc);
 
-        return res;
+        Ok(res)
     }
 
-    pub unsafe fn send_frame(&mut self, frame: *mut AVFrame) {
+    pub unsafe fn send_frame(&mut self, frame: *mut AVFrame) -> AVResult<()> {
         let mut status = avcodec_send_frame(self.video_stream.enc, frame);
         if status == FFMPEG_AVERROR(EAGAIN) {
             self.b_frames_count += 1;
         }
 
         if status < 0 {
-            log_averror(status);
-            panic!("Unterminated error")
+            let error_description = av_error_to_string(status);
+
+            return Err(renderer_error::AVError::CantWriteFrame(
+                CString::from_raw(error_description)
+                    .to_str()
+                    .unwrap_or("Unknown libav error.")
+                    .to_owned(),
+            ));
         }
 
         while status >= 0 {
@@ -169,6 +176,8 @@ impl Encoder {
                 }
             }
         }
+
+        Ok(())
     }
 }
 

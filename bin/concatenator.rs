@@ -3,13 +3,13 @@ use std::ffi::CString;
 
 use crate::{
     ffmpeg_action,
-    renderer_error::{FFmpegError, FFmpegResult},
+    renderer_error::{AVError, AVResult},
 };
 
 unsafe fn open_file_video_stream(
     filename: &str,
     input_format_ctx: &mut *mut AVFormatContext,
-) -> FFmpegResult<*mut AVStream> {
+) -> AVResult<*mut AVStream> {
     let input_file = CString::new(filename).unwrap();
 
     ffmpeg_action!(
@@ -19,12 +19,12 @@ unsafe fn open_file_video_stream(
             std::ptr::null_mut(),
             std::ptr::null_mut(),
         ),
-        FFmpegError::CantOpenFile(filename.to_owned())
+        AVError::CantOpenFile(filename.to_owned())
     );
 
     ffmpeg_action!(
         avformat_find_stream_info(*input_format_ctx, std::ptr::null_mut()),
-        FFmpegError::CantOpenFile(filename.to_owned())
+        AVError::CantOpenFile(filename.to_owned())
     );
 
     let streams = std::slice::from_raw_parts_mut(
@@ -43,7 +43,7 @@ unsafe fn open_file_video_stream(
     }
 
     if input_video_stream.is_null() {
-        Err(FFmpegError::MissingVideoStreamInFile(filename.to_owned()))
+        Err(AVError::MissingVideoStreamInFile(filename.to_owned()))
     } else {
         Ok(input_video_stream)
     }
@@ -82,7 +82,7 @@ unsafe fn copy_codec_params(
     avcodec_parameters_from_context((*output_video_stream).codecpar, codec);
 }
 
-pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), FFmpegError> {
+pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), AVError> {
     let mut input_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
     let mut output_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
 
