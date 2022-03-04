@@ -1,16 +1,19 @@
 mod encoder;
 use fframes::Duration;
 use fframes::{fframes_context, frame, video::Video};
+use fframes_logger::{FFramesLogger, FFramesLoggerVariant};
 use rayon::prelude::*;
 use renderer_error::FFramesError;
+use std::default;
 use std::ops::Range;
 use uuid::Uuid;
 
 use crate::encoder::{Encoder, EncoderFrame};
-use crate::renderer_error::{AVResult, FFramesResult};
+use crate::renderer_error::FFramesResult;
 
 mod concatenator;
 mod ffmpeg_helper;
+pub mod fframes_logger;
 mod media_processor;
 mod renderer_error;
 
@@ -39,11 +42,13 @@ pub fn divide_round_up(a: usize, b: usize) -> usize {
 #[derive(Default, Debug)]
 pub struct RenderOptions<'a> {
     resources_dir: &'a str,
+    logger: FFramesLoggerVariant,
 }
 
-fn render<TVideo: Video + Sync + Sized>(
+fn render<'a, TVideo: Video + Sync + Sized>(
     video: TVideo,
-    options: RenderOptions,
+    output: &'a str,
+    options: RenderOptions<'a>,
 ) -> Result<(), FFramesError> {
     let fps = TVideo::FPS;
     let mut opt = usvg::Options::default();
@@ -73,20 +78,20 @@ fn render<TVideo: Video + Sync + Sized>(
     let directory = std::env::temp_dir().join(format!("fframes-{session}"));
     std::fs::create_dir(&directory)?;
 
-    println!("rendering {} frames", duration_in_frames);
+    let logger = fframes_logger::make_logger(options.logger, duration_in_frames);
 
-    let output = "out.mp4";
+    logger.init(duration_in_frames);
+
     let opt_ref = &opt.to_ref();
-
     let files = split_ffmpeg_chunks(
         duration_in_frames,
         divide_round_up(duration_in_frames, rayon::current_num_threads()),
     )
     .par_iter()
     .enumerate()
-    .map(|(i, chunk_range)| {
+    .map(|(thread_number, chunk_range)| {
         let file = directory
-            .join(format!("{i}.mp4"))
+            .join(format!("{thread_number}.mp4"))
             .into_os_string()
             .into_string()
             .unwrap();
@@ -96,10 +101,6 @@ fn render<TVideo: Video + Sync + Sized>(
                 let mut last_svg = "".to_owned();
                 let frame = EncoderFrame::make(&encoder.video_stream);
                 let mut pixmap = tiny_skia::Pixmap::new(1920, 1080).unwrap();
-
-                if (i == 3) {
-                    return Err(renderer_error::AVError::UnknownExtension("f".to_owned()));
-                }
 
                 chunk_range
                     .to_owned()
@@ -114,6 +115,7 @@ fn render<TVideo: Video + Sync + Sized>(
                             ctx.clone(),
                         );
 
+                        logger.log_frame(index, thread_number, &svg);
                         if svg != last_svg {
                             let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
                             resvg::render(
@@ -145,7 +147,7 @@ fn render<TVideo: Video + Sync + Sized>(
             })
         }
         .and_then(std::convert::identity)
-        .map_err(|av_err| FFramesError::RenderChunkError(i, av_err))?;
+        .map_err(|av_err| FFramesError::RenderChunkError(thread_number, av_err))?;
 
         Ok(file)
     })
@@ -155,21 +157,17 @@ fn render<TVideo: Video + Sync + Sized>(
         concatenator::concat_files(files.as_slice(), output)?;
     }
 
-    println!(
-        "resources_dir: {}",
-        directory.to_str().unwrap_or("unknown directory")
-    );
-
+    logger.success(output, directory.to_str());
     Ok(())
 }
 
 fn main() {
-    // render(video::marketing::MarketingVideo::make());
-    let result = render(
+    render(
         video::test_video::TestVideo::make(),
+        "out.mp4",
         RenderOptions {
-            // resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             resources_dir: "/Users/dmtrkovalenko/dev/fframes/fframes-editor-controller",
+            ..Default::default()
         },
     )
     .unwrap();

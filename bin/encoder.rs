@@ -14,7 +14,6 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
 
 extern "C" {
     pub fn av_error_to_string(err: i32) -> *mut c_char;
-    pub fn concat_files(output: *const c_char);
 }
 
 #[derive(Clone, Copy)]
@@ -65,9 +64,9 @@ impl Stream {
 
         let opts: *mut *mut AVDictionary = &mut std::ptr::null_mut();
 
-        let crf = CString::new("crf").unwrap().as_ptr();
-        let crfval = CString::new("28").unwrap().as_ptr();
-        av_dict_set(opts, crf, crfval, 0);
+        let crf = CString::new("crf").unwrap();
+        let crfval = CString::new("28").unwrap();
+        av_dict_set(opts, crf.as_ptr(), crfval.as_ptr(), 0);
 
         ffmpeg_loggable_action!(avcodec_open2(c, codec, opts));
         ffmpeg_loggable_action!(avcodec_parameters_from_context((*st).codecpar, c));

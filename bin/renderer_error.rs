@@ -25,8 +25,8 @@ impl fmt::Display for AVError {
                 Self::CantWriteFrame(file) =>
                     format!("Can not write frame to file {}", file.cyan()),
                 Self::UnknownExtension(file) => format!(
-                    "Can not deduce file format for from extension {}",
-                    file.cyan()
+                    "Can not deduce file format of output file {} from extension.",
+                    file.cyan().bold()
                 ),
             }
         )
@@ -50,7 +50,7 @@ impl fmt::Debug for FFramesError {
             error = match self {
                 Self::RenderChunkError(chunk, error) => format!(
                     "Rendering chunk {chunk} failed.\nReason: {error}",
-                    chunk = chunk.to_string().cyan()
+                    chunk = chunk.to_string().cyan().bold()
                 ),
                 Self::FFmpegError(err) => format!("{err}"),
                 Self::MediaError(err) =>
