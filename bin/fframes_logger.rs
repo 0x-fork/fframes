@@ -1,25 +1,33 @@
 use colored::*;
 use core::fmt::Debug;
-use indicatif::ProgressBar;
-use std::sync::Arc;
+use indicatif::{ProgressBar, ProgressStyle};
+use once_cell::sync::OnceCell;
+use std::{path::PathBuf, sync::Arc};
 
 pub trait FFramesLogger: Sync + Send {
-    fn init(&self, all_frames: usize);
-    fn success(&self, output_path: &str, temp_files_dir: Option<&str>);
+    fn init_media_processing(&self, media_count: usize);
+    fn log_processed_media(&self, path: &PathBuf);
+    fn log_unprocessed_media_file(&self, filename: &str);
+    fn log_media_processing_start(&self, filename: &str, path: &PathBuf);
+
+    fn init_frames_rendering(&self, all_frames: usize);
     fn log_frame(&self, index: usize, thread_number: usize, svg: &str);
+
+    fn success(&self, output_path: &str, temp_files_dir: Option<&str>);
 }
 
 struct CompactFFramesLogger {
-    progress_bar: ProgressBar,
+    frames_progress_bar: OnceCell<ProgressBar>,
+    media_progress_bar: OnceCell<ProgressBar>,
 }
 
 impl FFramesLogger for CompactFFramesLogger {
-    fn init(&self, frames_count: usize) {
-        println!("Rendering {} frames", frames_count.to_string().cyan());
-    }
+    fn init_frames_rendering(&self, frames_count: usize) {
+        self.frames_progress_bar
+            .set(ProgressBar::new(frames_count as u64))
+            .unwrap();
 
-    fn log_frame(&self, _index: usize, _thread_number: usize, _svg: &str) {
-        self.progress_bar.inc(1);
+        println!("\nRendering {} frames", frames_count.to_string().cyan());
     }
 
     fn success(&self, output_path: &str, temp_files_dir: Option<&str>) {
@@ -32,18 +40,59 @@ impl FFramesLogger for CompactFFramesLogger {
                 .unwrap_or_default()
         );
     }
+
+    fn log_frame(&self, _index: usize, _thread_number: usize, _svg: &str) {
+        self.frames_progress_bar.get().unwrap().inc(1);
+    }
+
+    fn log_unprocessed_media_file(&self, filename: &str) {
+        println!("Can not process media file {filename}.")
+    }
+
+    fn init_media_processing(&self, medias_count: usize) {
+        println!(
+            "Processing {medias_count} media files",
+            medias_count = medias_count.to_string().cyan()
+        );
+
+        let progress_bar = ProgressBar::new(medias_count as u64);
+        // progress_bar.set_style(
+        //     ProgressStyle::default_bar().template("{prefix:.bold.dim} {spinner} {wide_msg}"),
+        // );
+
+        self.media_progress_bar.set(progress_bar).unwrap();
+    }
+
+    fn log_media_processing_start(&self, filename: &str, path: &PathBuf) {}
+
+    fn log_processed_media(&self, _path: &PathBuf) {
+        let pb = self
+            .media_progress_bar
+            .get()
+            .expect("Media progress bar not initialized");
+
+        pb.inc(1);
+    }
 }
 
 struct SilentLogger;
 
 impl FFramesLogger for SilentLogger {
-    fn init(&self, _all_frames: usize) {}
+    fn log_unprocessed_media_file(&self, _filename: &str) {}
+
+    fn init_frames_rendering(&self, _all_frames: usize) {}
+
+    fn log_frame(&self, _index: usize, _thread_number: usize, _svg: &str) {}
 
     fn success(&self, output_path: &str, _temp_files_dir: Option<&str>) {
         println!("Success. Your video {}", output_path);
     }
 
-    fn log_frame(&self, _index: usize, _thread_number: usize, _svg: &str) {}
+    fn init_media_processing(&self, _all_frames: usize) {}
+
+    fn log_processed_media(&self, _path: &PathBuf) {}
+
+    fn log_media_processing_start(&self, _filename: &str, _path: &PathBuf) {}
 }
 
 impl Debug for dyn FFramesLogger {
@@ -69,11 +118,12 @@ impl Default for FFramesLoggerVariant {
     }
 }
 
-pub fn make_logger(variant: FFramesLoggerVariant, frames_count: usize) -> Arc<dyn FFramesLogger> {
+pub fn make_logger(variant: FFramesLoggerVariant) -> Arc<dyn FFramesLogger> {
     match variant {
         FFramesLoggerVariant::Silent => Arc::new(SilentLogger) as Arc<dyn FFramesLogger>,
         FFramesLoggerVariant::Compact => Arc::new(CompactFFramesLogger {
-            progress_bar: ProgressBar::new(frames_count as u64),
+            frames_progress_bar: OnceCell::new(),
+            media_progress_bar: OnceCell::new(),
         }) as Arc<dyn FFramesLogger>,
         FFramesLoggerVariant::Custom(logger) => logger,
     }

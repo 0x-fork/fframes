@@ -14,7 +14,8 @@ macro_rules! setup_wasm_editor {
                 Mutex::new(fframes::media_provider::MediaProvider {
                     audio: HashMap::new(),
                     images: HashMap::new(),
-                    subtitles: HashMap::new()
+                    subtitles: HashMap::new(),
+                    fonts: HashMap::new()
                 });
         }
 
@@ -151,7 +152,9 @@ macro_rules! setup_wasm_editor {
         #[wasm_bindgen]
         pub fn add_image_source(file: String, url: String) {
             let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
-            media_provider.images.insert(file, url);
+            media_provider
+                .images
+                .insert(file, (url, fframes::media_provider::ImageData::None));
         }
 
         #[wasm_bindgen]

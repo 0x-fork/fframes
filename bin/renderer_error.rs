@@ -39,6 +39,7 @@ pub enum FFramesError {
     FFmpegError(AVError),
     RenderChunkError(usize, AVError),
     MediaError(std::io::Error),
+    MissingRequiredMedia(String),
 }
 
 impl fmt::Debug for FFramesError {
@@ -55,6 +56,10 @@ impl fmt::Debug for FFramesError {
                 Self::FFmpegError(err) => format!("{err}"),
                 Self::MediaError(err) =>
                     format!("{}\n{}", "Can't load or process media".bold(), err),
+                Self::MissingRequiredMedia(required_media) => format!(
+                    "Missing required media {}. Verify that you provided correct media_dir.",
+                    required_media.magenta().bold()
+                ),
             }
         )
     }

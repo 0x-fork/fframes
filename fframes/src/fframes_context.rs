@@ -1,8 +1,8 @@
 use crate::{
-    audio_data, media_provider,
+    audio_data,
+    media_provider::{self, ImageData},
     subtitles::{self},
 };
-use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
 pub enum FFramesMode {
@@ -29,17 +29,33 @@ impl FFramesContext {
     pub fn get_subtitles(&self, filename: &str) -> &subtitles::Subtitles {
         match self.media_provider.subtitles.get(filename) {
             Some(data) => data,
-            None => panic!("Subtitles {file} not found! Please make sure that media folder contains {file}.vtt", file=filename)
-        }
-    }
-
-    pub fn get_image_link(&self, filename: &str) -> &str {
-        match self.media_provider.images.get(filename) {
-            Some(data) => data,
             None => panic!(
-                "Image {file} not found! Please make sure that media folder contains {file}.vtt",
+                "Subtitles {file} not found! Please make sure that media folder contains {file}",
                 file = filename
             ),
         }
     }
+
+    pub fn get_image_link(&self, filename: &str) -> String {
+        match self.media_provider.images.get(filename) {
+            Some((link, _)) => link.to_owned(),
+            None => panic!(
+                "Image {file} not found! Please make sure that media folder contains {file}",
+                file = filename
+            ),
+        }
+    }
+
+    // pub fn get_image_data(&self, filename: &str) -> Vec<u8> {
+    //     match self.media_provider.images.get(filename) {
+    //         Some(data) => match data.to_owned() {
+    //             ImageData::Url(_) => panic!("Received image url instead of blob data. Likely mixed up the rendering and editing media provider."),
+    //             ImageData::ImageData(data) => data
+    //         },
+    //         None => panic!(
+    //             "Image {file} not found! Please make sure that media folder contains {file}",
+    //             file = filename
+    //         ),
+    //     }
+    // }
 }
