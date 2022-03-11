@@ -13,7 +13,7 @@ module LoadedMediaIcon = {
         style={ReactDOMStyle.make(~backgroundImage=`url(${src})`, ())}
       />
 
-    | nonImageMedia =>
+     | nonImageMedia =>
       <div className=iconClassName>
         {switch nonImageMedia {
         | Audio(_) => <Icons.MusicalNotesIcon color="currentColor" className="h-7 w-7" />

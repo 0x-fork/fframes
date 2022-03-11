@@ -41,7 +41,7 @@ pub fn divide_round_up(a: usize, b: usize) -> usize {
 
 #[derive(Default, Debug)]
 pub struct RenderOptions<'a> {
-    resources_dir: &'a str,
+    media_dir: &'a str,
     logger: FFramesLoggerVariant,
 }
 
@@ -54,7 +54,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
     let mut logger = fframes_logger::make_logger(options.logger);
 
     let media_provider =
-        media_processor::load_media_from_folder(&mut logger, options.resources_dir).unwrap();
+        media_processor::load_media_from_folder(&mut logger, options.media_dir).unwrap();
 
     let mut opt = usvg::Options::default();
 
@@ -130,7 +130,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                 file.as_str(),
                 &mut |encoder| {
                     let mut last_svg = "".to_owned();
-                    let frame = EncoderFrame::make(&encoder.video_stream);
+                    let mut frame = EncoderFrame::make(&encoder.video_stream);
                     let mut pixmap =
                         tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32).unwrap();
 
@@ -174,7 +174,8 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                             encoder.send_frame(frame.frame)?;
                         }
                     }
-
+                    
+                    frame.free();
                     Ok(())
                 },
             )
@@ -200,7 +201,7 @@ fn main() {
         video::marketing::MarketingVideo::make(),
         "out.mp4",
         RenderOptions {
-            resources_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
+            media_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             ..Default::default()
         },
     )

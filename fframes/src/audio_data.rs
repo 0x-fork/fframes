@@ -1,11 +1,33 @@
-use crate::{fframes_context, frame, audio_window_functions};
-use std::convert::TryInto;
+use crate::{audio_window_functions, fframes_context, frame};
+use std::{convert::TryInto, sync::Arc};
 
 #[derive(Debug, Clone)]
-pub struct AudioData {
-    pub max_magnitude: f32,
+pub struct PreloadedAudioData {
     pub samples: Vec<f32>,
     pub sample_rate: i32,
+}
+
+impl PreloadedAudioData {
+    fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> &[f32] {
+        let start_index = frame as usize * self.sample_rate as usize / fps as usize;
+
+        &self.samples[start_index..start_index + length]
+    }
+}
+
+#[derive(Clone)]
+pub enum AudioData {
+    Preloaded(PreloadedAudioData),
+    Lazy,
+}
+
+impl AudioData {
+    fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> Vec<f32> {
+        match self {
+            AudioData::Preloaded(data) => data.get_frame_data(length, frame, fps).to_vec(),
+            AudioData::Lazy => vec![],
+        }
+    }
 }
 
 pub enum SampleSize {
@@ -39,84 +61,70 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
 pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
-    pub ctx:  &'a fframes_context::FFramesContext,
+    pub ctx: &'a fframes_context::FFramesContext,
 }
 
 fn apply_fft_to_frame(
     sample_size: &SampleSize,
     window: Option<audio_window_functions::Window>,
-    start_index: usize,
-    samples: &Vec<f32>,
+    audio_data: &AudioData,
+    frame: i64,
+    fps: i64,
 ) -> Vec<microfft::Complex32> {
-    let apply_window = |samples: &[f32]| -> Vec<f32> {
+    let apply_window = |size| -> Vec<f32> {
+        let samples_per_frame = audio_data.get_frame_data(size, frame, fps);
+
         if let Some(window_function) = window {
-            audio_window_functions::apply_window_function(window_function, samples)
+            audio_window_functions::apply_window_function(
+                window_function,
+                samples_per_frame.as_slice(),
+            )
         } else {
-            samples.to_vec()
+            samples_per_frame
         }
     };
 
     match sample_size {
         SampleSize::S2 => {
-            let mut buffer: [_; 2] = apply_window(&samples[start_index..start_index + 2])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 2] = apply_window(2).try_into().unwrap();
             microfft::real::rfft_2(&mut buffer).to_vec()
         }
         SampleSize::S4 => {
-            let mut buffer: [_; 4] = apply_window(&samples[start_index..start_index + 4])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 4] = apply_window(4).try_into().unwrap();
             microfft::real::rfft_4(&mut buffer).to_vec()
         }
         SampleSize::S8 => {
-            let mut buffer: [_; 8] = apply_window(&samples[start_index..start_index + 8])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 8] = apply_window(8).try_into().unwrap();
             microfft::real::rfft_8(&mut buffer).to_vec()
         }
         SampleSize::S16 => {
-            let mut buffer: [_; 16] = apply_window(&samples[start_index..start_index + 16])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 16] = apply_window(16).try_into().unwrap();
             microfft::real::rfft_16(&mut buffer).to_vec()
         }
         SampleSize::S32 => {
-            let mut buffer: [_; 32] = apply_window(&samples[start_index..start_index + 32])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 32] = apply_window(32).try_into().unwrap();
 
             microfft::real::rfft_32(&mut buffer).to_vec()
         }
         SampleSize::S64 => {
-            let mut buffer: [_; 64] = apply_window(&samples[start_index..start_index + 64])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 64] = apply_window(64).try_into().unwrap();
             microfft::real::rfft_64(&mut buffer).to_vec()
         }
         SampleSize::S128 => {
-            let mut buffer: [_; 128] = apply_window(&samples[start_index..start_index + 128])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 128] = apply_window(128).try_into().unwrap();
 
             microfft::real::rfft_128(&mut buffer).to_vec()
         }
         SampleSize::S256 => {
-            let mut buffer: [_; 256] = apply_window(&samples[start_index..start_index + 256])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 256] = apply_window(256).try_into().unwrap();
             microfft::real::rfft_256(&mut buffer).to_vec()
         }
         SampleSize::S512 => {
-            let mut buffer: [_; 512] = apply_window(&samples[start_index..start_index + 512])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 512] = apply_window(512).try_into().unwrap();
             microfft::real::rfft_512(&mut buffer).to_vec()
         }
         SampleSize::S1024 => {
-            let mut buffer: [_; 1024] = apply_window(&samples[start_index..start_index + 1024])
-                .try_into()
-                .unwrap();
+            let mut buffer: [_; 1024] = apply_window(1024).try_into().unwrap();
             microfft::real::rfft_1024(&mut buffer).to_vec()
         }
     }
@@ -129,7 +137,7 @@ fn convert_fft_result_to_magnitude(num: &microfft::Complex32) -> f32 {
 }
 
 pub fn get_visualization(
-    frame: &i64,
+    frame: i64,
     VisualizeFrameInput {
         sample_size,
         ctx,
@@ -140,15 +148,14 @@ pub fn get_visualization(
     //     return ctx.fft_hash.get(frame).unwrap().to_owned();
     // }
 
-    let sample_start = *frame as i128 * audio.sample_rate as i128 / ctx.fps as i128;
     let fft_size = get_fft_size_number(sample_size);
-
 
     let res = apply_fft_to_frame(
         &sample_size,
         Some(audio_window_functions::Window::Hamming),
-        sample_start as usize,
-        &audio.samples,
+        audio,
+        frame,
+        ctx.fps as i64,
     )
     .iter()
     .map(|x| convert_fft_result_to_magnitude(x) / fft_size as f32)
@@ -159,18 +166,18 @@ pub fn get_visualization(
 
 pub fn visualize_audio_frame(frame: &frame::Frame, input: &VisualizeFrameInput) -> Vec<f32> {
     let res = match frame.index {
-        0 => get_visualization(&frame.index, input),
-        1 => get_visualization(&frame.index, input),
-        2 => get_visualization(&frame.index, input),
+        0 => get_visualization(frame.index, input),
+        1 => get_visualization(frame.index, input),
+        2 => get_visualization(frame.index, input),
         frame => {
             let frames_to_smooth = [
-                get_visualization(&(frame - 1), input),
-                get_visualization(&frame, input),
-                get_visualization(&(frame + 1), input),
+                get_visualization(frame - 1, input),
+                get_visualization(frame, input),
+                get_visualization(frame + 1, input),
             ];
 
             (0..frames_to_smooth[1].len())
-                .into_iter()        
+                .into_iter()
                 .map(|frame| {
                     frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
                         / frames_to_smooth.len() as f32

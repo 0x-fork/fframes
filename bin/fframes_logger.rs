@@ -1,6 +1,6 @@
 use colored::*;
 use core::fmt::Debug;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use once_cell::sync::OnceCell;
 use std::{path::PathBuf, sync::Arc};
 

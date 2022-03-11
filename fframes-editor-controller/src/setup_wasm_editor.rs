@@ -9,7 +9,7 @@ macro_rules! setup_wasm_editor {
 
         lazy_static! {
             static ref VIDEO: $x = $x::make();
-            static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
+            static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());l
             static ref MEDIA_PROVIDER: Mutex<fframes::media_provider::MediaProvider> =
                 Mutex::new(fframes::media_provider::MediaProvider {
                     audio: HashMap::new(),
@@ -116,16 +116,12 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub fn add_audio_source(file: String, input: &[f32]) {
-            let audio_data = AudioData {
-                sample_rate: 44100,
-                samples: input.to_vec(),
-                max_magnitude: input
-                    .iter()
-                    .max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))
-                    .unwrap_or(&0.0)
-                    .to_owned()
-                    .sqrt(),
-            };
+            let audio_data = fframes::audio_data::AudioData::Preloaded(
+                fframes::audio_data::PreloadedAudioData {
+                    sample_rate: 44100,
+                    samples: input.to_vec(),
+                },
+            );
 
             let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
             media_provider.audio.insert(file.clone(), audio_data);
@@ -168,6 +164,7 @@ macro_rules! setup_wasm_editor {
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
+                    resolve_lazy_audio_during_render: None,
                 },
             )
         }

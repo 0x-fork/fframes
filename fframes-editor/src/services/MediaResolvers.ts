@@ -10,6 +10,9 @@ export const resolveAudio: MediaResolver = async (
   url,
   wasmController
 ) => {
+    // const audioElement = new Audio(url);
+    // await new Promise((resolve) => (audioElement.onloadedmetadata = resolve));
+
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
 

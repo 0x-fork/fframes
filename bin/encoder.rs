@@ -271,43 +271,7 @@ impl EncoderFrame {
         self.frame
     }
 
-    pub unsafe fn get_video_frame(&self, i: i64) -> *mut AVFrame {
-        let is_writable = av_frame_make_writable(self.frame);
-
-        if is_writable < 0 {
-            panic!("Can not reuse frame allocations");
-        }
-
-        let y_size = self.height * (*self.frame).linesize[0] + self.width;
-        let cb_cr_size = self.height * (*self.frame).linesize[1] + self.width;
-
-        let y_pixels = std::slice::from_raw_parts_mut((*self.frame).data[0], y_size as usize);
-
-        for y in 0..self.height {
-            for x in 0..self.width {
-                y_pixels[(y * (*self.frame).linesize[0] + x) as usize] =
-                    (x + y + i as i32 * 3) as u8;
-            }
-        }
-
-        let cb_pixels = std::slice::from_raw_parts_mut((*self.frame).data[1], cb_cr_size as usize);
-        let cr_pixels = std::slice::from_raw_parts_mut((*self.frame).data[2], cb_cr_size as usize);
-
-        for y in 0..self.height / 2 {
-            for x in 0..self.width / 2 {
-                cb_pixels[(y * (*self.frame).linesize[1] + x) as usize] =
-                    (128 + y + i as i32 * 2) as u8;
-                cr_pixels[(y * (*self.frame).linesize[2] + x) as usize] =
-                    (64 + x + i as i32 * 5) as u8;
-            }
-        }
-
-        (*self.frame).pts = i + 1;
-
-        self.frame
-    }
-
-    fn free(&mut self) {
+    pub fn free(&mut self) {
         unsafe {
             av_frame_free(&mut self.frame);
         }
