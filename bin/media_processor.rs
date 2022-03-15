@@ -60,11 +60,10 @@ pub fn load_media_from_folder(
 
                         audio_hash.lock().unwrap().insert(
                             filename.to_owned(),
-                            audio_data::AudioData {
+                            audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
                                 sample_rate,
                                 samples,
-                                max_magnitude: 0.0,
-                            },
+                            }),
                         );
                     }
                     filename if filename.ends_with(".vtt") => {

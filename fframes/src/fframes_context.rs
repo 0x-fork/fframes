@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use crate::{audio_data, media_provider, subtitles};
+use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub enum FFramesMode {
@@ -8,11 +8,12 @@ pub enum FFramesMode {
     Renderer,
 }
 
+#[derive(Clone)]
 pub struct FFramesContext {
     pub fps: usize,
     pub mode: FFramesMode,
     pub media_provider: media_provider::MediaProvider,
-    pub resolve_lazy_audio_during_render: Option<Arc<dyn Fn(usize) -> Vec<f32>>>,
+    // pub resolve_lazy_audio_during_render: Option<Arc<dyn Fn(usize) -> Vec<f32>>>,
 }
 
 impl FFramesContext {

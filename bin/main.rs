@@ -1,7 +1,7 @@
 mod encoder;
 use fframes::media_provider::ImageData;
-use fframes::Duration;
 use fframes::{fframes_context, frame, video::Video};
+use fframes::{AudioData, Duration};
 use fframes_logger::FFramesLoggerVariant;
 use rayon::prelude::*;
 use renderer_error::FFramesError;
@@ -90,7 +90,12 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                 .get(audio)
                 .ok_or(FFramesError::MissingRequiredMedia(audio.to_owned()))?;
 
-            main_audio.samples.len() / main_audio.sample_rate as usize * fps as usize
+            match main_audio {
+                AudioData::Preloaded(data) => {
+                    data.samples.len() / data.sample_rate as usize * fps as usize
+                }
+                _ => 0,
+            }
         }
         Duration::Seconds(seconds) => seconds * fps,
         Duration::Frames(frames) => frames,
@@ -109,6 +114,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
     std::fs::create_dir(&directory)?;
 
     let opt_ref = &opt.to_ref();
+    
     let files = split_ffmpeg_chunks(
         duration_in_frames,
         divide_round_up(duration_in_frames, rayon::current_num_threads()),
@@ -132,7 +138,8 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                     let mut last_svg = "".to_owned();
                     let mut frame = EncoderFrame::make(&encoder.video_stream);
                     let mut pixmap =
-                        tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32).unwrap();
+                        tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
+                            .unwrap();
 
                     chunk_range
                         .to_owned()
@@ -174,7 +181,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                             encoder.send_frame(frame.frame)?;
                         }
                     }
-                    
+
                     frame.free();
                     Ok(())
                 },
