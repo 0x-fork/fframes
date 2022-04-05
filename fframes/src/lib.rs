@@ -15,3 +15,7 @@ pub use frame::*;
 pub use subtitles::*;
 pub use video::*;
 pub use Animation::*;
+
+pub use svgr_macro::*;
+
+mod tests;

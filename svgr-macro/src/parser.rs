@@ -4,8 +4,9 @@ use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
-    token::{Brace, Colon, Colon2},
-    Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Token,
+    token::{Brace, Colon, Colon2, Token},
+    Block, Error, Expr, ExprBlock, ExprLit, ExprMacro, ExprPath, Ident, Macro, Path, PathSegment,
+    Result, Stmt, Token,
 };
 
 use crate::{node::*, punctuation::*, validate_svg::validate_attribute};
@@ -77,8 +78,8 @@ impl Parser {
     }
 
     fn block(&self, input: ParseStream) -> Result<Node> {
-        let block = if self.config.transform_block.is_some() {
-            self.block_transform(input)?
+        let (block, node_type) = if self.config.transform_block.is_some() {
+            (self.block_transform(input)?, NodeType::Block)
         } else {
             self.block_expr(input)?
         };
@@ -86,7 +87,7 @@ impl Parser {
         Ok(Node {
             name: None,
             value: Some(block),
-            node_type: NodeType::Block,
+            node_type,
             attributes: vec![],
             children: vec![],
         })
@@ -136,10 +137,39 @@ impl Parser {
         .into())
     }
 
-    fn block_expr(&self, input: ParseStream) -> Result<Expr> {
+    fn is_animation_macro_statement(statements: &[Stmt]) -> bool {
+        use Stmt::*;
+
+        let first_statement = &statements[0];   
+        match first_statement {
+            Expr(mac) => match mac {
+                syn::Expr::MethodCall(method_call) => {
+                    let first_arg = &method_call.args[0];
+
+                    method_call.method.to_string() == "animate" && method_call.args.len() == 1 && match &method_call.args[0] { 
+                        syn::Expr::Macro(macro_expr) => macro_expr
+                            .mac
+                            .path
+                            .segments
+                            .iter()
+                            .find(|segment| segment.ident.to_string() == "timeline")
+                            .is_some(),
+                        _=> false
+                    }
+                }
+                
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
+    fn block_expr(&self, input: ParseStream) -> Result<(Expr, NodeType)> {
         let fork = input.fork();
+
         let content;
         let brace_token = braced!(content in fork);
+
         let block = ExprBlock {
             attrs: vec![],
             label: None,
@@ -148,9 +178,42 @@ impl Parser {
                 stmts: Block::parse_within(&content)?,
             },
         };
+
         input.advance_to(&fork);
 
-        Ok(block.into())
+        Ok((
+            block.into(),
+            NodeType::Block
+        ))
+    }
+
+    fn block_attribute_expr(&self, input: ParseStream) -> Result<(Expr, NodeType)> {
+        let fork = input.fork();
+
+        let content;
+        let brace_token = braced!(content in fork);
+        let statements = Block::parse_within(&content)?;
+        let is_animation = Self::is_animation_macro_statement(statements.as_slice());
+
+        let block = ExprBlock {
+            attrs: vec![],
+            label: None,
+            block: Block {
+                brace_token,
+                stmts: statements,
+            },
+        };
+
+        input.advance_to(&fork);
+
+        Ok((
+            block.into(),
+            if is_animation {
+                NodeType::LazyTimelineBlock
+            } else {
+                NodeType::Attribute
+            },
+        ))
     }
 
     fn element(&self, input: ParseStream) -> Result<Node> {
@@ -268,14 +331,15 @@ impl Parser {
 
     fn attribute(&self, input: ParseStream) -> Result<Node> {
         let fork = &input.fork();
+
         if fork.peek(Brace) {
-            let value = Some(self.block_expr(fork)?);
+            let (value, node_type) = self.block_expr(fork)?;
             input.advance_to(fork);
 
             Ok(Node {
                 name: None,
-                node_type: NodeType::Block,
-                value,
+                node_type: node_type,
+                value: Some(value),
                 attributes: vec![],
                 children: vec![],
             })
@@ -284,28 +348,32 @@ impl Parser {
 
             validate_attribute(input, &name)?;
 
-            let value = fork.parse::<Option<Token![=]>>()?.map(|_eq| {
+            let res = fork.parse::<Option<Token![=]>>()?.map(|_eq| {
                 if fork.is_empty() {
                     return Err(Error::new(name.span(), "missing attribute value"));
                 }
 
                 if fork.peek(Brace) {
-                    Ok(self.block_expr(fork)?)
+                    Ok(self.block_attribute_expr(fork)?)
                 } else {
                     if name.to_string() == "xlink:href" {
                         return Err(fork.error("Instead of hardcoding images please use xlink:href={ctx.get_image_link(\"image.png\"}"));
                     }
-
-                    Ok(fork.parse()?)
+                    
+                    Ok((fork.parse()?, NodeType::Attribute))
                 }
             }).transpose()?;
 
-            input.advance_to(fork);
+            let (value, node_type) = match res { 
+                Some((expr, node_type)) => (Some(expr), node_type),
+                _ => (None, NodeType::Attribute),
+            };
 
+            input.advance_to(fork);
             Ok(Node {
                 name: Some(name),
-                node_type: NodeType::Attribute,
                 value,
+                node_type,
                 attributes: vec![],
                 children: vec![],
             })
@@ -333,8 +401,9 @@ impl Parser {
                 .map(NodeName::Dash)
         } else if input.peek(Brace) {
             let fork = &input.fork();
-            let value = self.block_expr(fork)?;
+            let (value, _) = self.block_expr(fork)?;
             input.advance_to(fork);
+
             Ok(NodeName::Block(value))
         } else if input.peek(Ident::peek_any) {
             let mut segments = Punctuated::new();

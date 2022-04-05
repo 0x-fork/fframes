@@ -1,3 +1,4 @@
+#[derive(Clone, Copy, Debug)]
 pub struct SpringRuntime {
     pub m_zeta: f32,
     pub w0: f32,
@@ -6,6 +7,7 @@ pub struct SpringRuntime {
     pub b: f32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct SpringOptions {
     pub mass: f32,
     pub stiffness: f32,

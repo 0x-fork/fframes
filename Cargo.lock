@@ -489,6 +489,7 @@ dependencies = [
  "libm",
  "microfft",
  "num",
+ "svgr-macro",
  "webvtt-parser",
 ]
 
@@ -529,6 +530,7 @@ dependencies = [
  "fframes",
  "handlebars",
  "indicatif",
+ "lazy_static",
  "media-loader",
  "once_cell",
  "rayon",
@@ -1384,6 +1386,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "uuid",
 ]
 
 [[package]]

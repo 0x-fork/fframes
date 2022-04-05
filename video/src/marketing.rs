@@ -1,46 +1,55 @@
-use std::collections::HashMap;
-
 pub use fframes::{
     audio_data, audio_window_functions, fframes_context, frame::Frame, subtitles, video::Video,
 };
 use fframes::{
-    Animation::{self, AnimationRuntime, SpringOptions, SteppedAnimation, Tween},
+    AnimateRuntimeInput,
+    Animation::{self, AnimationRuntime},
     AudioMap, AudioTimestamp,
 };
+use lazy_static::lazy_static;
 use svgr_macro::{self, svgr};
+
+const SPRING: Animation::Easing = Animation::Easing::Spring2(1.85, 130., 16.);
+
+lazy_static! {
+    static ref SPRING_RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(&SPRING);
+}
 
 struct SpectrumValue<'a> {
     /// position represents how points are displayed on the screen, while the real array position represents stacking context.
     position: usize,
+    spectrum_index: usize,
     from_color: &'a str,
     to_color: &'a str,
-    val: f32,
 }
 
-pub struct MarketingVideo {
-    spring: Animation::AnimationRuntime,
-    ferris_animation: SteppedAnimation,
-    code_animation: SteppedAnimation,
-    ferris_left_eye_animation: SteppedAnimation,
-    ferris_right_eye_animation: SteppedAnimation,
-    opacity_animation: SteppedAnimation,
-}
+pub struct MarketingVideo {}
 
 impl MarketingVideo {
     fn render_ferris(&self, frame: &Frame) -> String {
+        if !(2.3f32..4.8f32).contains(&frame.get_current_second()) {
+            return "".to_owned();
+        }
+
         svgr!(
-          <svg width="400" height="400" x="1456"
-           y={frame.animate_or(&self.ferris_animation, 1400.0)}
-           viewBox="0 0 1200 800"
-           version="1.1"
-           xmlns="http://www.w3.org/2000/svg"
-           xmlns:xlink="http://www.w3.org/1999/xlink"
-           xml:space="preserve"
-           xmlns:serif="http://www.serif.com/"
-           fill-rule="evenodd"
-           clip-rule="evenodd"
-           stroke-linejoin="round"
-           stroke-miterlimit="1.41421"
+          <svg
+            viewBox="0 0 1200 800"
+            width="400"
+            height="400"
+            x="1456"
+            y={frame.animate(fframes::timeline!(
+                on 2.3, val 1400. => 770., Animation::Easing::Spring2(1.85, 130.0, 16.0),
+                on 4.8, val 770. => 1400., Animation::Easing::Spring2(1.85, 130.0, 16.0)
+            ))}
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            xml:space="preserve"
+            xmlns:serif="http://www.serif.com/"
+            fill-rule="evenodd"
+            clip-rule="evenodd"
+            stroke-linejoin="round"
+            stroke-miterlimit="1.41421"
           >
             <g id="Layer-1" serif:id="Layer 1">
                 <g transform="matrix(1,0,0,1,597.344,637.02)">
@@ -83,7 +92,14 @@ impl MarketingVideo {
                         d="M0,-92.063C0,-92.063 43.486,-139.678 86.974,-92.063C86.974,-92.063 121.144,-28.571 86.974,3.171C86.974,3.171 31.062,47.615 0,3.171C0,3.171 -37.275,-31.75 0,-92.063"
                         style="fill-rule:nonzero;" />
                 </g>
-                <g transform={format!("matrix(1,0,0,1,{},435.209)", frame.animate_or(&self.ferris_right_eye_animation, 727.0))}>
+                <g
+                  transform={format!("matrix(1,0,0,1,{},435.209)",
+                    frame.animate(&fframes::timeline!(
+                        on 3.4, val 727. => 777., Animation::Easing::Linear(0.25),
+                        on 4.1, val 777. => 727., Animation::Easing::Linear(0.25)
+                    ))
+                  )}
+                >
                     <path
                         d="M0,0.002C0,18.543 -10.93,33.574 -24.408,33.574C-37.885,33.574 -48.814,18.543 -48.814,0.002C-48.814,-18.539 -37.885,-33.572 -24.408,-33.572C-10.93,-33.572 0,-18.539 0,0.002"
                         style="fill:white;fill-rule:nonzero;" />
@@ -91,12 +107,21 @@ impl MarketingVideo {
                 <g transform="matrix(1,0,0,1,483.3,502.984)">
                     <path
                         d="M0,-98.439C0,-98.439 74.596,-131.467 94.956,-57.748C94.956,-57.748 116.283,28.178 33.697,33.028C33.697,33.028 -71.613,12.745 0,-98.439"
-                        style="fill-rule:nonzero;" />
+                        style="fill-rule:nonzero;"
+                    />
                 </g>
-                <g transform={format!("matrix(1,0,0,1,{},436.428)", frame.animate_or(&self.ferris_left_eye_animation, 520.0))}>
+                <g
+                  transform={format!("matrix(1,0,0,1,{},436.428)",
+                    frame.animate(&fframes::timeline!(
+                      on 3.4, val 520. => 570., Animation::Easing::Linear(0.25),
+                      on 4.1, val 570. => 520., Animation::Easing::Linear(0.25)
+                    ))
+                  )}
+                >
                     <path
                         d="M0,0C0,19.119 -11.27,34.627 -25.173,34.627C-39.071,34.627 -50.344,19.119 -50.344,0C-50.344,-19.124 -39.071,-34.627 -25.173,-34.627C-11.27,-34.627 0,-19.124 0,0"
-                        style="fill:white;fill-rule:nonzero;" />
+                        style="fill:white;fill-rule:nonzero;"
+                    />
                 </g>
                 <g transform="matrix(-1.53e-05,-239.021,-239.021,1.53e-05,402.161,775.388)">
                     <path
@@ -132,6 +157,59 @@ impl MarketingVideo {
     }
 }
 
+const PRETTY_SPECTRUM: [SpectrumValue; 7] = [
+    SpectrumValue {
+        position: 6,
+        spectrum_index: 6,
+        from_color: "#ec4899",
+        to_color: "#f43f5e",
+    },
+    SpectrumValue {
+        position: 0,
+        spectrum_index: 3,
+        from_color: "#d946ef",
+        to_color: "#9333ea",
+    },
+    SpectrumValue {
+        position: 5,
+        spectrum_index: 5,
+        from_color: "#facc15",
+        to_color: "#f97316",
+    },
+    SpectrumValue {
+        position: 1,
+        spectrum_index: 7,
+        from_color: "#38bdf8",
+        to_color: "#6366f1",
+    },
+    SpectrumValue {
+        position: 4,
+        spectrum_index: 4,
+        from_color: "#4ade80",
+        to_color: "#06b6d4",
+    },
+    SpectrumValue {
+        position: 2,
+        spectrum_index: 2,
+        from_color: "#22d3ee",
+        to_color: "#0ea5e9",
+    },
+    SpectrumValue {
+        position: 3,
+        spectrum_index: 1,
+        from_color: "#fff",
+        to_color: "#fff",
+    },
+];
+
+const BAR_SIZE: usize = 96;
+const BAR_SIZE_F32: f32 = BAR_SIZE as f32;
+const BAR_MARGIN: usize = 20;
+const BAR_WIDTH_WITH_MARGIN: usize = BAR_SIZE + BAR_MARGIN;
+
+// viewbox width - space that all bars will take - right margin
+const SPECTRUM_LEN: usize = 1920 - BAR_WIDTH_WITH_MARGIN * PRETTY_SPECTRUM.len() - BAR_MARGIN;
+
 impl Video for MarketingVideo {
     const FPS: usize = 60;
     const WIDTH: usize = 1920;
@@ -148,96 +226,10 @@ impl Video for MarketingVideo {
     }
 
     fn make() -> Self {
-        let spring = Animation::Easing::Spring(SpringOptions {
-            mass: 1.85,
-            stiffness: 130.0,
-            damping: 16.0,
-        });
-
-        let code_spring = Animation::Easing::Spring(SpringOptions {
-            mass: 0.85,
-            stiffness: 80.0,
-            damping: 16.0,
-        });
-
-        MarketingVideo {
-            spring: Animation::make_runtime(&spring),
-            ferris_left_eye_animation: SteppedAnimation::make_from_tweens(vec![
-                Tween {
-                    from: 520.0,
-                    to: 570.0,
-                    start: 3.4,
-                    easing: &Animation::Easing::Linear(0.25),
-                },
-                Tween {
-                    from: 570.0,
-                    to: 520.0,
-                    start: 4.1,
-                    easing: &Animation::Easing::Linear(0.25),
-                },
-            ]),
-            ferris_right_eye_animation: SteppedAnimation::make_from_tweens(vec![
-                Tween {
-                    from: 727.0,
-                    to: 777.0,
-                    start: 3.4,
-                    easing: &Animation::Easing::Linear(0.25),
-                },
-                Tween {
-                    from: 777.0,
-                    to: 727.0,
-                    start: 4.1,
-                    easing: &Animation::Easing::Linear(0.25),
-                },
-            ]),
-            ferris_animation: SteppedAnimation::make_from_tweens(vec![
-                Tween {
-                    from: 1400.0,
-                    to: 770.0,
-                    start: 2.3,
-                    easing: &spring,
-                },
-                Tween {
-                    from: 770.0,
-                    to: 1400.0,
-                    start: 4.8,
-                    easing: &spring,
-                },
-            ]),
-            code_animation: SteppedAnimation::make_from_tweens(vec![
-                Tween {
-                    from: -1000.0,
-                    to: 40.0,
-                    start: 5.8,
-                    easing: &code_spring,
-                },
-                Tween {
-                    from: 40.0,
-                    to: -1200.0,
-                    start: 9.0,
-                    easing: &code_spring,
-                },
-            ]),
-            opacity_animation: SteppedAnimation::make_from_tweens(vec![
-                Tween {
-                    from: 0.0,
-                    to: 1.0,
-                    start: 5.8,
-                    easing: &spring,
-                },
-                Tween {
-                    from: 1.0,
-                    to: 0.0,
-                    start: 9.0,
-                    easing: &spring,
-                },
-            ]),
-        }
+        MarketingVideo {}
     }
 
-    fn render_frame(&self, frame: &Frame, ctx: fframes_context::FFramesContext) -> String {
-        const BAR_SIZE: usize = 96;
-        const BAR_SIZE_F32: f32 = BAR_SIZE as f32;
+    fn render_frame(&self, frame: &Frame, ctx: &fframes_context::FFramesContext) -> String {
         let subtitles = ctx.get_subtitles("subtitles.vtt");
         let audio_visualization = audio_data::visualize_audio_frame(
             frame,
@@ -247,56 +239,6 @@ impl Video for MarketingVideo {
                 ctx: &ctx,
             },
         );
-
-        let pretty_spectrum = [
-            SpectrumValue {
-                position: 6,
-                val: audio_visualization[6],
-                from_color: "#ec4899",
-                to_color: "#f43f5e",
-            },
-            SpectrumValue {
-                position: 0,
-                val: audio_visualization[3],
-                from_color: "#d946ef",
-                to_color: "#9333ea",
-            },
-            SpectrumValue {
-                position: 5,
-                val: audio_visualization[5],
-                from_color: "#facc15",
-                to_color: "#f97316",
-            },
-            SpectrumValue {
-                position: 1,
-                val: audio_visualization[7],
-                from_color: "#38bdf8",
-                to_color: "#6366f1",
-            },
-            SpectrumValue {
-                position: 4,
-                val: audio_visualization[4],
-                from_color: "#4ade80",
-                to_color: "#06b6d4",
-            },
-            SpectrumValue {
-                position: 2,
-                val: audio_visualization[2],
-                from_color: "#22d3ee",
-                to_color: "#0ea5e9",
-            },
-            SpectrumValue {
-                position: 3,
-                val: audio_visualization[1],
-                from_color: "#fff",
-                to_color: "#fff",
-            },
-        ];
-
-        const BAR_MARGIN: usize = 20;
-        const BAR_WIDTH_WITH_MARGIN: usize = BAR_SIZE + BAR_MARGIN;
-        // viewbox width - space that all bars will take - right margin
-        let spectrum_space_len = 1920 - BAR_WIDTH_WITH_MARGIN * pretty_spectrum.len() - BAR_MARGIN;
 
         svgr!(
           <svg
@@ -328,9 +270,11 @@ impl Video for MarketingVideo {
             <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
 
            {
-              pretty_spectrum
+              PRETTY_SPECTRUM
               .iter()
-              .map(|SpectrumValue { val, from_color, to_color, position }|  {
+              .map(|SpectrumValue { spectrum_index, from_color, to_color, position }|  {
+                let val: f32 = audio_visualization[*spectrum_index];
+
                 let bar_height = match val / 20.0 {
                   height if height.is_nan() => BAR_SIZE_F32,
                   height if height < BAR_SIZE_F32 => BAR_SIZE_F32,
@@ -338,7 +282,7 @@ impl Video for MarketingVideo {
                   height => height.to_owned()
                 };
 
-                svgr_macro::svgr!(
+                 svgr_macro::svgr!(
                   <filter id={format!("{}-shadow", position)} x="-100%" y="-100%" width="300%" height="300%">
                     <feGaussianBlur in="SourceAlpha" stdDeviation="10.4"/>
                     <feOffset dx="0" dy="3" result="offsetblur"/>
@@ -356,12 +300,7 @@ impl Video for MarketingVideo {
                   </linearGradient>
                    <rect
                     y={500 as f32 - bar_height / 2.0}
-                    x={frame.animate_runtime(
-                      16.0,
-                      ((spectrum_space_len / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f64,
-                      944.0,
-                      &self.spring,
-                    )}
+                    // x={frame.animate()}
                     transform-origin="center center"
                     height={bar_height + 8.0}
                     fill="transparent"
@@ -374,10 +313,12 @@ impl Video for MarketingVideo {
                   <rect
                     y={500 as f32 - bar_height / 2.0}
                     x={frame.animate_runtime(
-                      16.0,
-                      ((spectrum_space_len / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f64,
-                      944.0,
-                      &self.spring,
+                      AnimateRuntimeInput {
+                        on: 16.0,
+                        from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
+                        to: 944.,
+                        animation_runtime: *SPRING_RUNTIME,
+                      }
                     )}
                     transform-origin="center center"
                     fill={format!("url(#{}-gradient)", position)}
@@ -387,13 +328,23 @@ impl Video for MarketingVideo {
                     rx={BAR_SIZE / 2}
                     ry={BAR_SIZE / 2}
                   />
-
-
-               )})
+               )
+               })
               .collect::<Vec<String>>().join("\n")
             }
 
-            <svg opacity={frame.animate_or(&self.opacity_animation, 0.0)} x="200" y="740" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 598.3520004127504 417.989493060112" width="298" height="208">
+            <svg
+              x="200"
+              y="290"
+              version="1.1"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 598.3520004127504 417.989493060112"
+              width="298"
+              opacity={frame.animate(fframes::timeline!(
+                  on 5.8, val 0. => 1., &Animation::Easing::Spring2(1.85, 130., 16.),
+                  on 9.0, val 1. => 0., &Animation::Easing::Spring2(1.85, 130., 16.)
+              ))}
+            >
               <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
                 <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
             </svg>
@@ -413,18 +364,27 @@ impl Video for MarketingVideo {
               width="900"
               height="900"
               xlink:href={ctx.get_image_link("code.png")}
-              x={frame.animate_or(&self.code_animation, -1200.0)}
+              x={frame.animate(fframes::timeline!(
+                  on 5.8, val -1000. => 40., &Animation::Easing::Spring2(0.85, 80., 16.),
+                  on 9.0, val 40. => -1200., &Animation::Easing::Spring2(0.85, 80., 16.)
+              ))}
               y="10"
             />
 
-
             {self.render_ferris(frame)}
 
-            <circle cx={960} fill="#fff" cy="500" r={frame.animate_runtime(16.2, 0 as f64, 1200.0,  &AnimationRuntime::Linear(0.3))} />
+            <circle
+              cx={960}
+              fill="#fff"
+              cy="500"
+              r={frame.animate(fframes::timeline!(
+                on 16.2, val 0. => 1200.0, &Animation::Easing::Linear(0.3)
+              ))}
+            />
 
             {if frame.get_current_second() > 16.25  {
               svgr!(
-                <g opacity={frame.animate_runtime(16.25, 0.6, 1.0, &self.spring)}>
+                <g>
                   <text x="960" y="570" font-family="Bubble" font-size="154" text-anchor="middle">
                     <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
                   </text>
@@ -440,7 +400,9 @@ impl Video for MarketingVideo {
                      stroke-linecap="round"
                      stroke-linejoin="round"
                      stroke-miterlimit="10"
-                     stroke-dashoffset={frame.animate_runtime(16.3, -700.0, 41.0, &AnimationRuntime::Linear(2.5))}
+                     stroke-dashoffset={frame.animate(fframes::timeline!(
+                       on 16.3, val -700. => 41.0, &Animation::Easing::Linear(2.5)
+                     ))}
                      stroke-dasharray="40.4579px, 796.447px"
                      d="M505,55c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50S5,27.4,5,55"
                     />
@@ -452,9 +414,19 @@ impl Video for MarketingVideo {
                       stroke-width="6"
                       stroke-linecap="round"
                       stroke-linejoin="round"
-                      opacity={frame.animate_runtime(18.6, 1.0, 0.55, &AnimationRuntime::Linear(0.2))}
-                      stroke-dashoffset={frame.animate_runtime(18.7, -40.0, 0.0, &AnimationRuntime::Linear(0.2))}
-                      stroke-dasharray={format!("{}, 137px", frame.animate_runtime(18.7, 30.0, 12.0, &AnimationRuntime::Linear(0.2)))}
+                      opacity={frame.animate(
+                        fframes::timeline!(
+                          on 18.6, val 1. => 0.55, &Animation::Easing::Linear(0.2)
+                        )
+                      )}
+                      stroke-dashoffset={frame.animate(fframes::timeline!(
+                       on 18.7, val -40. => 0.0, &Animation::Easing::Linear(0.2)
+                      ))}
+                      stroke-dasharray={
+                        format!("{}, 137px", frame.animate(
+                          &fframes::timeline!(on 18.7, val 30.0 => 12.0, &Animation::Easing::Linear(0.2)))
+                        )
+                      }
                       d="M549.7,46.6l-21.8,12.6 M531.9,25.8l-12.6,21.8 M504.2,18.3v25.1 M476.4,25.8L489,47.6 M458.7,46.6l21.8,12.6"
                     />
                   </g>

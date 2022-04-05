@@ -1,8 +1,8 @@
-extern crate proc_macro;
+extern crate proc_macro2;
 
 mod node;
-mod parser;
 mod nodes_to_format;
+mod parser;
 mod validate_svg;
 
 use proc_macro::TokenStream;
@@ -16,7 +16,7 @@ use syn::{
 use node::Node;
 use parser::{Parser, ParserOptions};
 
-use crate::nodes_to_format::nodes_to_format;
+use crate::nodes_to_format::prepare_svg_nodes_for_format_statement;
 
 mod punctuation {
     use syn::custom_punctuation;
@@ -40,8 +40,18 @@ fn parse_with_config(tokens: proc_macro::TokenStream, config: ParserOptions) -> 
 pub fn svgr(tokens: TokenStream) -> TokenStream {
     match parse(tokens) {
         Ok(nodes) => {
-            let (html_string, values) = nodes_to_format(nodes);
-            quote! { format!(#html_string, #(#values),*) }
+            let (html_string, values, animations) = prepare_svg_nodes_for_format_statement(nodes);
+
+            quote! {
+                {
+                lazy_static::lazy_static! {
+                    // static ref COUNT: usize = 12;
+                    #(#animations)*
+                }
+
+                format!(#html_string, #(#values),*)
+            }
+            }
         }
         Err(error) => error.to_compile_error(),
     }

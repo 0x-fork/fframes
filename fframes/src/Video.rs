@@ -43,5 +43,5 @@ pub trait Video: Sized {
         Self: Sync + Sized;
 
     fn audio() -> AudioMap;
-    fn render_frame(&self, frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String;
+    fn render_frame(&self, frame: &frame::Frame, ctx: &fframes_context::FFramesContext) -> String;
 }

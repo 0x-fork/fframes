@@ -1,8 +1,15 @@
-use crate::Animation;
+use crate::{Animation, AnimationRuntime};
 
 pub struct Frame {
     pub index: i64,
     pub fps: usize,
+}
+
+pub struct AnimateRuntimeInput {
+    pub on: f32,
+    pub from: f32,
+    pub to: f32,
+    pub animation_runtime: AnimationRuntime,
 }
 
 impl Frame {
@@ -10,30 +17,73 @@ impl Frame {
         self.index as f32 / self.fps as f32
     }
 
+    /// Calculates animation in runtime.
+    /// Unlike frame.animate(fframes::timeline!()) you can pass dynamic value in the start/from/to properties.
+    /// But it is required to prepare easing function in advance.
+    ///
+    /// Use frame.animate! if possible.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use fframes::{Animation, AnimationRuntime, Frame};
+    ///
+    /// let frame = Frame { index: 0, fps: 60 };
+    /// const RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(Animation::Easing::Linear(2.0))
+    ///
+    /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000, to: 2000, animation_runtime: &RUNTIME);
+    /// ```
     pub fn animate_runtime(
         &self,
-        start: f32,
-        from: f64,
-        to: f64,
-        animation_runtime: &Animation::AnimationRuntime,
-    ) -> f64 {
+        AnimateRuntimeInput { 
+            on, from, to, animation_runtime
+        }: AnimateRuntimeInput
+    ) -> f32 {
         let duration = animation_runtime.get_duration();
 
         match &self.get_current_second() {
-            second if second < &start => from,
-            second if second > &(start + duration) => to,
+            second if second < &on => from,
+            second if second > &(on + duration) => to,
             second => {
-                let progress = animation_runtime.solve(&(second - start));
+                let progress = animation_runtime.solve(&(second - on));
 
                 let animation_range = to - from;
-
-                from + animation_range * progress as f64
+                from + animation_range * progress
             }
         }
     }
 
-    pub fn animate_or(&self, animation: &Animation::SteppedAnimation, default_value: f64) -> f64 {
+    /// Returns the current value of the animation at the current second.
+    /// # Panics
+    ///
+    /// Panics if current value can't be calculate, this may happen if seconds are negative or timeline is broken.
+    ///
+    /// # Timeline
+    ///
+    /// Timeline is defined using fframes::timeline! macros. All the gaps between frames are filled automatically.
+    ///
+    /// ## Example
+    ///
+    /// In this example we have the 2 transition and 5 states. Value based on seconds:
+    /// * (0..2.3) -> 1400
+    /// * (2.3..2.9) -> transition from 1400 to 770 (duration calculates based on spring duration)
+    /// * (2.9..4.8) -> 770
+    /// * (4.8..5.4) -> transition from 770 to 1400 (duration calculates based on spring duration)
+    /// * (5.4..end of file) -> 1400
+    ///
+    /// ```rust
+    /// svgr!(
+    ///   <rect
+    ///     y={frame.animate(fframes::timeline!(
+    ///         on 2.3, val 1400. => 770., Spring(1.85, 130.0, 16.0),
+    ///         on 4.8, val 770. => 1400., Spring(1.85, 130.0, 16.0)
+    ///     ))}
+    ///   />
+    /// );
+    /// ```
+    pub fn animate(&self, animation: &Animation::SteppedAnimation) -> f32 {
         let current_second = &self.get_current_second();
+
         let keyframe = animation
             .keyframes
             .iter()
@@ -41,7 +91,7 @@ impl Frame {
             .find(|keyframe| keyframe.seconds_range.contains(current_second));
 
         match keyframe {
-            None => default_value,
+            None => panic!("frame.animate can not get the value for frame {}. It may mean that SteppedAnimation is not correctly filled out./", self.index),
             Some(keyframe) => {
                 let progress = keyframe
                     .animation_runtime
@@ -49,7 +99,7 @@ impl Frame {
 
                 let animation_range = keyframe.to - keyframe.from;
 
-                keyframe.from + animation_range * progress as f64
+                keyframe.from + animation_range * progress
             }
         }
     }

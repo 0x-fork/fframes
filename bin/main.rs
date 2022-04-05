@@ -114,7 +114,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
     std::fs::create_dir(&directory)?;
 
     let opt_ref = &opt.to_ref();
-    
+
     let files = split_ffmpeg_chunks(
         duration_in_frames,
         divide_round_up(duration_in_frames, rayon::current_num_threads()),
@@ -151,7 +151,7 @@ fn render<'a, TVideo: Video + Sync + Sized>(
                                     fps,
                                     index: fr as i64,
                                 },
-                                ctx.clone(),
+                                &ctx,
                             );
 
                             logger.log_frame(index, thread_number, &svg);

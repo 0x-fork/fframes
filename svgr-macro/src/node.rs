@@ -106,6 +106,8 @@ pub enum NodeType {
 
     /// Arbitrary rust code in braced `{}` blocks
     Block,
+
+    LazyTimelineBlock
 }
 
 impl fmt::Display for NodeType {
@@ -118,6 +120,7 @@ impl fmt::Display for NodeType {
                 Self::Attribute => "NodeType::Attribute",
                 Self::Text => "NodeType::Text",
                 Self::Block => "NodeType::Block",
+                Self::LazyTimelineBlock => "NodeType::LazyTimelineBlock",
             }
         )
     }

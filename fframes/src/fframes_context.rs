@@ -1,5 +1,4 @@
 use crate::{audio_data, media_provider, subtitles};
-use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub enum FFramesMode {

@@ -3,4 +3,9 @@
   "cSpell.words": [
     "fframes"
   ],
+  "files.associations": {
+    "*.prisma": "graphql",
+    "pixdesc.h": "c"
+  },
+  "svg.preview.background": "editor",
 }

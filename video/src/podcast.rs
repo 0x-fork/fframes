@@ -20,7 +20,7 @@ impl Video for PodcastVideo {
         PodcastVideo {}
     }
 
-    fn render_frame(&self, frame: &frame::Frame, ctx: fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: &frame::Frame, ctx: &fframes_context::FFramesContext) -> String {
         let me_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {

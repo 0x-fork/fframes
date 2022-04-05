@@ -160,7 +160,7 @@ macro_rules! setup_wasm_editor {
                     fps: $x::FPS,
                     index: frame,
                 },
-                fframes_context::FFramesContext {
+                &fframes_context::FFramesContext {
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
