@@ -5,11 +5,11 @@ pub struct Frame {
     pub fps: usize,
 }
 
-pub struct AnimateRuntimeInput {
+pub struct AnimateRuntimeInput<'a> {
     pub on: f32,
     pub from: f32,
     pub to: f32,
-    pub animation_runtime: AnimationRuntime,
+    pub animation_runtime: &'a AnimationRuntime,
 }
 
 impl Frame {
@@ -41,7 +41,7 @@ impl Frame {
     ) -> f32 {
         let duration = animation_runtime.get_duration();
 
-        match &self.get_current_second() {
+        let res = match &self.get_current_second() {
             second if second < &on => from,
             second if second > &(on + duration) => to,
             second => {
@@ -50,7 +50,8 @@ impl Frame {
                 let animation_range = to - from;
                 from + animation_range * progress
             }
-        }
+        };
+        res
     }
 
     /// Returns the current value of the animation at the current second.
@@ -65,11 +66,11 @@ impl Frame {
     /// ## Example
     ///
     /// In this example we have the 2 transition and 5 states. Value based on seconds:
-    /// * (0..2.3) -> 1400
-    /// * (2.3..2.9) -> transition from 1400 to 770 (duration calculates based on spring duration)
-    /// * (2.9..4.8) -> 770
-    /// * (4.8..5.4) -> transition from 770 to 1400 (duration calculates based on spring duration)
-    /// * (5.4..end of file) -> 1400
+    /// * from 0 to 2.3 -> 1400
+    /// * from 2.3 to 2.9 -> transition from 1400 to 770 (duration calculates based on spring duration)
+    /// * from 2.9 to 4.8 -> 770
+    /// * from 4.8 to 5.4 -> transition from 770 to 1400 (duration calculates based on spring duration)
+    /// * from 5.4 to end of file -> 1400
     ///
     /// ```rust
     /// svgr!(

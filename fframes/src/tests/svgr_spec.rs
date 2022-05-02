@@ -1,4 +1,4 @@
-use crate::{Animation, Frame};
+use crate::{AnimateRuntimeInput, Animation, Frame};
 use svgr_macro::svgr;
 
 mod fframes {
@@ -7,10 +7,10 @@ mod fframes {
 
 pub struct Ctx;
 
-impl Ctx { 
-  pub fn get_image_link(&self, a: &str) -> String {
-    a.to_owned()
-  }
+impl Ctx {
+    pub fn get_image_link(&self, a: &str) -> String {
+        a.to_owned()
+    }
 }
 
 #[test]
@@ -18,7 +18,7 @@ pub fn macro_animations() {
     let frame = Frame { fps: 50, index: 75 };
     let ctx = Ctx {};
 
-    let a = || {
+    assert_eq!(
         svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -26,14 +26,13 @@ pub fn macro_animations() {
             width="1920"
             height="1080"
           >
+            <image
+              width="900"
+              height="900"
+              xlink:href={ctx.get_image_link("code.png")}
+              y="10"
+            />
 
-                   <image
-                     width="900"
-                     height="900"
-                     xlink:href={ctx.get_image_link("code.png")}
-                    //  x={frame.animate(&self.code_animation)}
-                     y="10"
-                   />
             <rect
                 x={frame.animate(fframes::timeline!(
                   on 0., val 10.0 => 12.2, Animation::Easing::Linear(0.2),
@@ -42,8 +41,30 @@ pub fn macro_animations() {
                 ))}
             />
           </svg>
-        );
-    };
+        ),
+        r"".to_string()
+    );
+}
 
-    assert_eq!(a(), r"".to_string());
+#[test]
+pub fn macro_frame_animate_runtime() {
+    let frame = Frame { fps: 50, index: 75 };
+    let ctx = Ctx {};
+
+    assert_eq!(
+        svgr!(
+          <rect
+            transform-origin="center center"
+            x={frame.animate_runtime(
+              AnimateRuntimeInput {
+                on: 16.0,
+                from: 100.,
+                to: 944.,
+                animation_runtime: &crate::AnimationRuntime::Static(0., 0.),
+              }
+            )}
+          />
+        ),
+        r"".to_string()
+    );
 }

@@ -7,5 +7,9 @@ members = [
     "video",
     "media-loader",
     "webvtt-parser",
-    "fframes-editor-controller"
+    "fframes-editor-controller",
+    "wgpu_svg"    
 ]
+
+resolver="2"
+

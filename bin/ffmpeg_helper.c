@@ -1,4 +1,4 @@
-#include <stdio.h>;
+#include <stdio.h>
 #include <libavutil/opt.h>
 
 const char *av_error_to_string(int error_code)

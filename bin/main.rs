@@ -1,9 +1,13 @@
 mod encoder;
+use encoder::EncoderOptions;
 use fframes::media_provider::ImageData;
 use fframes::{fframes_context, frame, video::Video};
 use fframes::{AudioData, Duration};
 use fframes_logger::FFramesLoggerVariant;
-use rayon::prelude::*;
+
+use gpu::GpuRenderingBackend;
+use lyon::geom::euclid::default;
+use render_backend::{CpuRenderingBackend, FFramesRenderBackend, RenderBackendVariant};
 use renderer_error::FFramesError;
 use std::ops::Range;
 use uuid::Uuid;
@@ -14,41 +18,26 @@ use crate::renderer_error::FFramesResult;
 mod concatenator;
 mod ffmpeg_helper;
 pub mod fframes_logger;
+mod gpu;
 mod media_processor;
+pub mod render_backend;
 mod renderer_error;
 
-fn split_ffmpeg_chunks(duration_in_frames: usize, chunk_size: usize) -> Vec<Range<usize>> {
-    let mut chunks = vec![];
-    let mut prev_chunk = 0;
-
-    while prev_chunk < duration_in_frames {
-        if duration_in_frames - prev_chunk > chunk_size {
-            chunks.push(prev_chunk..prev_chunk + chunk_size);
-            prev_chunk += chunk_size;
-        } else {
-            let last_chunk = duration_in_frames - prev_chunk;
-            chunks.push(prev_chunk..prev_chunk + last_chunk);
-            prev_chunk += last_chunk;
-        }
-    }
-
-    chunks
-}
-
-pub fn divide_round_up(a: usize, b: usize) -> usize {
-    (a + (b - 1)) / b
-}
-
-#[derive(Default, Debug)]
-pub struct RenderOptions<'a> {
+#[derive(Debug, Clone, Default)]
+pub struct RenderOptions<'a, TBackend: FFramesRenderBackend> {
     media_dir: &'a str,
     logger: FFramesLoggerVariant,
+    encoder_options: EncoderOptions<'a>,
+    render_backend: TBackend,
+    /// Preferred codec ot use. If not allowed to use will use default codec for the container which may not be the most efficient.
+    /// Because libav by default ignores non-system codecs like hevc or x264.
+    preferred_codec: &'a str,
 }
 
-fn render<'a, TVideo: Video + Sync + Sized>(
+fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     video: TVideo,
     output: &'a str,
-    options: RenderOptions<'a>,
+    options: RenderOptions<'a, TBackend>,
 ) -> Result<(), FFramesError> {
     let fps = TVideo::FPS;
     let mut logger = fframes_logger::make_logger(options.logger);
@@ -109,96 +98,15 @@ fn render<'a, TVideo: Video + Sync + Sized>(
         media_provider,
     };
 
-    let session = Uuid::new_v4();
-    let directory = std::env::temp_dir().join(format!("fframes-{session}"));
-    std::fs::create_dir(&directory)?;
-
-    let opt_ref = &opt.to_ref();
-
-    let files = split_ffmpeg_chunks(
+    options.render_backend.render(
+        output,
+        video,
+        logger,
+        &opt.to_ref(),
         duration_in_frames,
-        divide_round_up(duration_in_frames, rayon::current_num_threads()),
-    )
-    .par_iter()
-    .enumerate()
-    .map(|(thread_number, chunk_range)| {
-        let file = directory
-            .join(format!("{thread_number}.mp4"))
-            .into_os_string()
-            .into_string()
-            .unwrap();
-
-        unsafe {
-            Encoder::with_output(
-                TVideo::WIDTH as i32,
-                TVideo::HEIGHT as i32,
-                fps as i32,
-                file.as_str(),
-                &mut |encoder| {
-                    let mut last_svg = "".to_owned();
-                    let mut frame = EncoderFrame::make(&encoder.video_stream);
-                    let mut pixmap =
-                        tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
-                            .unwrap();
-
-                    chunk_range
-                        .to_owned()
-                        .into_iter()
-                        .enumerate()
-                        .try_for_each(|(index, fr)| {
-                            let svg = video.render_frame(
-                                &frame::Frame {
-                                    fps,
-                                    index: fr as i64,
-                                },
-                                &ctx,
-                            );
-
-                            logger.log_frame(index, thread_number, &svg);
-                            if svg != last_svg {
-                                let rtree = usvg::Tree::from_str(&svg, opt_ref).unwrap();
-                                resvg::render(
-                                    &rtree,
-                                    usvg::FitTo::Original,
-                                    tiny_skia::Transform::default(),
-                                    pixmap.as_mut(),
-                                )
-                                .unwrap();
-
-                                last_svg = svg;
-                            }
-
-                            encoder.send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()))
-                        })?;
-
-                    let frames_to_generate = chunk_range.end - chunk_range.start;
-                    let submitted_frames = encoder.video_stream.get_frames_in_stream() as usize;
-
-                    if submitted_frames < frames_to_generate {
-                        let intra_frames_to_add = frames_to_generate - submitted_frames;
-
-                        for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
-                            encoder.send_frame(frame.frame)?;
-                        }
-                    }
-
-                    frame.free();
-                    Ok(())
-                },
-            )
-        }
-        .and_then(std::convert::identity)
-        .map_err(|av_err| FFramesError::RenderChunkError(thread_number, av_err))?;
-
-        Ok(file)
-    })
-    .collect::<FFramesResult<Vec<_>>>()?;
-
-    unsafe {
-        concatenator::concat_files(files.as_slice(), output)?;
-    }
-
-    logger.success(output, directory.to_str());
+        options.encoder_options,
+        ctx,
+    )?;
 
     Ok(())
 }
@@ -209,7 +117,10 @@ fn main() {
         "out.mp4",
         RenderOptions {
             media_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
-            ..Default::default()
+            logger: FFramesLoggerVariant::Compact,
+            preferred_codec: "libx264",
+            render_backend: CpuRenderingBackend {},
+           ..Default::default() 
         },
     )
     .unwrap();

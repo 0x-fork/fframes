@@ -162,7 +162,7 @@ const PRETTY_SPECTRUM: [SpectrumValue; 7] = [
         position: 6,
         spectrum_index: 6,
         from_color: "#ec4899",
-        to_color: "#f43f5e",
+        to_color: "#f43f5e",  
     },
     SpectrumValue {
         position: 0,
@@ -300,7 +300,14 @@ impl Video for MarketingVideo {
                   </linearGradient>
                    <rect
                     y={500 as f32 - bar_height / 2.0}
-                    // x={frame.animate()}
+                    x={frame.animate_runtime(
+                      AnimateRuntimeInput {
+                        on: 16.0,
+                        from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
+                        to: 944.,
+                        animation_runtime: &SPRING_RUNTIME,
+                      }
+                    )}
                     transform-origin="center center"
                     height={bar_height + 8.0}
                     fill="transparent"
@@ -317,7 +324,7 @@ impl Video for MarketingVideo {
                         on: 16.0,
                         from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
                         to: 944.,
-                        animation_runtime: *SPRING_RUNTIME,
+                        animation_runtime: &SPRING_RUNTIME,
                       }
                     )}
                     transform-origin="center center"
@@ -346,7 +353,7 @@ impl Video for MarketingVideo {
               ))}
             >
               <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
-                <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
+              <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
             </svg>
 
             <text

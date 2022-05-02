@@ -1,5 +1,8 @@
 use ffmpeg_next::sys::*;
-use std::{ffi::CString, os::raw::c_char};
+use std::{
+    ffi::{CStr, CString},
+    os::raw::c_char,
+};
 
 use crate::{
     ffmpeg_action, ffmpeg_loggable_action,
@@ -14,6 +17,19 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
 
 extern "C" {
     pub fn av_error_to_string(err: i32) -> *mut c_char;
+}
+
+#[derive(Debug, Clone)]
+pub struct EncoderOptions<'a> {
+    pub preferred_codec: &'a str,
+}
+
+impl Default for EncoderOptions<'_> {
+    fn default() -> Self {
+        Self {
+            preferred_codec: "libx264",
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -36,9 +52,23 @@ impl Stream {
         height: i32,
         fps: i32,
         oc: *mut AVFormatContext,
+        preferred_codec_name: &str,
         codec_id: AVCodecID,
     ) -> AVResult<Self> {
-        let codec = avcodec_find_encoder(codec_id);
+        let codec_name = CString::new(preferred_codec_name).unwrap();
+        let mut codec = avcodec_find_encoder_by_name(codec_name.as_ptr());
+        if codec.is_null() {
+            codec = avcodec_find_encoder(codec_id);
+
+            let found_codec_name = CStr::from_ptr((*codec).name);
+            eprintln!(
+                "Warning: Can not find codec {preferred_codec_name}, continue with {codec_name}",
+                codec_name = found_codec_name.to_str().unwrap()
+            );
+        }
+
+        let codec_id = (*codec).id;
+        println!("{}", CStr::from_ptr((*codec).name).to_str().unwrap());
         let st = avformat_new_stream(oc, std::ptr::null_mut());
         (*st).id = ((*oc).nb_streams - 1) as i32;
 
@@ -53,10 +83,13 @@ impl Stream {
         (*st).time_base = AVRational { num: 1, den: fps };
         (*c).time_base = (*st).time_base;
 
-        (*c).gop_size = 12;
+        (*c).gop_size = 40;
         (*c).pix_fmt = AVPixelFormat::AV_PIX_FMT_YUV420P;
         (*c).qmin = 10;
         (*c).qmax = 51;
+        (*c).qcompress = 0.6;
+        (*c).max_qdiff = 4;
+        (*c).bit_rate_tolerance = 0;
 
         if (*(*oc).oformat).flags & AVFMT_GLOBALHEADER != 0 {
             (*(*oc).oformat).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
@@ -65,7 +98,7 @@ impl Stream {
         let opts: *mut *mut AVDictionary = &mut std::ptr::null_mut();
 
         let crf = CString::new("crf").unwrap();
-        let crfval = CString::new("28").unwrap();
+        let crfval = CString::new("23").unwrap();
         av_dict_set(opts, crf.as_ptr(), crfval.as_ptr(), 0);
 
         ffmpeg_loggable_action!(avcodec_open2(c, codec, opts));
@@ -87,6 +120,7 @@ impl Encoder {
         height: i32,
         fps: i32,
         filename: &str,
+        preferred_codec: &str,
         function: &mut F,
     ) -> AVResult<T> {
         av_log_set_level(AV_LOG_FATAL);
@@ -105,7 +139,8 @@ impl Encoder {
         );
 
         let fmt = (*oc).oformat;
-        let video_stream = Stream::make(width, height, fps, oc, (*fmt).video_codec)?;
+        let video_stream =
+            Stream::make(width, height, fps, oc, preferred_codec, (*fmt).video_codec)?;
 
         av_dump_format(oc, 0, c_filename.as_ptr(), 1);
 
@@ -221,7 +256,7 @@ impl EncoderFrame {
         (r, g, b)
     }
 
-    pub unsafe fn from_rgba_pixmap(&self, frame_index: i64, rgb_pixels: &[u8]) -> *mut AVFrame {
+    pub unsafe fn from_rgba_pixmap(&mut self, frame_index: i64, rgb_pixels: &[u8]) -> *mut AVFrame {
         let is_writable = av_frame_make_writable(self.frame);
         if is_writable < 0 {
             panic!("Can not reuse frame allocations");

@@ -101,7 +101,7 @@ impl Debug for dyn FFramesLogger {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Different options for logging rendering process.
 pub enum FFramesLoggerVariant {
     /// Doesn't show progress of rendering, only the output. Slightly faster.
