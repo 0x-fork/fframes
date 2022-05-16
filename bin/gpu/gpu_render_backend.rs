@@ -13,6 +13,7 @@ use wgpu::{include_wgsl, util::DeviceExt};
 
 use super::tesselator::{tesselate_svg, GpuGlobals, GpuPrimitive, GpuTransform, GpuVertex};
 
+#[derive(Default)]
 pub struct GpuRenderingBackend {}
 
 impl FFramesRenderBackend for GpuRenderingBackend {

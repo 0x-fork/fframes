@@ -146,8 +146,6 @@ function SceneMapCanvas(Props) {
   var size = Props.size;
   var canvasRef = React.useRef(null);
   var editorContext = EditorContext.useEditorContext(undefined);
-  var match = Curry._1(editorContext.usePlayer, undefined);
-  var player = match[0];
   React.useEffect((function () {
           Belt_Option.map(Caml_option.nullable_to_opt(canvasRef.current), (function (element) {
                   var ctx = element.getContext("2d");
@@ -155,22 +153,14 @@ function SceneMapCanvas(Props) {
                   element.width = Math.floor(size.scaledWidth) | 0;
                   ctx.scale(size.scale, size.scale);
                   renderTimeSlots(ctx, size, editorContext);
-                  var match = player.playState;
-                  if (match >= 3) {
-                    renderScenesPlaceholder(ctx, size, editorContext);
-                  } else {
-                    ctx.save();
-                    renderAudioMap(ctx, size, editorContext);
-                    ctx.restore();
-                    renderMainScene(ctx, size, editorContext);
-                  }
+                  ctx.save();
+                  renderAudioMap(ctx, size, editorContext);
+                  ctx.restore();
+                  renderMainScene(ctx, size, editorContext);
                   
                 }));
           
-        }), [
-        size,
-        player.playState
-      ]);
+        }), [size]);
   return React.createElement("canvas", {
               ref: canvasRef,
               className: "absolute inset-0",

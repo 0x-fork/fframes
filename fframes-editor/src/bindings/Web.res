@@ -4,6 +4,8 @@ module Window = {
 
 module Element = {
   @get external style: Webapi.Dom.Element.t => {..} = "style"
+
+  let targetAsElement =  %raw(`_ => _`)
 }
 
 module Float32Array = {

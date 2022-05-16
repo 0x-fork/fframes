@@ -51,7 +51,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         {...state, frame: frame, svg: Some(svg)}
       }
     | AllowPlay => {...state, playState: WaitingForAction}
-    | Play if state.frame >= Wasm.videoMeta.durationInFrames => {
+    | Play if state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames => {
         ...state,
         frame: 0,
         playState: Playing,

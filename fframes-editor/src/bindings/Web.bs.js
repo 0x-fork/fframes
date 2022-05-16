@@ -3,7 +3,11 @@
 
 var $$Window = {};
 
-var $$Element = {};
+var targetAsElement = (_ => _);
+
+var $$Element = {
+  targetAsElement: targetAsElement
+};
 
 var $$Float32Array = {};
 

@@ -6,6 +6,7 @@ type canvasSize = {
   scaledHeight: float,
   maxSceneWidth: float,
   frameToPxRatio: float,
+  pxToFrameRation: float,
 }
 
 // Make sure to not change this from ints to float to enable preval of calculations

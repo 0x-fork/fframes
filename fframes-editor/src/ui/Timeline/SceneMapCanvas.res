@@ -212,9 +212,8 @@ let renderTimeSlots = (ctx, size, editorContext: EditorContext.editorContext) =>
 let make = (~size: canvasSize) => {
   let canvasRef = React.useRef(Js.Nullable.null)
   let editorContext = EditorContext.useEditorContext()
-  let (player, _) = editorContext.usePlayer()
 
-  React.useEffect2(() => {
+  React.useEffect1(() => {
     canvasRef.current
     ->Js.Nullable.toOption
     ->Belt.Option.map(element => {
@@ -226,24 +225,17 @@ let make = (~size: canvasSize) => {
       ctx->Canvas2d.scale(~x=size.scale, ~y=size.scale)
       ctx->renderTimeSlots(size, editorContext)
 
-      switch player.playState {
-      | CantPlay => ctx->renderScenesPlaceholder(size, editorContext)
-      | _ => {
-          ctx->Canvas2d.save
-          ctx->renderAudioMap(size, editorContext)
-          ctx->Canvas2d.restore
-          ctx->renderMainScene(size, editorContext)
-
-          ()
-        }
-      }
+      ctx->Canvas2d.save
+      ctx->renderAudioMap(size, editorContext)
+      ctx->Canvas2d.restore
+      ctx->renderMainScene(size, editorContext)
 
       ()
     })
     ->ignore
 
     None
-  }, (size, player.playState))
+  }, [size])
 
   <canvas
     className="absolute inset-0"

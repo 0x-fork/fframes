@@ -71,9 +71,6 @@ module AudioRuntime = {
         } else {
           (endFrame - currentFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
         }->Js.Math.max(0.)
-
-        Js.Console.log2(duration, offset)
-
         source->AudioNode.connect(gain)
 
         if offset < 0. {
@@ -95,8 +92,6 @@ module AudioRuntime = {
     rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
     playingSources.contents->Array.forEach(nameAndSource => {
       let (_, source) = nameAndSource
-
-      Js.Console.log(source)
       source->AudioNode.stop
     })
   }

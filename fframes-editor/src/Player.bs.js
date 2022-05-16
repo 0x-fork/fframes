@@ -37,7 +37,7 @@ function MakePlayer(Wasm) {
                     svg: state.svg
                   };
         case /* Play */1 :
-            if (state.frame >= Wasm.videoMeta.durationInFrames) {
+            if (state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames) {
               return {
                       frame: 0,
                       startPlayingFrame: state.startPlayingFrame,

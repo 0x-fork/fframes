@@ -82,7 +82,6 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
                         var startFrame = match[0];
                         var offset = (currentFrame - startFrame | 0) / videoMeta.fps;
                         var duration = Math.max(startFrame > currentFrame ? ((endFrame - startFrame | 0) - currentFrame | 0) / videoMeta.fps : (endFrame - currentFrame | 0) / videoMeta.fps, 0);
-                        console.log(duration, offset);
                         source.connect(gain);
                         if (offset < 0) {
                           source.start(startTime.contents + Math.abs(offset), 0, duration);
@@ -104,9 +103,7 @@ function stop(param) {
           
         }));
   return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
-                var source = nameAndSource[1];
-                console.log(source);
-                source.stop();
+                nameAndSource[1].stop();
                 
               }));
 }
