@@ -12,6 +12,8 @@ module Math = {
   let divideFloat = (a, b) => a /. b
   @inline
   let divideInt = (a, b) => a / b
+  @inline
+  let divideAsFloat = (a, b) => Js.Float.fromInt(a) /. Js.Float.fromInt(b)
 
   @scope("Math") @val
   external floor: float => int = "floor"
@@ -34,7 +36,13 @@ module Option = {
     | None => failwith("expect option to contain value")
     }
 
-  let unwrapOr = (option, ~default) =>
+  let flatten = option =>
+    switch option {
+    | Some(Some(val)) => Some(val)
+    | _ => None
+    }
+
+  let unwrapOr = (option, default) =>
     switch option {
     | Some(val) => val
     | None => default
@@ -56,9 +64,13 @@ module Path = {
   }
 }
 
+module Bool = {
+  let invert = a => !a
+}
+
 module Duration = {
   let leftPad = n =>
-    n > 9.
+    n > 9.49
       ? n->Js.Float.toFixedWithPrecision(~digits=0)
       : `0${n->Js.Float.toFixedWithPrecision(~digits=0)}`
 
@@ -72,4 +84,10 @@ module Duration = {
       `${minutes->leftPad}:${seconds->leftPad}`
     }
   }
+
+  let formatFrame = (frame, fps) => {
+    Math.divideAsFloat(frame, fps)->formatSeconds
+  }
 }
+
+let neverRerender = React.memoCustomCompareProps(_, (_, _) => true)

@@ -1,7 +1,5 @@
 open Hooks
 
-
-
 @genType
 let a = Js.Dict.empty
 
@@ -46,7 +44,7 @@ let make = () => {
         style={layout.preview->UseEditorLayout.sizeToStyle}
         className=" bg-black"
         dangerouslySetInnerHTML={{
-          "__html": player.svg->Utils.Option.unwrapOr(~default=""),
+          "__html": player.svg->Utils.Option.unwrapOr(""),
         }}
       />
     </div>
@@ -55,5 +53,6 @@ let make = () => {
       className="shadow-lg w-screen bg-gray-800">
       <Timeline sectionSize=layout.timeLine />
     </div>
+    <Dock />
   </div>
 }

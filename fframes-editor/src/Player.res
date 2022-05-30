@@ -2,34 +2,69 @@ open Belt
 
 type playState = Playing | Paused | WaitingForAction | CantPlay
 
+/// This state should only contain a state that changes that affect the animation runtime or will likely change 60 t/s
 @genType
 type state = {
   frame: int,
   startPlayingFrame: int,
   playState: playState,
+  fpsLimit: option<int>,
   svg: option<string>,
+  volume: float,
 }
 
 @genType
-type action = NewFrame(int) | AllowPlay | Play | Pause
+type action =
+  | Seek(int)
+  | NewFrame(int)
+  | AllowPlay
+  | Play
+  | Pause
+  | SetVolume(float)
 
-/// This state should only contain a state that changes or affect the animation runtime and will likely change 60 t/s
+let currentFps: ref<option<int>> = ref(None)
+
+@inline
+let volume_key = "ffvolume"
+@inline
+let frame_key = "fframe"
+
+let min_volume = 0.
+let max_volume = 1.
+
 module MakePlayer = (Wasm: WasmController.WasmBridge) => {
   module PlayerState = {
     type t = state
 
+    let previousSavedVolume =
+      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage)
+      ->Option.map(Js.Float.fromString)
+      ->Utils.Option.unwrapOr(0.6)
+
+    let previousSavedFrame =
+      Dom.Storage.getItem(frame_key, Dom.Storage.localStorage)
+      ->Option.map(Js.Int.fromString)
+      ->Utils.Option.flatten
+      ->Utils.Option.unwrapOr(0)
+
+      Js.Console.log(  Dom.Storage.getItem(volume_key, Dom.Storage.localStorage))
+
     let initial = switch MediaLoader.MediaLoaderObserver.get() {
     | state if state.allMediaLoaded => {
-        frame: 0,
-        startPlayingFrame: 0,
+        frame: previousSavedFrame,
+        startPlayingFrame: previousSavedFrame,
         playState: WaitingForAction,
+        fpsLimit: Some(Wasm.videoMeta.fps),
+        volume: previousSavedVolume,
         svg: Wasm.controller.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
       }
     | _ => {
-        frame: 0,
-        startPlayingFrame: 0,
+        frame: previousSavedFrame,
+        startPlayingFrame: previousSavedFrame,
         playState: CantPlay,
         svg: None,
+        volume: previousSavedVolume,
+        fpsLimit: Some(Wasm.videoMeta.fps),
       }
     }
   }
@@ -38,17 +73,25 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
 
   let reducer = action => {
     let state = get()
-
     switch action {
-    | NewFrame(frame) if frame == Wasm.videoMeta.durationInFrames => {
+    | Seek(frame) | NewFrame(frame) if frame >= Wasm.videoMeta.durationInFrames || frame < 0 => {
+        let frame = 0
         let svg = Wasm.controller.render_frame(frame->Js.BigInt.fromInt)
 
-        {...state, frame: frame, svg: Some(svg), playState: Paused}
+        {...state, frame: frame, svg: Some(svg), playState: Paused, startPlayingFrame: 0}
       }
-    | NewFrame(frame) => {
+    | Seek(frame) | NewFrame(frame) => {
         let svg = Wasm.controller.render_frame(frame->Js.BigInt.fromInt)
 
-        {...state, frame: frame, svg: Some(svg)}
+        {
+          ...state,
+          frame: frame,
+          svg: Some(svg),
+          startPlayingFrame: switch action {
+          | Seek(frame) => frame
+          | _ => state.startPlayingFrame
+          },
+        }
       }
     | AllowPlay => {...state, playState: WaitingForAction}
     | Play if state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames => {
@@ -58,29 +101,55 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       }
     | Play => {...state, playState: Playing, startPlayingFrame: state.frame}
     | Pause => {...state, playState: Paused}
+    | SetVolume(volume) => {
+        ...state,
+        volume: switch volume {
+        | volume if volume > max_volume => max_volume
+        | volume if volume < min_volume => min_volume
+        | _ => volume
+        },
+      }
     }
   }
 
   let sideEffect = (action, dispatch) => {
-    switch action {
-    | Play if get().playState !== Playing => {
-        let onFrame = (~secondsFromStart) => {
-          let nextFrame =
-            secondsFromStart *. Wasm.videoMeta.fps->Float.fromInt +.
-              get().startPlayingFrame->Float.fromInt
+    let startPlaying = currentFrame => {
+      let onFrame = (~secondsFromStart) => {
+        let nextFrame =
+          (secondsFromStart *. Wasm.videoMeta.fps->Float.fromInt +.
+            get().startPlayingFrame->Float.fromInt)->Utils.Math.floor
 
-          NewFrame(nextFrame->Utils.Math.floor)->dispatch
-          get().playState === Playing
+        if nextFrame !== get().frame {
+          dispatch(NewFrame(nextFrame))
         }
 
-        AnimationRuntime.AudioRuntime.startAnimation(
-          ~onFrame,
-          ~currentFrame=get().frame,
-          ~videoMeta=Wasm.videoMeta,
-        )
-        ()
+        get().playState === Playing
       }
+
+      AnimationRuntime.AudioRuntime.setVolume(get().volume)
+      AnimationRuntime.AudioRuntime.startAnimation(
+        ~onFrame,
+        ~currentFrame,
+        ~videoMeta=Wasm.videoMeta,
+      )
+      ()
+    }
+
+    switch action {
+    | Play if get().playState !== Playing => startPlaying(get().frame)
+    | Seek(newFrame) => {
+        AnimationRuntime.AudioRuntime.stop()
+        startPlaying(newFrame)
+
+        Dom.Storage.localStorage |> Dom.Storage.setItem(frame_key, newFrame->Js.Int.toString)
+      }
+    | NewFrame(newFrame) if mod(newFrame, Wasm.videoMeta.fps) === 0 =>
+      Dom.Storage.localStorage |> Dom.Storage.setItem(frame_key, newFrame->Js.Int.toString)
     | Pause => AnimationRuntime.AudioRuntime.stop()
+    | SetVolume(value) => {
+        AnimationRuntime.AudioRuntime.setVolume(value)
+        Dom.Storage.localStorage |> Dom.Storage.setItem(volume_key, value->Js.Float.toString)
+      }
     | _ => ()
     }
   }

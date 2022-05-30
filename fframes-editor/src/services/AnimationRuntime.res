@@ -7,15 +7,44 @@ type onFrame = (~secondsFromStart: float) => bool
 module AudioRuntime = {
   let rafId: ref<option<Webapi.rafId>> = ref(None)
   let playingSources: ref<array<(string, AudioNode.t)>> = ref([])
-  let audioContext = ref(None)
   let startTime = ref(0.)
+  let lastFrameTime = ref(None)
+  let runtimeFps = ref(None)
+  let smoothing = 0.9
+  let ctx = AudioContext.create()
+  let gain = ctx->AudioContext.createGain
+
+  let setVolume = value => {
+    gain["gain"]["value"] = value
+  }
+
+  let stop = () => {
+    rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
+    playingSources.contents->Array.forEach(nameAndSource => {
+      let (_, source) = nameAndSource
+      source->AudioNode.stop
+    })
+  }
 
   let rec frame = (~onFrame: onFrame, _timestamp) => {
-    let secondsFromStart =
-      audioContext.contents->Utils.Option.unwrap->AudioContext.getCurrentTime -. startTime.contents
+    let currentTime = ctx->AudioContext.getCurrentTime
+    let thisFrameTime =
+      lastFrameTime.contents->Belt.Option.map(lastFrameTime => currentTime -. lastFrameTime)
+
+    let secondsFromStart = currentTime -. startTime.contents
+    runtimeFps :=
+      switch (runtimeFps.contents, thisFrameTime) {
+      | (Some(lastFps), Some(thisFrameTime)) if thisFrameTime > 0. =>
+        Some(lastFps *. smoothing +. 1. /. thisFrameTime *. (1. -. smoothing))
+      | (_, Some(thisFrameTime)) if thisFrameTime > 0. => Some(1. /. thisFrameTime)
+      | _ => None
+      }
 
     if onFrame(~secondsFromStart) {
+      lastFrameTime := Some(currentTime)
       rafId := Some(Webapi.requestCancellableAnimationFrame(frame(~onFrame)))
+    } else {
+      stop()
     }
   }
 
@@ -49,13 +78,9 @@ module AudioRuntime = {
   }
 
   let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
-    let ctx = AudioContext.create()
-    audioContext := Some(ctx)
+    stop() // in case if other animation playing
 
     playingSources := ctx->connectAudioFiles(videoMeta)
-
-    let gain = ctx->AudioContext.createGain
-    gain["gain"]["value"] = 0.2
 
     gain->AudioNode.connect(ctx.destination)->ignore
     startTime := ctx.currentTime
@@ -86,13 +111,5 @@ module AudioRuntime = {
     })
 
     Webapi.requestAnimationFrame(frame(~onFrame))
-  }
-
-  let stop = () => {
-    rafId.contents->Belt.Option.map(Webapi.cancelAnimationFrame)->ignore
-    playingSources.contents->Array.forEach(nameAndSource => {
-      let (_, source) = nameAndSource
-      source->AudioNode.stop
-    })
   }
 }

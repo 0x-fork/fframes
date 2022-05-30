@@ -2,27 +2,48 @@
 
 import * as Curry from "rescript/lib/es6/curry.js";
 import * as Utils from "./Utils.bs.js";
+import * as Js__Int from "rescript-js/src/Js__Int.bs.js";
+import * as Caml_int32 from "rescript/lib/es6/caml_int32.js";
+import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
+import * as Dom_storage from "rescript/lib/es6/dom_storage.js";
 import * as MediaLoader from "./services/mediaLoader.bs.js";
 import * as UseObservable from "./hooks/useObservable.bs.js";
 import * as AnimationRuntime from "./services/AnimationRuntime.bs.js";
 
+var currentFps = {
+  contents: undefined
+};
+
 function MakePlayer(Wasm) {
+  var previousSavedVolume = Utils.$$Option.unwrapOr(Belt_Option.map(Dom_storage.getItem("ffvolume", localStorage), (function (prim) {
+              return Number(prim);
+            })), 0.6);
+  var previousSavedFrame = Utils.$$Option.unwrapOr(Utils.$$Option.flatten(Belt_Option.map(Dom_storage.getItem("fframe", localStorage), Js__Int.fromString)), 0);
+  console.log(Dom_storage.getItem("ffvolume", localStorage));
   var state = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var initial = state.allMediaLoaded ? ({
-        frame: 0,
-        startPlayingFrame: 0,
+        frame: previousSavedFrame,
+        startPlayingFrame: previousSavedFrame,
         playState: /* WaitingForAction */2,
-        svg: Utils.$$Option.some(Curry._1(Wasm.controller.render_frame, BigInt(0)))
+        fpsLimit: Wasm.videoMeta.fps,
+        svg: Utils.$$Option.some(Curry._1(Wasm.controller.render_frame, BigInt(0))),
+        volume: previousSavedVolume
       }) : ({
-        frame: 0,
-        startPlayingFrame: 0,
+        frame: previousSavedFrame,
+        startPlayingFrame: previousSavedFrame,
         playState: /* CantPlay */3,
-        svg: undefined
+        fpsLimit: Wasm.videoMeta.fps,
+        svg: undefined,
+        volume: previousSavedVolume
       });
   var PlayerState = {
+    previousSavedVolume: previousSavedVolume,
+    previousSavedFrame: previousSavedFrame,
     initial: initial
   };
-  var include = UseObservable.Pubsub(PlayerState);
+  var include = UseObservable.Pubsub({
+        initial: initial
+      });
   var get = include.get;
   var set = include.set;
   var reducer = function (action) {
@@ -34,7 +55,9 @@ function MakePlayer(Wasm) {
                     frame: state.frame,
                     startPlayingFrame: state.startPlayingFrame,
                     playState: /* WaitingForAction */2,
-                    svg: state.svg
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume
                   };
         case /* Play */1 :
             if (state.frame <= 0 || state.frame >= Wasm.videoMeta.durationInFrames) {
@@ -42,14 +65,18 @@ function MakePlayer(Wasm) {
                       frame: 0,
                       startPlayingFrame: state.startPlayingFrame,
                       playState: /* Playing */0,
-                      svg: state.svg
+                      fpsLimit: state.fpsLimit,
+                      svg: state.svg,
+                      volume: state.volume
                     };
             } else {
               return {
                       frame: state.frame,
                       startPlayingFrame: state.frame,
                       playState: /* Playing */0,
-                      svg: state.svg
+                      fpsLimit: state.fpsLimit,
+                      svg: state.svg,
+                      volume: state.volume
                     };
             }
         case /* Pause */2 :
@@ -57,53 +84,107 @@ function MakePlayer(Wasm) {
                     frame: state.frame,
                     startPlayingFrame: state.startPlayingFrame,
                     playState: /* Paused */1,
-                    svg: state.svg
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: state.volume
                   };
         
       }
     } else {
-      var frame = action._0;
-      if (frame === Wasm.videoMeta.durationInFrames) {
-        var svg = Curry._1(Wasm.controller.render_frame, BigInt(frame));
-        return {
-                frame: frame,
-                startPlayingFrame: state.startPlayingFrame,
-                playState: /* Paused */1,
-                svg: svg
-              };
+      switch (action.TAG | 0) {
+        case /* Seek */0 :
+        case /* NewFrame */1 :
+            break;
+        case /* SetVolume */2 :
+            var volume = action._0;
+            return {
+                    frame: state.frame,
+                    startPlayingFrame: state.startPlayingFrame,
+                    playState: state.playState,
+                    fpsLimit: state.fpsLimit,
+                    svg: state.svg,
+                    volume: volume > 1 ? 1 : (
+                        volume < 0 ? 0 : volume
+                      )
+                  };
+        
       }
-      var svg$1 = Curry._1(Wasm.controller.render_frame, BigInt(frame));
+    }
+    var frame = action._0;
+    if (frame >= Wasm.videoMeta.durationInFrames || frame < 0) {
+      var svg = Curry._1(Wasm.controller.render_frame, BigInt(0));
       return {
-              frame: frame,
-              startPlayingFrame: state.startPlayingFrame,
-              playState: state.playState,
-              svg: svg$1
+              frame: 0,
+              startPlayingFrame: 0,
+              playState: /* Paused */1,
+              fpsLimit: state.fpsLimit,
+              svg: svg,
+              volume: state.volume
             };
     }
+    var frame$1 = action._0;
+    var svg$1 = Curry._1(Wasm.controller.render_frame, BigInt(frame$1));
+    var tmp;
+    tmp = typeof action === "number" || action.TAG !== /* Seek */0 ? state.startPlayingFrame : action._0;
+    return {
+            frame: frame$1,
+            startPlayingFrame: tmp,
+            playState: state.playState,
+            fpsLimit: state.fpsLimit,
+            svg: svg$1,
+            volume: state.volume
+          };
   };
   var sideEffect = function (action, dispatch) {
-    if (typeof action !== "number") {
-      return ;
-    }
-    switch (action) {
-      case /* AllowPlay */0 :
-          return ;
-      case /* Play */1 :
-          if (Curry._1(get, undefined).playState === /* Playing */0) {
-            return ;
-          }
-          var onFrame = function (secondsFromStart) {
-            var nextFrame = secondsFromStart * Wasm.videoMeta.fps + Curry._1(get, undefined).startPlayingFrame;
-            Curry._1(dispatch, /* NewFrame */{
-                  _0: Math.floor(nextFrame)
-                });
-            return Curry._1(get, undefined).playState === /* Playing */0;
-          };
-          AnimationRuntime.AudioRuntime.startAnimation(onFrame, Curry._1(get, undefined).frame, Wasm.videoMeta);
-          return ;
-      case /* Pause */2 :
-          return AnimationRuntime.AudioRuntime.stop(undefined);
+    var startPlaying = function (currentFrame) {
+      var onFrame = function (secondsFromStart) {
+        var nextFrame = Math.floor(secondsFromStart * Wasm.videoMeta.fps + Curry._1(get, undefined).startPlayingFrame);
+        if (nextFrame !== Curry._1(get, undefined).frame) {
+          Curry._1(dispatch, {
+                TAG: /* NewFrame */1,
+                _0: nextFrame
+              });
+        }
+        return Curry._1(get, undefined).playState === /* Playing */0;
+      };
+      AnimationRuntime.AudioRuntime.setVolume(Curry._1(get, undefined).volume);
+      AnimationRuntime.AudioRuntime.startAnimation(onFrame, currentFrame, Wasm.videoMeta);
       
+    };
+    if (typeof action === "number") {
+      switch (action) {
+        case /* AllowPlay */0 :
+            return ;
+        case /* Play */1 :
+            if (Curry._1(get, undefined).playState !== /* Playing */0) {
+              return startPlaying(Curry._1(get, undefined).frame);
+            } else {
+              return ;
+            }
+        case /* Pause */2 :
+            return AnimationRuntime.AudioRuntime.stop(undefined);
+        
+      }
+    } else {
+      switch (action.TAG | 0) {
+        case /* Seek */0 :
+            var newFrame = action._0;
+            AnimationRuntime.AudioRuntime.stop(undefined);
+            startPlaying(newFrame);
+            return Dom_storage.setItem("fframe", newFrame.toString(), localStorage);
+        case /* NewFrame */1 :
+            var newFrame$1 = action._0;
+            if (Caml_int32.mod_(newFrame$1, Wasm.videoMeta.fps) === 0) {
+              return Dom_storage.setItem("fframe", newFrame$1.toString(), localStorage);
+            } else {
+              return ;
+            }
+        case /* SetVolume */2 :
+            var value = action._0;
+            AnimationRuntime.AudioRuntime.setVolume(value);
+            return Dom_storage.setItem("ffvolume", value.toString(), localStorage);
+        
+      }
     }
   };
   var dispatch = function (action) {
@@ -125,8 +206,15 @@ function MakePlayer(Wasm) {
         };
 }
 
+var min_volume = 0;
+
+var max_volume = 1;
+
 export {
+  currentFps ,
+  min_volume ,
+  max_volume ,
   MakePlayer ,
   
 }
-/* MediaLoader Not a pure module */
+/* Utils Not a pure module */

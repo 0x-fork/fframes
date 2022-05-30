@@ -77,11 +77,19 @@ let make = (~size) => {
   let handleClick = e => {
     let frame = calculateFrameFromEvent(e, ~size)
 
-    dispatch(NewFrame(frame))
+    dispatch(Seek(frame))
     dispatch(Play)
   }
 
-  <div className="relative">
+  <div
+    className={Cx.cx([
+      "relative",
+      switch player.playState {
+      | Paused | WaitingForAction => "cursor-col-resize"
+      | Playing => "cursor-pointer"
+      | CantPlay => "cursor-wait"
+      },
+    ])}>
     <canvas
       onClick=handleClick
       onMouseMove=hanldeMouseMove

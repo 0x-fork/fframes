@@ -9,7 +9,6 @@ esbuild
     format: "esm",
     target: ["es2020"],
     external: ['*?url'],
-    
     watch: process.argv.some((arg) => arg.includes("-w")),
   })
   .catch(() => process.exit(1));

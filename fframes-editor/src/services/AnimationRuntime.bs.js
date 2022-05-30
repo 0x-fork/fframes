@@ -16,23 +16,73 @@ var playingSources = {
   contents: []
 };
 
-var audioContext = {
-  contents: undefined
-};
-
 var startTime = {
   contents: 0
 };
 
+var lastFrameTime = {
+  contents: undefined
+};
+
+var runtimeFps = {
+  contents: undefined
+};
+
+var ctx = new AudioContext();
+
+var gain = ctx.createGain();
+
+function setVolume(value) {
+  gain.gain.value = value;
+  
+}
+
+function stop(param) {
+  Belt_Option.map(rafId.contents, (function (prim) {
+          cancelAnimationFrame(prim);
+          
+        }));
+  return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
+                nameAndSource[1].stop();
+                
+              }));
+}
+
 function frame(onFrame, _timestamp) {
-  var secondsFromStart = Utils.$$Option.unwrap(audioContext.contents).currentTime - startTime.contents;
+  var currentTime = ctx.currentTime;
+  var thisFrameTime = Belt_Option.map(lastFrameTime.contents, (function (lastFrameTime) {
+          return currentTime - lastFrameTime;
+        }));
+  var secondsFromStart = currentTime - startTime.contents;
+  var match = runtimeFps.contents;
+  var tmp;
+  var exit = 0;
+  if (match !== undefined) {
+    if (thisFrameTime !== undefined) {
+      if (thisFrameTime > 0) {
+        tmp = match * 0.9 + 1 / thisFrameTime * (1 - 0.9);
+      } else {
+        exit = 1;
+      }
+    } else {
+      tmp = undefined;
+    }
+  } else {
+    exit = 1;
+  }
+  if (exit === 1) {
+    tmp = thisFrameTime !== undefined && thisFrameTime > 0 ? 1 / thisFrameTime : undefined;
+  }
+  runtimeFps.contents = tmp;
   if (Curry._1(onFrame, secondsFromStart)) {
+    lastFrameTime.contents = currentTime;
     rafId.contents = Caml_option.some(requestAnimationFrame(function (param) {
               return frame(onFrame, param);
             }));
     return ;
+  } else {
+    return stop(undefined);
   }
-  
 }
 
 function connectAudioFiles(ctx, videoMeta) {
@@ -67,11 +117,8 @@ function connectAudioFiles(ctx, videoMeta) {
 }
 
 function startAnimation(onFrame, currentFrame, videoMeta) {
-  var ctx = new AudioContext();
-  audioContext.contents = ctx;
+  stop(undefined);
   playingSources.contents = connectAudioFiles(ctx, videoMeta);
-  var gain = ctx.createGain();
-  gain.gain.value = 0.2;
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
   Belt_Option.forEach(videoMeta.audioMap, (function (audioMap) {
@@ -97,30 +144,24 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
   
 }
 
-function stop(param) {
-  Belt_Option.map(rafId.contents, (function (prim) {
-          cancelAnimationFrame(prim);
-          
-        }));
-  return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
-                nameAndSource[1].stop();
-                
-              }));
-}
-
 var AudioRuntime = {
   rafId: rafId,
   playingSources: playingSources,
-  audioContext: audioContext,
   startTime: startTime,
+  lastFrameTime: lastFrameTime,
+  runtimeFps: runtimeFps,
+  smoothing: 0.9,
+  ctx: ctx,
+  gain: gain,
+  setVolume: setVolume,
+  stop: stop,
   frame: frame,
   connectAudioFiles: connectAudioFiles,
-  startAnimation: startAnimation,
-  stop: stop
+  startAnimation: startAnimation
 };
 
 export {
   AudioRuntime ,
   
 }
-/* MediaLoader Not a pure module */
+/* ctx Not a pure module */

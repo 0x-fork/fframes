@@ -14,7 +14,9 @@ export type state = {
   readonly frame: number; 
   readonly startPlayingFrame: number; 
   readonly playState: playState; 
-  readonly svg?: string
+  readonly fpsLimit?: number; 
+  readonly svg?: string; 
+  readonly volume: number
 };
 
 // tslint:disable-next-line:interface-over-type-literal
@@ -22,4 +24,6 @@ export type action =
     "AllowPlay"
   | "Play"
   | "Pause"
-  | { tag: "NewFrame"; value: number };
+  | { tag: "Seek"; value: number }
+  | { tag: "NewFrame"; value: number }
+  | { tag: "SetVolume"; value: number };

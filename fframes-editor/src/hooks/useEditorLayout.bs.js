@@ -15,7 +15,7 @@ function calculatePreviewSize(windowDimensions, param) {
   var height = param.height;
   var width = param.width;
   var max_preview_width = windowDimensions.width - 370 | 0;
-  var max_preview_height = windowDimensions.height - 300 | 0;
+  var max_preview_height = windowDimensions.height - 400 | 0;
   if (!(width > max_preview_width || height > max_preview_height)) {
     return {
             height: height,
@@ -50,7 +50,7 @@ function useEditorLayout(param) {
         };
 }
 
-var min_timeline_height = 300;
+var min_timeline_height = 400;
 
 var min_media_controls_width = 370;
 

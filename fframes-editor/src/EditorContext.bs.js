@@ -32,7 +32,8 @@ function MakeEditorContext(Wasm) {
                           var player = Curry._1(PlayerObserver.get, undefined);
                           if (state.allMediaLoaded && player.playState === /* CantPlay */3) {
                             Curry._1(PlayerObserver.dispatch, /* AllowPlay */0);
-                            return Curry._1(PlayerObserver.dispatch, /* NewFrame */{
+                            return Curry._1(PlayerObserver.dispatch, {
+                                        TAG: /* NewFrame */1,
                                         _0: player.frame
                                       });
                           }
@@ -45,24 +46,6 @@ function MakeEditorContext(Wasm) {
               PlayerObserver.dispatch
             ];
     };
-    React.useEffect((function () {
-            var handleKeydown = function (e) {
-              var match = e.key;
-              if (match === " ") {
-                if (Curry._1(PlayerObserver.get, undefined).playState === /* Playing */0) {
-                  return Curry._1(PlayerObserver.dispatch, /* Pause */2);
-                } else {
-                  return Curry._1(PlayerObserver.dispatch, /* Play */1);
-                }
-              }
-              
-            };
-            window.addEventListener("keydown", handleKeydown);
-            return (function (param) {
-                      window.removeEventListener("keydown", handleKeydown);
-                      
-                    });
-          }), []);
     return React.createElement(providerElement, {
                 value: {
                   wasmController: Wasm.controller,
@@ -91,7 +74,8 @@ function makeEditorContextComponent(wasmController, videoMeta) {
                           var player = Curry._1(PlayerObserver.get, undefined);
                           if (state.allMediaLoaded && player.playState === /* CantPlay */3) {
                             Curry._1(PlayerObserver.dispatch, /* AllowPlay */0);
-                            return Curry._1(PlayerObserver.dispatch, /* NewFrame */{
+                            return Curry._1(PlayerObserver.dispatch, {
+                                        TAG: /* NewFrame */1,
                                         _0: player.frame
                                       });
                           }
@@ -104,24 +88,6 @@ function makeEditorContextComponent(wasmController, videoMeta) {
               PlayerObserver.dispatch
             ];
     };
-    React.useEffect((function () {
-            var handleKeydown = function (e) {
-              var match = e.key;
-              if (match === " ") {
-                if (Curry._1(PlayerObserver.get, undefined).playState === /* Playing */0) {
-                  return Curry._1(PlayerObserver.dispatch, /* Pause */2);
-                } else {
-                  return Curry._1(PlayerObserver.dispatch, /* Play */1);
-                }
-              }
-              
-            };
-            window.addEventListener("keydown", handleKeydown);
-            return (function (param) {
-                      window.removeEventListener("keydown", handleKeydown);
-                      
-                    });
-          }), []);
     return React.createElement(providerElement, {
                 value: {
                   wasmController: wasmController,
