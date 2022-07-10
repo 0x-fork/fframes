@@ -10,7 +10,7 @@ impl Video for TestVideo {
     const WIDTH: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::Seconds(100);
 
-    fn audio() -> AudioMap {
+    fn audio(&self) -> AudioMap {
         AudioMap::none()
     }
 

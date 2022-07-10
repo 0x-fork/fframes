@@ -4,7 +4,8 @@ use crate::{
     encoder::{Encoder, EncoderFrame, EncoderOptions},
     fframes_logger::FFramesLogger,
     render_backend::FFramesRenderBackend,
-    renderer_error::FFramesResult, RenderOptions,
+    renderer_error::FFramesResult,
+    RenderOptions,
 };
 use fframes::{frame, video::Video};
 use futures::executor::block_on;
@@ -371,7 +372,11 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                         block_on(mapping).unwrap();
 
                         let data = buffer_slice.get_mapped_range();
-                        video_encoder.send_frame(frame.from_rgba_pixmap(fr as i64, &data));
+                        frame.from_rgba_pixmap(fr as i64, &data);
+
+                        let stream = video_encoder.video_stream;
+                        video_encoder.send_frame(frame.frame);
+
                         logger.log_frame(fr, 0, &svg)
                     }
                 },

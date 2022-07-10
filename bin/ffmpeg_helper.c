@@ -10,6 +10,25 @@ const char *av_error_to_string(int error_code)
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 
+int make_stereo_layout_channel(AVCodecContext *c, AVCodec *codec)
+{
+
+  c->channels = av_get_channel_layout_nb_channels(c->channel_layout);
+  c->channel_layout = AV_CH_LAYOUT_MONO;
+  if (codec->channel_layouts)
+  {
+    int i;
+    c->channel_layout = codec->channel_layouts[0];
+    for (i = 0; codec->channel_layouts[i]; i++)
+    {
+      if (codec->channel_layouts[i] == AV_CH_LAYOUT_MONO)
+        c->channel_layout = AV_CH_LAYOUT_MONO;
+    }
+  }
+  
+  c->channels = av_get_channel_layout_nb_channels(c->channel_layout);
+}
+
 AVFormatContext *i_fmt_ctx;
 AVStream *i_video_stream;
 AVFormatContext *o_fmt_ctx;

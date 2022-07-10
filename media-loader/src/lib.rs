@@ -1,7 +1,7 @@
 use minimp3::{Decoder as Mp3Decoder, Error as Mp3Error, Frame as Mp3Frame};
-use std::{fs::File, path::Path};
+use std::{f32::consts::E, fs::File, path::Path};
 
-pub fn decode_mp3<P: AsRef<Path>>(audio_path: P) -> (i32, Vec<f32>) {
+pub fn decode_mp3<P: AsRef<Path>>(audio_path: P) -> (i32, Vec<i16>) {
     let mut decoder = Mp3Decoder::new(File::open(audio_path).unwrap());
 
     let mut sample_rate = 0;
@@ -19,14 +19,16 @@ pub fn decode_mp3<P: AsRef<Path>>(audio_path: P) -> (i32, Vec<f32>) {
 
                 match channels {
                     1 => samples_of_frame
-                        .iter()
-                        .for_each(|sample| mono_samples.push(*sample as f32)),
+                        .into_iter()
+                        .for_each(|sample| mono_samples.push(sample)),
                     channels => {
                         for (i, sample) in samples_of_frame.iter().enumerate().step_by(channels) {
-                            // prevent overflow
-                            let i32sample = *sample as f32;
+                            let sample = *sample;
+                            let next_sample = samples_of_frame[i + 1];
 
-                            mono_samples.push((i32sample + samples_of_frame[i + 1] as f32) / 2.0);
+                            // get the average (sample + next_sample) / 2 without overflow
+                            mono_samples
+                                .push((sample & next_sample) + ((sample ^ next_sample) >> 1));
                         }
                     }
                 }

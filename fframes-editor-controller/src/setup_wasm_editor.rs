@@ -34,7 +34,7 @@ macro_rules! setup_wasm_editor {
                     .get(&name.to_owned())
                     .unwrap()
                     .to_owned() as usize,
-                AudioTimestamp::Second(second) => second * MarketingVideo::FPS,
+                AudioTimestamp::Second(second) => second * $x::FPS,
             }
         }
 
@@ -62,7 +62,7 @@ macro_rules! setup_wasm_editor {
 
             #[wasm_bindgen(getter, js_name = audioMap)]
             pub fn audio_map(&self) -> JsValue {
-                let audio_map_frames_hash = MarketingVideo::audio().0.map(|audio_map| {
+                let audio_map_frames_hash = $x::audio(&$x::make()).0.map(|audio_map| {
                     audio_map
                         .into_iter()
                         .map(|(name, (start_ts, end_ts))| {
@@ -115,7 +115,7 @@ macro_rules! setup_wasm_editor {
         }
 
         #[wasm_bindgen]
-        pub fn add_audio_source(file: String, input: &[f32]) {
+        pub fn add_audio_source(file: String, input: &[i16]) {
             let audio_data = fframes::audio_data::AudioData::Preloaded(
                 fframes::audio_data::PreloadedAudioData {
                     sample_rate: 44100,

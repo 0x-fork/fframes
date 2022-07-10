@@ -86,9 +86,9 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         ctx: fframes::FFramesContext,
     ) -> FFramesResult<()> {
         let session = Uuid::new_v4();
-        let directory = std::env::temp_dir().join(format!("fframes-{session}"));
-        let directory = PathBuf::from("some");
-        std::fs::create_dir(&directory)?;
+        // let directory = std::env::temp_dir().join(format!("fframes-{session}"));
+        let directory = PathBuf::from("/Users/dmtrkovalenko/dev/fframes/bin/some");
+        // std::fs::create_dir(&directory)?;
 
         let files = split_ffmpeg_chunks(
             duration_in_frames,
@@ -129,6 +129,8 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     },
                                     &ctx,
                                 );
+
+                                // pixmap.save_png(directory.join(format!("{index}.png")));
 
                                 logger.log_frame(index, thread_number, &svg);
                                 if svg != last_svg {
@@ -172,7 +174,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         .collect::<FFramesResult<Vec<_>>>()?;
 
         unsafe {
-            concatenator::concat_files(files.as_slice(), output)?;
+            concatenator::concat_video_files_with_audio(files.as_slice(), output, &ctx)?;
         }
 
         logger.success(output, directory.to_str());

@@ -6,12 +6,12 @@ use libm::cosf;
 ///
 /// ## Return value
 /// New vector with Hann window applied to the values.
-pub fn hann_window(samples: &[f32]) -> Vec<f32> {
+pub fn hann_window(samples: &[i16]) -> Vec<f32> {
     let mut windowed_samples = Vec::with_capacity(samples.len());
     for i in 0..samples.len() {
         let multiplier = 0.5 * (1.0 - cosf((2.0 * PI * i as f32) / (samples.len() as f32)));
 
-        windowed_samples.push(multiplier * samples[i])
+        windowed_samples.push(multiplier * samples[i] as f32)
     }
 
     windowed_samples
@@ -22,22 +22,23 @@ pub fn hann_window(samples: &[f32]) -> Vec<f32> {
 ///
 /// ## Return value
 /// New vector with Hann window applied to the values.
-pub fn hamming_window(samples: &[f32]) -> Vec<f32> {
+pub fn hamming_window(samples: &[i16]) -> Vec<f32> {
     let mut windowed_samples = Vec::with_capacity(samples.len());
     let samples_len_f32 = samples.len() as f32;
     for i in 0..samples.len() {
         let multiplier = 0.54 - (0.46 * (2.0 * PI * i as f32 / cosf(samples_len_f32 - 1.0)));
-        windowed_samples.push(multiplier * samples[i])
+        windowed_samples.push(multiplier * samples[i] as f32)
     }
     windowed_samples
 }
 
+#[derive(Debug)]
 pub enum Window {
     Hann,
     Hamming,
 }
 
-pub fn apply_window_function(window: Window, samples: &[f32]) -> Vec<f32> {
+pub fn apply_window_function(window: Window, samples: &[i16]) -> Vec<f32> {
     match window {
         Window::Hann => hann_window(samples),
         Window::Hamming => hamming_window(samples),

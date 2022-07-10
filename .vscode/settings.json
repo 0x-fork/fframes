@@ -5,7 +5,9 @@
   ],
   "files.associations": {
     "*.prisma": "graphql",
-    "pixdesc.h": "c"
+    "pixdesc.h": "c",
+    "swscale.h": "c",
+    "swresample.h": "c"
   },
   "svg.preview.background": "editor",
 }

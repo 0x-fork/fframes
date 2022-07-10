@@ -8,6 +8,7 @@ pub enum AVError {
     CantWriteFrame(String),
     UnknownExtension(String),
     FFmpegError(i32, String),
+    Internal(String)
 }
 
 impl fmt::Display for AVError {
@@ -28,6 +29,7 @@ impl fmt::Display for AVError {
                     "Can not deduce file format of output file {} from extension.",
                     file.cyan().bold()
                 ),
+                Self::Internal(message) => message.to_owned()
             }
         )
     }

@@ -9,7 +9,7 @@ impl Video for PodcastVideo {
     const WIDTH: usize = 1920;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("final.mp3");
 
-    fn audio() -> AudioMap {
+    fn audio(&self) -> AudioMap {
         AudioMap::from([(
             "final.mp3",
             (AudioTimestamp::Second(0), AudioTimestamp::Eof),
@@ -24,6 +24,7 @@ impl Video for PodcastVideo {
         let me_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
+                smooth_level: 2,
                 ctx: &ctx,
                 audio: ctx.get_audio_data("me.mp3"),
                 sample_size: audio_data::SampleSize::S32,
@@ -33,6 +34,7 @@ impl Video for PodcastVideo {
         let vlad_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
+                smooth_level: 2,
                 ctx: &ctx,
                 audio: ctx.get_audio_data("vlad.mp3"),
                 sample_size: audio_data::SampleSize::S32,
@@ -41,6 +43,7 @@ impl Video for PodcastVideo {
         let guest_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
+                smooth_level: 2,
                 ctx: &ctx,
                 audio: ctx.get_audio_data("guest.mp3"),
                 sample_size: audio_data::SampleSize::S32,

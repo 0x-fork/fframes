@@ -7,6 +7,6 @@ use std::{any::type_name, collections::HashMap, sync::Mutex};
 use video::marketing::MarketingVideo;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures;
+use video::goose_thoughts::GooseVideo;
 
-
-setup_wasm_editor!(MarketingVideo);
+setup_wasm_editor!(GooseVideo);

@@ -1,14 +1,17 @@
 use ffmpeg_next::sys::*;
+use fframes::{AudioMap, FFramesContext};
 use std::ffi::CString;
 
 use crate::{
+    encoder::{Encoder, EncoderFrame, Stream},
     ffmpeg_action,
     renderer_error::{AVError, AVResult},
 };
 
-unsafe fn open_file_video_stream(
+unsafe fn open_file_stream(
     filename: &str,
     input_format_ctx: &mut *mut AVFormatContext,
+    codec_type: AVMediaType,
 ) -> AVResult<*mut AVStream> {
     let input_file = CString::new(filename).unwrap();
 
@@ -32,20 +35,20 @@ unsafe fn open_file_video_stream(
         (*(*input_format_ctx)).nb_streams as usize,
     );
 
-    let mut input_video_stream = std::ptr::null_mut();
+    let mut input_stream = std::ptr::null_mut();
     for stream in streams {
         let codec = (*stream.to_owned()).codec;
 
-        if (*codec).codec_type == AVMediaType::AVMEDIA_TYPE_VIDEO {
-            input_video_stream = *stream;
+        if (*codec).codec_type == codec_type {
+            input_stream = *stream;
             break;
         }
     }
 
-    if input_video_stream.is_null() {
+    if input_stream.is_null() {
         Err(AVError::MissingVideoStreamInFile(filename.to_owned()))
     } else {
-        Ok(input_video_stream)
+        Ok(input_stream)
     }
 }
 
@@ -82,11 +85,19 @@ unsafe fn copy_codec_params(
     avcodec_parameters_from_context((*output_video_stream).codecpar, codec);
 }
 
-pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), AVError> {
+pub unsafe fn concat_video_files_with_audio(
+    files: &[String],
+    output: &str,
+    ctx: &FFramesContext,
+) -> Result<(), AVError> {
     let mut input_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
     let mut output_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
 
-    let input_video_stream = open_file_video_stream(&files[0], &mut input_format_ctx)?;
+    let input_video_stream = open_file_stream(
+        &files[0],
+        &mut input_format_ctx,
+        AVMediaType::AVMEDIA_TYPE_VIDEO,
+    )?;
     let output_file = CString::new(output).unwrap();
 
     avformat_alloc_output_context2(
@@ -98,6 +109,26 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), AVError
 
     let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
     let codec = (*output_video_stream).codec;
+
+    // let audio_stream = Stream::make_audio(
+    //     44100,
+    //     output_format_ctx,
+    //     "aac",
+    //     (*output_format_ctx).audio_codec_id,
+    // )?;
+
+    // let mut encoder = Encoder {
+    //     video_stream: Stream {
+    //         st: output_video_stream,
+    //         enc: codec,
+    //         variant: crate::encoder::StreamVariant::Video,
+    //     },
+    //     audio_stream: Some(audio_stream),
+    //     oc: output_format_ctx,
+    //     b_frames_count: 0,
+    // };
+
+    println!("keoifjweiofewj");
 
     copy_codec_params(
         codec,
@@ -126,12 +157,23 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), AVError
     let mut start_time = 0;
 
     let mut packet = av_packet_alloc();
+    // let mut audio_frame = EncoderFrame::make(
+    //     &encoder
+    //         .audio_stream
+    //         .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
+    // );
 
+    let mut frame_i = 0;
     for (i, file) in files.into_iter().enumerate() {
         let c_filename = CString::new(file.as_str()).unwrap();
         let mut input_format_ctx = std::ptr::null_mut();
 
-        let input_video_stream = open_file_video_stream(&file, &mut input_format_ctx)?;
+        let input_video_stream = open_file_stream(
+            &file,
+            &mut input_format_ctx,
+            AVMediaType::AVMEDIA_TYPE_VIDEO,
+        )?;
+
         av_dump_format(input_format_ctx, 0, c_filename.as_ptr(), 0);
 
         loop {
@@ -162,16 +204,40 @@ pub unsafe fn concat_files(files: &[String], output: &str) -> Result<(), AVError
             last_dts = (*packet).dts;
             last_pts = (*packet).pts;
 
+            // println!("{frame_i} {last_pts}");
+
+            // audio_frame.from_audio_data(
+            //     (*packet).pts,
+            //     ctx.get_audio_data("marketing.mp3")
+            //         .get_frame_data(44100, frame_i as i64, 60),
+            // );
+
+            // encoder.send_customizeable_frame_packet(
+            //     &audio_stream,
+            //     audio_frame,
+            //     |audio_packet| {
+            //         (*audio_packet).pts = frame_i * 44100;
+            //         (*audio_packet).dts = frame_i * 44100;
+            //         (*audio_packet).stream_index = (*audio_stream.st).index;
+
+            //         av_interleaved_write_frame(output_format_ctx, audio_packet)
+            //     },
+            // )?;
+
             av_packet_rescale_ts(
                 packet,
                 (*input_video_stream).time_base,
                 (*output_video_stream).time_base,
             );
             av_interleaved_write_frame(output_format_ctx, packet);
+
+            frame_i = frame_i + 1;
         }
 
         start_time += (*input_format_ctx).duration;
         avformat_close_input(&mut input_format_ctx);
+
+        // frame_i += i;
     }
 
     av_write_trailer(output_format_ctx);

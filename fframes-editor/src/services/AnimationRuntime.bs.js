@@ -88,6 +88,7 @@ function frame(onFrame, _timestamp) {
 function connectAudioFiles(ctx, videoMeta) {
   var match = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var mediaList = match.mediaList;
+  console.log(videoMeta.audioMap);
   return Belt_Array.map(Belt_Array.keepMap(Object.keys(Utils.$$Option.unwrap(videoMeta.audioMap)), (function (audioName) {
                     var media = Belt_MapString.getExn(mediaList, audioName);
                     switch (media.TAG | 0) {

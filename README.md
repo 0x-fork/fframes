@@ -8,7 +8,7 @@ It is also required to have ffmpeg v4 installed, yes unfortunately the latest v5
 git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
 git checkout tags/n4.4.2
 
-./configure ./configure --enable-shared --enable-libx264 --enable-libx265 --enable-gpl
+./configure --enable-shared --enable-libx264 --enable-libx265 --enable-gpl
 make # build ffmpeg v4
 make install # install c libraries globally
 ```

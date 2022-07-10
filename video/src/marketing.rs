@@ -162,7 +162,7 @@ const PRETTY_SPECTRUM: [SpectrumValue; 7] = [
         position: 6,
         spectrum_index: 6,
         from_color: "#ec4899",
-        to_color: "#f43f5e",  
+        to_color: "#f43f5e",
     },
     SpectrumValue {
         position: 0,
@@ -211,12 +211,12 @@ const BAR_WIDTH_WITH_MARGIN: usize = BAR_SIZE + BAR_MARGIN;
 const SPECTRUM_LEN: usize = 1920 - BAR_WIDTH_WITH_MARGIN * PRETTY_SPECTRUM.len() - BAR_MARGIN;
 
 impl Video for MarketingVideo {
-    const FPS: usize = 60;
+    const FPS: usize = 30;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
 
-    fn audio() -> AudioMap {
+    fn audio(&self) -> AudioMap {
         use AudioTimestamp::{Eof, Second};
 
         AudioMap::from([
@@ -237,6 +237,7 @@ impl Video for MarketingVideo {
                 audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: audio_data::SampleSize::S16,
                 ctx: &ctx,
+                smooth_level: 6
             },
         );
 
@@ -446,4 +447,3 @@ impl Video for MarketingVideo {
         )
     }
 }
- 

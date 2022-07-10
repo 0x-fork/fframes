@@ -23,7 +23,6 @@ pub fn load_media_from_folder(
     let fonts_hash = Arc::new(Mutex::new(HashMap::new()));
 
     let folder_path = Path::new(folder_path);
-
     if !folder_path.is_dir() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput, // todo change to NotADirectory when this https://github.com/rust-lang/rust/issues/86442 will be stable

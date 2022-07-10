@@ -50,6 +50,7 @@ module AudioRuntime = {
 
   let connectAudioFiles = (ctx, videoMeta: WasmController.videoMeta) => {
     let {mediaList} = MediaLoader.MediaLoaderObserver.get()
+    Js.Console.log(videoMeta.audioMap);
     videoMeta.audioMap
     ->Utils.Option.unwrap
     ->Js.Dict.keysToArray
