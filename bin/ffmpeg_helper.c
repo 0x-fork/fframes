@@ -25,7 +25,7 @@ int make_stereo_layout_channel(AVCodecContext *c, AVCodec *codec)
         c->channel_layout = AV_CH_LAYOUT_MONO;
     }
   }
-  
+
   c->channels = av_get_channel_layout_nb_channels(c->channel_layout);
 }
 
@@ -216,4 +216,27 @@ int concat_files(const char *output)
   avformat_free_context(o_fmt_ctx);
 
   return 0;
+}
+
+void fill_yuv_image(AVFrame *pict, int frame_index,
+                           int width, int height)
+{
+  int x, y, i;
+
+  i = frame_index;
+
+  /* Y */
+  for (y = 0; y < height; y++)
+    for (x = 0; x < width; x++)
+      pict->data[0][y * pict->linesize[0] + x] = x + y + i * 3;
+
+  /* Cb and Cr */
+  for (y = 0; y < height / 2; y++)
+  {
+    for (x = 0; x < width / 2; x++)
+    {
+      pict->data[1][y * pict->linesize[1] + x] = 128 + y + i * 2;
+      pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
+    }
+  }
 }

@@ -6,8 +6,8 @@ pub struct TestVideo {}
 
 impl Video for TestVideo {
     const FPS: usize = 30;
-    const HEIGHT: usize = 1920;
     const WIDTH: usize = 1080;
+    const HEIGHT: usize = 1920;
     const DURATION: fframes::Duration = fframes::Duration::Seconds(100);
 
     fn audio(&self) -> AudioMap {
@@ -23,10 +23,10 @@ impl Video for TestVideo {
            <svg
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
-            width="1920"
-            height="1080"
+            width={Self::WIDTH}
+            height={Self::HEIGHT}
           >
-            <rect width="1920" height="1080" x="0" y="0" fill="white" />
+            <rect width={Self::WIDTH} height={Self::HEIGHT} x="0" y="0" fill="white" />
             <text x="100" y="100" font-size="100">
 
               <rect

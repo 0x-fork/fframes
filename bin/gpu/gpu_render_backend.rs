@@ -375,7 +375,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                         frame.from_rgba_pixmap(fr as i64, &data);
 
                         let stream = video_encoder.video_stream;
-                        video_encoder.send_frame(frame.frame);
+                        // video_encoder.send_frame(encoder.video_stream, frame.0);
 
                         logger.log_frame(fr, 0, &svg)
                     }

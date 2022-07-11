@@ -129,9 +129,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     },
                                     &ctx,
                                 );
-
-                                // pixmap.save_png(directory.join(format!("{index}.png")));
-
+                                
                                 logger.log_frame(index, thread_number, &svg);
                                 if svg != last_svg {
                                     let rtree = usvg::Tree::from_str(&svg, usvg_options).unwrap();
@@ -146,8 +144,10 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     last_svg = svg;
                                 }
 
-                                encoder
-                                    .send_frame(frame.from_rgba_pixmap(index as i64, pixmap.data()))
+                                frame.from_rgba_pixmap(index as i64, pixmap.data());
+
+                                let video_stream = encoder.video_stream;
+                                encoder.send_frame(&video_stream, frame)
                             })?;
 
                         let frames_to_generate = chunk_range.end - chunk_range.start;
@@ -157,7 +157,8 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                             let intra_frames_to_add = frames_to_generate - submitted_frames;
 
                             for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
-                                encoder.send_frame(frame.frame)?;
+                                let video_stream = encoder.video_stream;
+                                encoder.send_frame(&video_stream, frame)?;
                             }
                         }
 

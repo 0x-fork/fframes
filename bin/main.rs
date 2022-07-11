@@ -113,13 +113,13 @@ fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
 
 fn main() {
     render(
-        video::test_video::TestVideo::make(),
+        video::goose_thoughts::GooseVideo::make(),
         "out.mp4",
         RenderOptions {
             media_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             logger: FFramesLoggerVariant::Compact,
             preferred_codec: "libx264",
-            render_backend: GpuRenderingBackend {},
+            render_backend: CpuRenderingBackend {},
             ..Default::default()
         },
     )

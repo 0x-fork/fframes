@@ -191,8 +191,8 @@ static void add_stream(OutputStream *ost, AVFormatContext *oc,
 
         c->bit_rate = 400000;
         /* Resolution must be a multiple of two. */
-        c->width = 352;
-        c->height = 288;
+        c->width = 1080;
+        c->height = 1920;
         /* timebase: This is the fundamental unit of time (in seconds) in terms
          * of which frame timestamps are represented. For fixed-fps content,
          * timebase should be 1/framerate and timestamp increments should be
