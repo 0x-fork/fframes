@@ -1,5 +1,8 @@
 use crate::{audio_window_functions, fframes_context, frame};
-use std::{convert::TryInto, ops::Index};
+use std::{
+    convert::TryInto,
+    ops::{Index, Range},
+};
 
 #[derive(Debug, Clone)]
 pub struct PreloadedAudioData {
@@ -8,6 +11,14 @@ pub struct PreloadedAudioData {
 }
 
 impl PreloadedAudioData {
+    pub fn duration_in_seconds(&self) -> usize {
+        self.samples.len() / self.sample_rate as usize
+    }
+
+    pub fn get_range(&self, range: std::ops::Range<usize>) -> Option<&[i16]> {
+        self.samples.get(range)
+    }
+
     pub fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> Option<&[i16]> {
         let start_index = frame as usize * self.sample_rate as usize / fps as usize;
 
@@ -22,6 +33,20 @@ pub enum AudioData {
 }
 
 impl AudioData {
+    pub fn duration_in_seconds(&self) -> usize {
+        match self {
+            AudioData::Lazy => 0,
+            AudioData::Preloaded(data) => data.duration_in_seconds(),
+        }
+    }
+
+    pub fn get_range(&self, range: Range<usize>) -> Option<&[i16]> {
+        match self {
+            AudioData::Preloaded(data) => data.get_range(range),
+            AudioData::Lazy => None,
+        }
+    }
+
     pub fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> &[i16] {
         match self {
             AudioData::Preloaded(data) => data.get_frame_data(length, frame, fps).unwrap_or(&[]),
@@ -159,8 +184,6 @@ pub fn get_visualization(
         .iter()
         .map(|x| convert_fft_result_to_magnitude(x) / fft_size as f32)
         .collect::<Vec<f32>>();
-    let test = apply_fft_to_frame(&sample_size, None, audio, frame, ctx.fps as i64);
-    // panic!("what {:?}", res);
 
     res
 }

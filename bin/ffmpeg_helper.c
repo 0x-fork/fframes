@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <libavutil/opt.h>
+#include <libavutil/timestamp.h>
 
 const char *av_error_to_string(int error_code)
 {
@@ -219,7 +220,7 @@ int concat_files(const char *output)
 }
 
 void fill_yuv_image(AVFrame *pict, int frame_index,
-                           int width, int height)
+                    int width, int height)
 {
   int x, y, i;
 
@@ -239,4 +240,13 @@ void fill_yuv_image(AVFrame *pict, int frame_index,
       pict->data[2][y * pict->linesize[2] + x] = 64 + x + i * 5;
     }
   }
+}
+
+void log_packet(AVStream *stream, AVPacket *pkt)
+{
+  printf("pts:%s pts_time:%s dts:%s dts_time:%s duration:%s duration_time:%s stream_index:%d\n",
+         av_ts2str(pkt->pts), av_ts2timestr(pkt->pts, &stream->time_base),
+         av_ts2str(pkt->dts), av_ts2timestr(pkt->dts, &stream->time_base),
+         av_ts2str(pkt->duration), av_ts2timestr(pkt->duration, &stream->time_base),
+         pkt->stream_index);
 }

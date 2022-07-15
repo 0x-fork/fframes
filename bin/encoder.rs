@@ -20,6 +20,7 @@ extern "C" {
     pub fn av_error_to_string(err: i32) -> *mut c_char;
     pub fn fill_yuv_image(frame: *mut AVFrame, frame_index: i32, width: i32, height: i32) -> i32;
     pub fn make_stereo_layout_channel(c: *mut AVCodecContext, codec: *mut AVCodec) -> i32;
+    pub fn log_packet(fmt_ctx: *mut AVStream, packet: *mut AVPacket);
 }
 
 #[derive(Debug, Clone)]
@@ -38,7 +39,7 @@ impl Default for EncoderOptions<'_> {
 #[derive(Clone, Copy)]
 pub enum StreamVariant {
     Video,
-    Audio,
+    Audio(*mut SwrContext),
 }
 
 #[derive(Clone, Copy)]
@@ -49,7 +50,7 @@ pub struct Stream {
 }
 
 impl Stream {
-    unsafe fn free(mut self) {
+    pub unsafe fn free(mut self) {
         avcodec_free_context(&mut self.enc);
     }
 
@@ -145,9 +146,9 @@ impl Stream {
             Err(value) => return value,
         };
 
-        let a = from_raw_parts((*codec).sample_fmts, 4);
         (*c).sample_fmt = AVSampleFormat::AV_SAMPLE_FMT_FLTP;
         (*c).sample_rate = sample_rate;
+        (*c).bit_rate = 320000;
         (*st).time_base = AVRational {
             num: 1,
             den: sample_rate,
@@ -161,11 +162,49 @@ impl Stream {
         ffmpeg_loggable_action!(avcodec_open2(c, codec, opts));
         ffmpeg_loggable_action!(avcodec_parameters_from_context((*st).codecpar, c));
 
+        let swr_ctx = swr_alloc();
+        if swr_ctx.is_null() {
+            return Err(AVError::Internal("Can not allocate swr".to_owned()));
+        }
+
+        Self::set_swr_option(swr_ctx, "in_channel_count", (*c).channels);
+        Self::set_swr_option(swr_ctx, "in_sample_rate", (*c).sample_rate);
+        Self::set_swr_option(swr_ctx, "out_channel_count", (*c).channels);
+        Self::set_swr_option(swr_ctx, "out_sample_rate", (*c).sample_rate);
+
+        Self::set_swr_fmt(swr_ctx, "in_sample_fmt", AVSampleFormat::AV_SAMPLE_FMT_S16P);
+        Self::set_swr_fmt(swr_ctx, "out_sample_fmt", (*c).sample_fmt);
+
+        ffmpeg_action!(
+            swr_init(swr_ctx),
+            AVError::Internal("Can not init swr".to_owned())
+        );
+
         Ok(Stream {
             st,
             enc: c,
-            variant: StreamVariant::Audio,
+            variant: StreamVariant::Audio(swr_ctx),
         })
+    }
+
+    unsafe fn set_swr_option(swr_ctx: *mut SwrContext, name: &str, val: i32) {
+        let name = CString::new(name).unwrap();
+        av_opt_set_int(
+            swr_ctx as *mut std::ffi::c_void,
+            name.as_ptr(),
+            val.into(),
+            0,
+        );
+    }
+
+    unsafe fn set_swr_fmt(swr_ctx: *mut SwrContext, name: &str, val: AVSampleFormat) {
+        let name = CString::new(name).unwrap();
+        av_opt_set_sample_fmt(
+            swr_ctx as *mut std::ffi::c_void,
+            name.as_ptr(),
+            val.into(),
+            0,
+        );
     }
 }
 
@@ -275,20 +314,21 @@ impl Encoder {
     }
 
     pub unsafe fn send_frame(&mut self, stream: &Stream, frame: EncoderFrame) -> AVResult<()> {
-        let video_stream = self.video_stream.st;
         let oc = self.oc;
 
         self.send_customizeable_frame_packet(stream, frame, |packet| {
             av_packet_rescale_ts(packet, (*stream.enc).time_base, (*stream.st).time_base);
 
-            (*packet).stream_index = (*video_stream).index;
+            // log_packet(stream.st, packet);
+
+            (*packet).stream_index = (*stream.st).index;
             av_interleaved_write_frame(oc, packet)
         })
     }
 }
 
 #[derive(Clone, Copy)]
-pub struct EncoderFrame(*mut AVFrame);
+pub struct EncoderFrame(pub(crate) *mut AVFrame);
 
 impl EncoderFrame {
     pub fn make(stream: &Stream) -> Self {
@@ -301,7 +341,7 @@ impl EncoderFrame {
                     (*frame).width = (*stream.enc).width;
                     (*frame).height = (*stream.enc).height;
                 }
-                StreamVariant::Audio => {
+                StreamVariant::Audio(_) => {
                     (*frame).format = (*stream.enc).sample_fmt as i32;
                     (*frame).channel_layout = (*stream.enc).channel_layout;
                     (*frame).sample_rate = (*stream.enc).sample_rate;
@@ -349,20 +389,29 @@ impl EncoderFrame {
             return self.0;
         }
 
-        let new_data = audio_data
+        let mut new_data = audio_data
             .into_iter()
-            .map(|data| *data as f32)
-            .collect::<Vec<f32>>();
+            .map(|data| (*data as f32 / i16::MAX as f32).to_le_bytes())
+            .flatten()
+            .collect::<Vec<u8>>();
 
-        let mut test =
-            std::slice::from_raw_parts(new_data.as_ptr() as *mut u8, new_data.len() * 4).to_vec();
+        // let mut test =
+        //     std::slice::from_raw_parts(new_data.as_ptr() as *mut u8, new_data.len() * 4).to_vec();
 
-        (*self.0).data[0] = test.as_mut_ptr();
+        // let mut test = bytemuck::cast_vec(new_data);
+
+        (*self.0).data[0] = new_data.as_mut_ptr();
 
         self.0
     }
 
-    pub unsafe fn from_rgba_pixmap(&mut self, frame_index: i64, rgb_pixels: &[u8]) -> *mut AVFrame {
+    /// We support only yuv420 format as for now so we can pretty efficiently convert the bitmap buffer.
+    /// yuv420 represented by y per each pixel and uv (cb and cr) per each 2x2 pixel block.
+    pub unsafe fn fill_from_rgba_pixmap(
+        &mut self,
+        frame_index: i64,
+        rgb_pixels: &[u8],
+    ) -> *mut AVFrame {
         let is_writable = av_frame_make_writable(self.0);
         if is_writable < 0 {
             panic!("Can not reuse frame allocations");
@@ -370,20 +419,14 @@ impl EncoderFrame {
 
         let height = (*self.0).height as usize;
         let width = (*self.0).width as usize;
-        let av_frame = self.0;
 
+        let av_frame = self.0;
+        // an important note that linesize here can be different from the width of an image so it is required to fill the buffer correctly.
         let frame_size: usize = height * (*av_frame).linesize[0] as usize + width;
-        
+
         let y_pixels = std::slice::from_raw_parts_mut((*av_frame).data[0], frame_size);
         let cb_pixels = std::slice::from_raw_parts_mut((*av_frame).data[1], frame_size / 4);
         let cr_pixels = std::slice::from_raw_parts_mut((*av_frame).data[2], frame_size / 4);
-
-        let mut y_index = 0;
-        let mut cb_cr_pixel_index = 0;
-
-        // fill_yuv_image(av_frame, frame_index as i32, width, height);
-
-        let mut cb_assign = 0;
 
         for y in 0..height {
             for x in 0..width {
@@ -391,52 +434,19 @@ impl EncoderFrame {
 
                 y_pixels[(y * (*av_frame).linesize[0] as usize + x) as usize] =
                     (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;
+
+                if y % 2 == 0 && x % 2 == 0 {
+                    // the bounds are 1/4 of the image size
+                    let x = x / 2;
+                    let y = y / 2;
+
+                    cb_pixels[(y * (*av_frame).linesize[1] as usize + x) as usize] =
+                        (128 + ((-38 * r - 74 * g + 112 * b) >> 8)) as u8;
+                    cr_pixels[(y * (*av_frame).linesize[2] as usize + x) as usize] =
+                        (128 + ((112 * r - 94 * g - 18 * b) >> 8)) as u8;
+                }
             }
         }
-
-        for y in 0..height / 2 {
-            for x in 0..width / 2 {
-                let (r, g, b) = EncoderFrame::get_rgb(&rgb_pixels, y * width * 2 + x * 2);
-
-                cb_pixels[(y * (*av_frame).linesize[1] as usize + x) as usize] =
-                    (128 + ((-38 * r - 74 * g + 112 * b) >> 8)) as u8;
-                cr_pixels[(y * (*av_frame).linesize[2] as usize + x) as usize] =
-                    (128 + ((112 * r - 94 * g - 18 * b) >> 8)) as u8;
-            }
-        }
-
-        // for y in 0..height {
-        //     if y % 2 == 0 {
-        //         let mut x = 0;
-        //         while x < width {
-        //             let (r, g, b) = Self::get_rgb(rgb_pixels, y_index);
-
-        //             y_pixels[y_index] = (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;
-        //             y_index += 1;
-
-        //             cb_pixels[cb_cr_pixel_index] =
-        //                 (128 + ((-38 * r - 74 * g + 112 * b) >> 8)) as u8;
-        //             cr_pixels[cb_cr_pixel_index] = (128 + ((112 * r - 94 * g - 18 * b) >> 8)) as u8;
-
-        //             cb_cr_pixel_index += 1;
-
-        //             let (r, g, b) = Self::get_rgb(rgb_pixels, y_index);
-        //             y_pixels[y_index] = (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;
-
-        //             y_index += 1;
-
-        //             x += 2;
-        //         }
-        //     } else {
-        //         for _x in 0..width {
-        //             let (r, g, b) = Self::get_rgb(rgb_pixels, y_index);
-
-        //             y_pixels[y_index] = (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;
-        //             y_index += 1;
-        //         }
-        //     }
-        // }
-
         (*av_frame).pts = frame_index;
         av_frame
     }

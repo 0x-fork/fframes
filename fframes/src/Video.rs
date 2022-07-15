@@ -1,6 +1,6 @@
-use std::{array, collections::HashMap, hash::Hash};
-
+use crate::audio_map::AudioMap;
 use crate::{audio_data, fframes_context, frame};
+use std::{array, collections::HashMap, hash::Hash};
 
 pub struct EnvContext {
     pub audio: HashMap<String, audio_data::AudioData>,
@@ -9,27 +9,6 @@ pub enum Duration {
     FromAudio(&'static str),
     Seconds(usize),
     Frames(usize),
-}
-
-pub enum AudioTimestamp {
-    Frame(usize),
-    Second(usize),
-    /// Plays audio till the end of file
-    Eof,
-}
-
-pub struct AudioMap(pub Option<HashMap<&'static str, (AudioTimestamp, AudioTimestamp)>>);
-
-impl AudioMap {
-    pub fn none() -> Self {
-        AudioMap(None)
-    }
-}
-
-impl<const N: usize> From<[(&'static str, (AudioTimestamp, AudioTimestamp)); N]> for AudioMap {
-    fn from(arr: [(&'static str, (AudioTimestamp, AudioTimestamp)); N]) -> Self {
-        AudioMap(Some(array::IntoIter::new(arr).collect()))
-    }
 }
 
 pub trait Video: Sized {

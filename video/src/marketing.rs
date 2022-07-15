@@ -217,7 +217,7 @@ impl Video for MarketingVideo {
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
 
     fn audio(&self) -> AudioMap {
-        use AudioTimestamp::{Eof, Second};
+        use fframes::AudioTimestamp::{Eof, Second};
 
         AudioMap::from([
             ("marketing.mp3", (Second(0), Eof)),
@@ -237,7 +237,7 @@ impl Video for MarketingVideo {
                 audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: audio_data::SampleSize::S16,
                 ctx: &ctx,
-                smooth_level: 6
+                smooth_level: 6,
             },
         );
 

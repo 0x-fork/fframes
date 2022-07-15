@@ -1,9 +1,11 @@
-use ffmpeg_next::sys::*;
+use ffmpeg_next::codec::Audio;
+use ffmpeg_next::{decoder::audio, sys::*};
+use fframes::video::Video;
 use fframes::{AudioMap, FFramesContext};
 use std::ffi::CString;
 
 use crate::{
-    encoder::{Encoder, EncoderFrame, Stream},
+    encoder::{Encoder, EncoderFrame, Stream, StreamVariant},
     ffmpeg_action,
     renderer_error::{AVError, AVResult},
 };
@@ -88,6 +90,7 @@ unsafe fn copy_codec_params(
 pub unsafe fn concat_video_files_with_audio(
     files: &[String],
     output: &str,
+    audio_map: &AudioMap,
     ctx: &FFramesContext,
 ) -> Result<(), AVError> {
     let mut input_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
@@ -108,27 +111,25 @@ pub unsafe fn concat_video_files_with_audio(
     );
 
     let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
-    let codec = (*output_video_stream).codec;
+    let mut codec = (*output_video_stream).codec;
 
-    // let audio_stream = Stream::make_audio(
-    //     44100,
-    //     output_format_ctx,
-    //     "aac",
-    //     (*output_format_ctx).audio_codec_id,
-    // )?;
+    let audio_stream = Stream::make_audio(
+        44100,
+        output_format_ctx,
+        "aac",
+        (*output_format_ctx).audio_codec_id,
+    )?;
 
-    // let mut encoder = Encoder {
-    //     video_stream: Stream {
-    //         st: output_video_stream,
-    //         enc: codec,
-    //         variant: crate::encoder::StreamVariant::Video,
-    //     },
-    //     audio_stream: Some(audio_stream),
-    //     oc: output_format_ctx,
-    //     b_frames_count: 0,
-    // };
-
-    println!("keoifjweiofewj");
+    let mut encoder = Encoder {
+        video_stream: Stream {
+            st: output_video_stream,
+            enc: codec,
+            variant: crate::encoder::StreamVariant::Video,
+        },
+        audio_stream: Some(audio_stream),
+        oc: output_format_ctx,
+        b_frames_count: 0,
+    };
 
     copy_codec_params(
         codec,
@@ -157,11 +158,11 @@ pub unsafe fn concat_video_files_with_audio(
     let mut start_time = 0;
 
     let mut packet = av_packet_alloc();
-    // let mut audio_frame = EncoderFrame::make(
-    //     &encoder
-    //         .audio_stream
-    //         .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
-    // );
+    let mut audio_frame = EncoderFrame::make(
+        &encoder
+            .audio_stream
+            .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
+    );
 
     let mut frame_i = 0;
     for (i, file) in files.into_iter().enumerate() {
@@ -174,7 +175,7 @@ pub unsafe fn concat_video_files_with_audio(
             AVMediaType::AVMEDIA_TYPE_VIDEO,
         )?;
 
-        av_dump_format(input_format_ctx, 0, c_filename.as_ptr(), 0);
+        // av_dump_format(input_format_ctx, 0, c_filename.as_ptr(), 0);
 
         loop {
             let res = av_read_frame(input_format_ctx, packet);
@@ -204,26 +205,6 @@ pub unsafe fn concat_video_files_with_audio(
             last_dts = (*packet).dts;
             last_pts = (*packet).pts;
 
-            // println!("{frame_i} {last_pts}");
-
-            // audio_frame.from_audio_data(
-            //     (*packet).pts,
-            //     ctx.get_audio_data("marketing.mp3")
-            //         .get_frame_data(44100, frame_i as i64, 60),
-            // );
-
-            // encoder.send_customizeable_frame_packet(
-            //     &audio_stream,
-            //     audio_frame,
-            //     |audio_packet| {
-            //         (*audio_packet).pts = frame_i * 44100;
-            //         (*audio_packet).dts = frame_i * 44100;
-            //         (*audio_packet).stream_index = (*audio_stream.st).index;
-
-            //         av_interleaved_write_frame(output_format_ctx, audio_packet)
-            //     },
-            // )?;
-
             av_packet_rescale_ts(
                 packet,
                 (*input_video_stream).time_base,
@@ -234,17 +215,51 @@ pub unsafe fn concat_video_files_with_audio(
             frame_i = frame_i + 1;
         }
 
-        start_time += (*input_format_ctx).duration;
+        start_time += (*input_format_ctx).duration + 1024;
         avformat_close_input(&mut input_format_ctx);
-
-        // frame_i += i;
     }
 
+    let audio_stream_duration = av_rescale_q(
+        audio_map.calc_stream_duration_in_seconds(ctx) as i64,
+        AVRational { num: 1, den: 1 },
+        (*audio_stream.st).time_base,
+    ) as usize;
+
+    let mut count = 0;
+
+    let mut audio_frame_pts = 0usize;
+    let frame_size = (*audio_stream.enc).frame_size as usize;
+
+    while audio_frame_pts <= audio_stream_duration {
+        count += 1;
+        let data = ctx
+            .get_audio_data("thought.mp3")
+            .get_range(audio_frame_pts..audio_frame_pts + frame_size);
+
+        match data {
+            Some(data) => {
+                audio_frame.from_audio_data(audio_frame_pts as i64, data);
+                encoder.send_frame(&audio_stream, audio_frame)?;
+            }
+            None => {
+                println!("No data");
+                break;
+            }
+        }
+
+        audio_frame_pts += frame_size;
+    }
+
+    avcodec_send_frame(codec, std::ptr::null_mut());
+    avcodec_send_frame(audio_stream.enc, std::ptr::null_mut());
+
     av_write_trailer(output_format_ctx);
+
     avcodec_close(codec);
+    avcodec_close(audio_stream.enc);
+    audio_stream.free();
 
     avio_close((*output_format_ctx).pb);
-    // avformat_free_context(output_format_ctx);
 
     Ok(())
 }

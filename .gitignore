@@ -2,7 +2,7 @@ target/
 node_modules/
 bin/out
 .DS_Store
-some-*.mp4
+**/some/*.mp4
 out.mp4
 .bsb.lock
 .merlin

@@ -129,7 +129,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     },
                                     &ctx,
                                 );
-                                
+
                                 logger.log_frame(index, thread_number, &svg);
                                 if svg != last_svg {
                                     let rtree = usvg::Tree::from_str(&svg, usvg_options).unwrap();
@@ -144,7 +144,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     last_svg = svg;
                                 }
 
-                                frame.from_rgba_pixmap(index as i64, pixmap.data());
+                                frame.fill_from_rgba_pixmap(index as i64, pixmap.data());
 
                                 let video_stream = encoder.video_stream;
                                 encoder.send_frame(&video_stream, frame)
@@ -175,7 +175,12 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         .collect::<FFramesResult<Vec<_>>>()?;
 
         unsafe {
-            concatenator::concat_video_files_with_audio(files.as_slice(), output, &ctx)?;
+            concatenator::concat_video_files_with_audio(
+                files.as_slice(),
+                output,
+                &video.audio(),
+                &ctx,
+            )?;
         }
 
         logger.success(output, directory.to_str());
