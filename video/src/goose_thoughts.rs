@@ -26,7 +26,7 @@ impl Video for GooseVideo {
     fn audio(&self) -> AudioMap {
         use AudioTimestamp::{Eof, Second};
 
-        AudioMap::from([("thought.mp3", (Second(0), Second(10)))])
+        AudioMap::from([("thought.mp3", (Second(0), Eof))])
     }
 
     fn make() -> Self {
@@ -60,7 +60,7 @@ impl Video for GooseVideo {
               text-anchor="middle"
               fill="white"
               font-family="JetBrains Mono">
-                    "How much"
+                    "A bug"
                     </text>
 
 
@@ -72,7 +72,7 @@ impl Video for GooseVideo {
               text-anchor="middle"
               fill="white"
               font-family="JetBrains Mono">
-                    "time we have?"
+                    "in a video?"
                     </text>
 
                     <image

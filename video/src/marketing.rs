@@ -219,10 +219,12 @@ impl Video for MarketingVideo {
     fn audio(&self) -> AudioMap {
         use fframes::AudioTimestamp::{Eof, Second};
 
-        AudioMap::from([
-            ("marketing.mp3", (Second(0), Eof)),
-            ("test.mp3", (Second(3), Eof)),
-        ])
+        // AudioMap::from([
+        //     ("marketing.mp3", (Second(0), Eof)),
+        //     ("test.mp3", (Second(3), Eof)),
+        // ])
+
+        AudioMap::none()
     }
 
     fn make() -> Self {
