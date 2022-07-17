@@ -5,7 +5,7 @@ type videoMeta = {
   height: int,
   fps: int,
   durationInFrames: int,
-  audioMap: option<Js.Dict.t<(int, int)>>,
+  audioMap: Js.Nullable.t<Js.Dict.t<(int, int)>>,
 }
 
 @genType.as("WasmController")

@@ -7,6 +7,7 @@ module RadixSlider = {
       ~step: float,
       ~min: float,
       ~max: float,
+      ~disabled: bool=?,
       ~children: React.element,
       ~className: string=?,
     ) => React.element = "Root"
@@ -29,15 +30,16 @@ module RadixSlider = {
 }
 
 @react.component
-let make = (~onValueChange, ~value, ~min, ~max, ~step) => {
+let make = (~onValueChange, ~disabled, ~value, ~min, ~max, ~step) => {
   let handleChange = React.useCallback1(newValue => {
     newValue[0]->onValueChange
   }, [onValueChange])
-  
+
   <RadixSlider.Root
     step
     min
     max
+    disabled
     value=[value]
     onValueChange=handleChange
     className="relative flex items-center select-none w-28 h-4 mx-2">

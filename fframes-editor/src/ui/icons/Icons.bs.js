@@ -9,6 +9,7 @@ import * as CaptionsIcon from "./CaptionsIcon";
 import * as CollapseIcon from "./CollapseIcon";
 import * as PlayBackIcon from "./PlayBackIcon";
 import * as FullScreenIcon from "./FullScreenIcon";
+import * as VolumeMuteIcon from "./VolumeMuteIcon";
 import * as MusicalNoteIcon from "./MusicalNoteIcon";
 import * as PlayForwardIcon from "./PlayForwardIcon";
 
@@ -54,28 +55,34 @@ var VolumeIcon$1 = {
   make: make$6
 };
 
-var make$7 = MagnetIcon.MagnetIcon;
+var make$7 = VolumeMuteIcon.VolumeMuteIcon;
 
-var MagnetIcon$1 = {
+var VolumeMuteIcon$1 = {
   make: make$7
 };
 
-var make$8 = FullScreenIcon.FullScreenIcon;
+var make$8 = MagnetIcon.MagnetIcon;
 
-var FullScreenIcon$1 = {
+var MagnetIcon$1 = {
   make: make$8
 };
 
-var make$9 = CollapseIcon.CollapseIcon;
+var make$9 = FullScreenIcon.FullScreenIcon;
 
-var CollapseIcon$1 = {
+var FullScreenIcon$1 = {
   make: make$9
 };
 
-var make$10 = PauseIcon.PauseIcon;
+var make$10 = CollapseIcon.CollapseIcon;
+
+var CollapseIcon$1 = {
+  make: make$10
+};
+
+var make$11 = PauseIcon.PauseIcon;
 
 var PauseIcon$1 = {
-  make: make$10
+  make: make$11
 };
 
 export {
@@ -86,6 +93,7 @@ export {
   PlayBackIcon$1 as PlayBackIcon,
   PlayForwardIcon$1 as PlayForwardIcon,
   VolumeIcon$1 as VolumeIcon,
+  VolumeMuteIcon$1 as VolumeMuteIcon,
   MagnetIcon$1 as MagnetIcon,
   FullScreenIcon$1 as FullScreenIcon,
   CollapseIcon$1 as CollapseIcon,

@@ -10,6 +10,7 @@ import * as React from "react";
 import * as Player from "../Player.bs.js";
 import * as Slider from "./components/Slider.bs.js";
 import * as Spinner from "./components/Spinner.bs.js";
+import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as UseDebounce from "../bindings/UseDebounce.bs.js";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as AnimationRuntime from "../services/AnimationRuntime.bs.js";
@@ -104,16 +105,20 @@ function Dock(Props) {
                   });
       });
   var increaseVolume = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* SetVolume */2,
-                    _0: player.volume + 0.2
-                  });
+        return Belt_Option.forEach(player.volume, (function (volume) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetVolume */2,
+                                  _0: volume + 0.2
+                                });
+                    }));
       });
   var decreaseVolume = Hooks.useEvent(function (param) {
-        return Curry._1(dispatch, {
-                    TAG: /* SetVolume */2,
-                    _0: player.volume - 0.2
-                  });
+        return Belt_Option.forEach(player.volume, (function (volume) {
+                      return Curry._1(dispatch, {
+                                  TAG: /* SetVolume */2,
+                                  _0: volume - 0.2
+                                });
+                    }));
       });
   var handleSeekLeft = Hooks.useEvent(function (param) {
         return Curry._1(dispatch, {
@@ -172,6 +177,7 @@ function Dock(Props) {
     
   }
   var match$3 = player.playState;
+  var volume = player.volume;
   return React.createElement("div", {
               className: "absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-slate-50/5 shadow-xl rounded-t-lg backdrop-blur-xl flex transform -translate-x-1/2"
             }, React.createElement(make$1, {
@@ -215,11 +221,18 @@ function Dock(Props) {
                   onClick: handleSeekRight
                 }), React.createElement(make$1, {
                   children: null
-                }, React.createElement(Icons.VolumeIcon.make, {
-                      className: "h-6 w-6"
-                    }), React.createElement(Slider.make, {
+                }, volume !== undefined ? (
+                    volume > 0 ? React.createElement(Icons.VolumeIcon.make, {
+                            className: "h-6 w-6"
+                          }) : React.createElement(Icons.VolumeMuteIcon.make, {
+                            className: "h-6 w-6"
+                          })
+                  ) : React.createElement(Icons.VolumeMuteIcon.make, {
+                        className: "h-6 w-6 text-gray-500"
+                      }), React.createElement(Slider.make, {
                       onValueChange: handleSetVolume,
-                      value: player.volume,
+                      disabled: Belt_Option.isNone(player.volume),
+                      value: Utils.$$Option.unwrapOr(player.volume, 0.0),
                       min: Player.min_volume,
                       max: Player.max_volume,
                       step: 0.1

@@ -8,6 +8,8 @@ import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
 
 import type {Js_Float32Array_t as ReScriptJs_Js_Float32Array_t} from './shims/Js.shim';
 
+import type {Js_Nullable_t as ReScriptJs_Js_Nullable_t} from './shims/Js.shim';
+
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 
 // tslint:disable-next-line:interface-over-type-literal
@@ -17,7 +19,7 @@ export type videoMeta = {
   readonly height: number; 
   readonly fps: number; 
   readonly durationInFrames: number; 
-  readonly audioMap?: ReScriptJs_Js_Dict_t<[number, number]>
+  readonly audioMap: ReScriptJs_Js_Nullable_t<ReScriptJs_Js_Dict_t<[number, number]>>
 };
 export type VideoMeta = videoMeta;
 

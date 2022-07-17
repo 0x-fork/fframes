@@ -50,32 +50,38 @@ module AudioRuntime = {
 
   let connectAudioFiles = (ctx, videoMeta: WasmController.videoMeta) => {
     let {mediaList} = MediaLoader.MediaLoaderObserver.get()
-    Js.Console.log(videoMeta.audioMap);
+    Js.Console.log(videoMeta.audioMap)
     videoMeta.audioMap
-    ->Utils.Option.unwrap
-    ->Js.Dict.keysToArray
-    ->Array.keepMap(audioName => {
-      mediaList
-      ->Map.String.getExn(audioName)
-      ->(
-        (media: MediaLoader.loadableMedia) =>
-          switch media {
-          | Media(media) =>
-            switch media {
-            | Audio(info) => Some((audioName, info))
-            | _ => None
-            }
-          | _ => None
-          }
-      )
-    })
-    ->Array.map(res => {
-      let (name, info) = res
-      let source = ctx->AudioContext.createBufferSource
-      source->AudioNode.setBuffer(info.audioData)
+    ->Js.Nullable.toOption
+    ->(
+      map =>
+        switch map {
+        | Some(audioMap) => Js.Dict.keysToArray(audioMap)
+        | None => []
+        }
+        ->Array.keepMap(audioName => {
+          mediaList
+          ->Map.String.getExn(audioName)
+          ->(
+            (media: MediaLoader.loadableMedia) =>
+              switch media {
+              | Media(media) =>
+                switch media {
+                | Audio(info) => Some((audioName, info))
+                | _ => None
+                }
+              | _ => None
+              }
+          )
+        })
+        ->Array.map(res => {
+          let (name, info) = res
+          let source = ctx->AudioContext.createBufferSource
+          source->AudioNode.setBuffer(info.audioData)
 
-      (name, source)
-    })
+          (name, source)
+        })
+    )
   }
 
   let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
@@ -86,7 +92,9 @@ module AudioRuntime = {
     gain->AudioNode.connect(ctx.destination)->ignore
     startTime := ctx.currentTime
 
-    videoMeta.audioMap->Belt.Option.forEach(audioMap => {
+    videoMeta.audioMap
+    ->Js.Nullable.toOption
+    ->Belt.Option.forEach(audioMap => {
       playingSources.contents->Array.forEach(nameAndSource => {
         let (name, source) = nameAndSource
         let (startFrame, endFrame) = audioMap->Js.Dict.get(name)->Utils.Option.unwrap

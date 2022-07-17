@@ -15,11 +15,14 @@ var currentFps = {
 };
 
 function MakePlayer(Wasm) {
-  var previousSavedVolume = Utils.$$Option.unwrapOr(Belt_Option.map(Dom_storage.getItem("ffvolume", localStorage), (function (prim) {
-              return Number(prim);
-            })), 0.6);
   var previousSavedFrame = Utils.$$Option.unwrapOr(Utils.$$Option.flatten(Belt_Option.map(Dom_storage.getItem("fframe", localStorage), Js__Int.fromString)), 0);
-  console.log(Dom_storage.getItem("ffvolume", localStorage));
+  var match = Wasm.videoMeta.audioMap;
+  var match$1 = Belt_Option.map(Dom_storage.getItem("ffvolume", localStorage), (function (prim) {
+          return Number(prim);
+        }));
+  var volume = !(match == null) ? (
+      match$1 !== undefined ? match$1 : 0.6
+    ) : undefined;
   var state = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var initial = state.allMediaLoaded ? ({
         frame: previousSavedFrame,
@@ -27,18 +30,18 @@ function MakePlayer(Wasm) {
         playState: /* WaitingForAction */2,
         fpsLimit: Wasm.videoMeta.fps,
         svg: Utils.$$Option.some(Curry._1(Wasm.controller.render_frame, BigInt(0))),
-        volume: previousSavedVolume
+        volume: volume
       }) : ({
         frame: previousSavedFrame,
         startPlayingFrame: previousSavedFrame,
         playState: /* CantPlay */3,
         fpsLimit: Wasm.videoMeta.fps,
         svg: undefined,
-        volume: previousSavedVolume
+        volume: volume
       });
   var PlayerState = {
-    previousSavedVolume: previousSavedVolume,
     previousSavedFrame: previousSavedFrame,
+    volume: volume,
     initial: initial
   };
   var include = UseObservable.Pubsub({
@@ -147,7 +150,7 @@ function MakePlayer(Wasm) {
         }
         return Curry._1(get, undefined).playState === /* Playing */0;
       };
-      AnimationRuntime.AudioRuntime.setVolume(Curry._1(get, undefined).volume);
+      Belt_Option.map(Curry._1(get, undefined).volume, AnimationRuntime.AudioRuntime.setVolume);
       AnimationRuntime.AudioRuntime.startAnimation(onFrame, currentFrame, Wasm.videoMeta);
       
     };

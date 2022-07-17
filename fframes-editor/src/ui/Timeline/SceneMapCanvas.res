@@ -126,7 +126,9 @@ let renderAudioWaveForm = (
 }
 
 let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => {
-  editorContext.videoMeta.audioMap->Option.forEach(audioMap =>
+  editorContext.videoMeta.audioMap
+  ->Js.Nullable.toOption
+  ->Option.forEach(audioMap =>
     audioMap->Js.Dict.keysToArray->Js.Array.reduce((startY, audioName) => {
       let (startFrame, endFrame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
 

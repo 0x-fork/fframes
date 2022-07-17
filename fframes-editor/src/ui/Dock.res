@@ -1,6 +1,7 @@
 open Icons
 open Cx
 open Webapi
+open Belt
 
 module DocumentEvent = Dom.EventTarget.Impl(Dom.Window)
 
@@ -74,11 +75,11 @@ let make = () => {
   })
 
   let increaseVolume = Hooks.useEvent(() => {
-    dispatch(SetVolume(player.volume +. 0.2))
+    player.volume->Option.forEach(volume => dispatch(SetVolume(volume +. 0.2)))
   })
 
   let decreaseVolume = Hooks.useEvent(() => {
-    dispatch(SetVolume(player.volume -. 0.2))
+    player.volume->Option.forEach(volume => dispatch(SetVolume(volume -. 0.2)))
   })
 
   let handleSeekLeft = Hooks.useEvent(() => {
@@ -172,12 +173,17 @@ let make = () => {
       <PlayForwardIcon className="h-6 w-6" />
     </DockButton>
     <DockSpace>
-      <VolumeIcon className="h-6 w-6" />
+      {switch player.volume {
+      | Some(volume) if volume > 0. => <VolumeIcon className="h-6 w-6" />
+      | Some(_) => <VolumeMuteIcon className="h-6 w-6" />
+      | _ => <VolumeMuteIcon className="h-6 w-6 text-gray-500" />
+      }}
       <Slider
+        disabled={player.volume->Option.isNone}
         min=Player.min_volume
         max=Player.max_volume
         step=0.1
-        value={player.volume}
+        value={player.volume->Utils.Option.unwrapOr(0.0)}
         onValueChange={handleSetVolume}
       />
     </DockSpace>

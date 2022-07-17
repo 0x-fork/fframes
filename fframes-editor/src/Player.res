@@ -10,7 +10,7 @@ type state = {
   playState: playState,
   fpsLimit: option<int>,
   svg: option<string>,
-  volume: float,
+  volume: option<float>,
 }
 
 @genType
@@ -36,18 +36,20 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
   module PlayerState = {
     type t = state
 
-    let previousSavedVolume =
-      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage)
-      ->Option.map(Js.Float.fromString)
-      ->Utils.Option.unwrapOr(0.6)
-
     let previousSavedFrame =
       Dom.Storage.getItem(frame_key, Dom.Storage.localStorage)
       ->Option.map(Js.Int.fromString)
       ->Utils.Option.flatten
       ->Utils.Option.unwrapOr(0)
 
-      Js.Console.log(  Dom.Storage.getItem(volume_key, Dom.Storage.localStorage))
+    let volume = switch (
+      Wasm.videoMeta.audioMap->Js.Nullable.toOption,
+      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage)->Option.map(Js.Float.fromString),
+    ) {
+    | (Some(_), Some(savedValue)) => Some(savedValue)
+    | (Some(_), None) => Some(0.6)
+    | _ => None
+    }
 
     let initial = switch MediaLoader.MediaLoaderObserver.get() {
     | state if state.allMediaLoaded => {
@@ -55,7 +57,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         startPlayingFrame: previousSavedFrame,
         playState: WaitingForAction,
         fpsLimit: Some(Wasm.videoMeta.fps),
-        volume: previousSavedVolume,
+        volume: volume,
         svg: Wasm.controller.render_frame(0->Js.BigInt.fromInt)->Utils.Option.some,
       }
     | _ => {
@@ -63,7 +65,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         startPlayingFrame: previousSavedFrame,
         playState: CantPlay,
         svg: None,
-        volume: previousSavedVolume,
+        volume: volume,
         fpsLimit: Some(Wasm.videoMeta.fps),
       }
     }
@@ -104,9 +106,9 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
     | SetVolume(volume) => {
         ...state,
         volume: switch volume {
-        | volume if volume > max_volume => max_volume
-        | volume if volume < min_volume => min_volume
-        | _ => volume
+        | volume if volume > max_volume => Some(max_volume)
+        | volume if volume < min_volume => Some(min_volume)
+        | _ => Some(volume)
         },
       }
     }
@@ -126,7 +128,7 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
         get().playState === Playing
       }
 
-      AnimationRuntime.AudioRuntime.setVolume(get().volume)
+      get().volume->Option.map(AnimationRuntime.AudioRuntime.setVolume)->ignore
       AnimationRuntime.AudioRuntime.startAnimation(
         ~onFrame,
         ~currentFrame,

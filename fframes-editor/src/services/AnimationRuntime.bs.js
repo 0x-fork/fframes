@@ -89,7 +89,8 @@ function connectAudioFiles(ctx, videoMeta) {
   var match = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var mediaList = match.mediaList;
   console.log(videoMeta.audioMap);
-  return Belt_Array.map(Belt_Array.keepMap(Object.keys(Utils.$$Option.unwrap(videoMeta.audioMap)), (function (audioName) {
+  var map = videoMeta.audioMap;
+  return Belt_Array.map(Belt_Array.keepMap((map == null) ? [] : Object.keys(map), (function (audioName) {
                     var media = Belt_MapString.getExn(mediaList, audioName);
                     switch (media.TAG | 0) {
                       case /* Media */1 :
@@ -122,7 +123,7 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
   playingSources.contents = connectAudioFiles(ctx, videoMeta);
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
-  Belt_Option.forEach(videoMeta.audioMap, (function (audioMap) {
+  Belt_Option.forEach(Caml_option.nullable_to_opt(videoMeta.audioMap), (function (audioMap) {
           return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
                         var source = nameAndSource[1];
                         var match = Utils.$$Option.unwrap(audioMap[nameAndSource[0]]);

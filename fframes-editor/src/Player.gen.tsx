@@ -16,7 +16,7 @@ export type state = {
   readonly playState: playState; 
   readonly fpsLimit?: number; 
   readonly svg?: string; 
-  readonly volume: number
+  readonly volume?: number
 };
 
 // tslint:disable-next-line:interface-over-type-literal

@@ -22,6 +22,7 @@ var RadixSlider = {
 
 function Slider(Props) {
   var onValueChange = Props.onValueChange;
+  var disabled = Props.disabled;
   var value = Props.value;
   var min = Props.min;
   var max = Props.max;
@@ -35,6 +36,7 @@ function Slider(Props) {
               step: step,
               min: min,
               max: max,
+              disabled: disabled,
               children: null,
               className: "relative flex items-center select-none w-28 h-4 mx-2"
             }, React.createElement(ReactSlider.Track, {

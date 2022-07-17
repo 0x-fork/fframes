@@ -97,7 +97,7 @@ function renderAudioWaveForm(ctx, endFrame, startFrame, x0, y0, audioSpaceWidth,
 }
 
 function renderAudioMap(ctx, size, editorContext) {
-  return Belt_Option.forEach(editorContext.videoMeta.audioMap, (function (audioMap) {
+  return Belt_Option.forEach(Caml_option.nullable_to_opt(editorContext.videoMeta.audioMap), (function (audioMap) {
                 Object.keys(audioMap).reduce((function (startY, audioName) {
                         var match = Utils.$$Option.unwrap(audioMap[audioName]);
                         var endFrame = match[1];
