@@ -41,7 +41,7 @@ function Editor(Props) {
                     }, React.createElement("h1", {
                           className: "text-2xl mb-6 font-medium text-white px-6"
                         }, videoTitle), React.createElement($$MediaList.make, {})), React.createElement("div", {
-                      className: " bg-black",
+                      className: "bg-black",
                       id: "editor-preview",
                       style: UseEditorLayout.sizeToStyle(layout.preview),
                       dangerouslySetInnerHTML: {

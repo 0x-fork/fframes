@@ -1,4 +1,6 @@
-use crate::{audio_data, media_provider, subtitles};
+use std::collections::hash_map;
+
+use crate::{audio_data, audio_map, media_provider, subtitles, AudioMap, ResolvedAudioMap};
 
 #[derive(Clone, Copy)]
 pub enum FFramesMode {
@@ -10,6 +12,7 @@ pub enum FFramesMode {
 #[derive(Clone)]
 pub struct FFramesContext {
     pub fps: usize,
+    pub sample_rate: usize,
     pub mode: FFramesMode,
     pub media_provider: media_provider::MediaProvider,
     // pub resolve_lazy_audio_during_render: Option<Arc<dyn Fn(usize) -> Vec<f32>>>,
@@ -41,6 +44,44 @@ impl FFramesContext {
                 file = filename
             ),
         }
+    }
+
+    /// This method takes all the information we
+    pub fn get_mixed_audio_data_in_fltp(
+        &self,
+        audio_map: &ResolvedAudioMap,
+        start_sample: usize,
+        frame_size: usize,
+    ) -> Vec<f32> {
+        let mut audio_data = vec![0.0; frame_size];
+
+        audio_map.0.iter().for_each(|(f, sample_range)| {
+            if sample_range.contains(&start_sample) {
+                let start_of_this_frame_in_file = start_sample - sample_range.start;
+
+                self.get_audio_data(f)
+                    .get_range(
+                        start_of_this_frame_in_file..start_of_this_frame_in_file + frame_size,
+                    )
+                    .map(|data| {
+                        data.into_iter().enumerate().for_each(|(i, sample)| {
+                            let fltp_sample = *sample as f32 / i16::MAX as f32;
+                            let filled_sample = audio_data[i];
+
+                            if filled_sample == 0. {
+                                audio_data[i] = fltp_sample
+                            } else {
+                                // do not overflow
+                                // audio_data[i] = filled_sample / 2 + sample / 2;
+                                audio_data[i] =
+                                    filled_sample + fltp_sample - (filled_sample * fltp_sample)
+                            }
+                        });
+                    });
+            }
+        });
+
+        audio_data
     }
 
     // pub fn get_image_data(&self, filename: &str) -> Vec<u8> {

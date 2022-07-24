@@ -103,7 +103,7 @@ function renderAudioMap(ctx, size, editorContext) {
                         var endFrame = match[1];
                         var startFrame = match[0];
                         var y = 184 + startY | 0;
-                        var x = (32 + startFrame | 0) * size.frameToPxRatio;
+                        var x = startFrame * size.frameToPxRatio + 32;
                         var width = (endFrame - startFrame | 0) * size.frameToPxRatio;
                         ctx.save();
                         ctx.beginPath();

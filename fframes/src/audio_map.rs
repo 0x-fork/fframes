@@ -1,4 +1,4 @@
-use std::{array, collections::HashMap};
+use std::{array, collections::HashMap, ops::Range};
 
 use crate::FFramesContext;
 
@@ -22,14 +22,37 @@ impl AudioTimestamp {
 type AudioDuration = (AudioTimestamp, AudioTimestamp);
 
 pub struct AudioMap(pub Option<HashMap<&'static str, AudioDuration>>);
+/// The resolved audio_map contain each audio file position and duration in {1/{ctx.sample_rate}} units
+pub struct ResolvedAudioMap(pub HashMap<&'static str, Range<usize>>);
 
-fn get_audio_duration((file, duration): (&&str, &AudioDuration), ctx: &FFramesContext) -> usize {
-    let (start, end) = duration;
-
-    start.to_seconds(file, ctx) + end.to_seconds(file, ctx)
+impl ResolvedAudioMap {
+    pub fn calc_stream_duration_in_seconds(&self, ctx: &FFramesContext) -> usize {
+        self.0
+            .iter()
+            .map(|(_, range)| (range.start + range.end) / ctx.sample_rate)
+            .max()
+            .unwrap_or(0)
+    }
 }
 
 impl AudioMap {
+    pub fn resolve(&self, ctx: &FFramesContext) -> Option<ResolvedAudioMap> {
+        self.0
+            .as_ref()
+            .map(|hash_map| {
+                hash_map
+                    .into_iter()
+                    .map(|(f, (start_ts, end_ts))| {
+                        let start_sample = start_ts.to_seconds(f, ctx) * ctx.sample_rate;
+                        let end_sample = end_ts.to_seconds(f, ctx) * ctx.sample_rate;
+
+                        (*f, start_sample..end_sample)
+                    })
+                    .collect::<HashMap<_, _>>()
+            })
+            .map(ResolvedAudioMap)
+    }
+
     pub fn none() -> Self {
         AudioMap(None)
     }
@@ -47,8 +70,14 @@ impl AudioMap {
     }
 }
 
+fn get_audio_duration((file, duration): (&&str, &AudioDuration), ctx: &FFramesContext) -> usize {
+    let (start, end) = duration;
+
+    start.to_seconds(file, ctx) + end.to_seconds(file, ctx)
+}
+
 impl<const N: usize> From<[(&'static str, AudioDuration); N]> for AudioMap {
     fn from(arr: [(&'static str, AudioDuration); N]) -> Self {
-        AudioMap(Some(array::IntoIter::new(arr).collect()))
+        AudioMap(Some(IntoIterator::into_iter(arr).collect()))
     }
 }

@@ -42,7 +42,7 @@ let make = () => {
       <div
         id="editor-preview"
         style={layout.preview->UseEditorLayout.sizeToStyle}
-        className=" bg-black"
+        className="bg-black"
         dangerouslySetInnerHTML={{
           "__html": player.svg->Utils.Option.unwrapOr(""),
         }}

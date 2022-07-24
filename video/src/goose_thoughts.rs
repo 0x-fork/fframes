@@ -34,7 +34,6 @@ impl Video for GooseVideo {
     }
 
     fn render_frame(&self, frame: &Frame, ctx: &fframes_context::FFramesContext) -> String {
-        let subtitles = ctx.get_subtitles("subtitles.vtt");
         let audio_visualization = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
@@ -60,19 +59,19 @@ impl Video for GooseVideo {
               text-anchor="middle"
               fill="white"
               font-family="JetBrains Mono">
-                    "A bug"
+                    ".mp3 and .mp4"
                     </text>
 
 
 
                     <text
-                        font-size="100"
+                        font-size="90"
               y="25%"
               x="50%"
               text-anchor="middle"
               fill="white"
               font-family="JetBrains Mono">
-                    "in a video?"
+                    "are not the codecs"
                     </text>
 
                     <image

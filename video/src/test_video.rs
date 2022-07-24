@@ -11,6 +11,7 @@ impl Video for TestVideo {
     const DURATION: fframes::Duration = fframes::Duration::Seconds(100);
 
     fn audio(&self) -> AudioMap {
+        use fframes::AudioTimestamp::{Eof, Second};
         AudioMap::none()
     }
 

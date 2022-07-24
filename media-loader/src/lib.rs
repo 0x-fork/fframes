@@ -1,5 +1,5 @@
 use minimp3::{Decoder as Mp3Decoder, Error as Mp3Error, Frame as Mp3Frame};
-use std::{f32::consts::E, fs::File, path::Path};
+use std::{fs::File, path::Path};
 
 pub fn decode_mp3<P: AsRef<Path>>(audio_path: P) -> (i32, Vec<i16>) {
     let mut decoder = Mp3Decoder::new(File::open(audio_path).unwrap());

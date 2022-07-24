@@ -44,9 +44,9 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
 
     let volume = switch (
       Wasm.videoMeta.audioMap->Js.Nullable.toOption,
-      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage)->Option.map(Js.Float.fromString),
+      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage),
     ) {
-    | (Some(_), Some(savedValue)) => Some(savedValue)
+    | (Some(_), Some(savedValue)) => Some(savedValue->Js.Float.fromString)
     | (Some(_), None) => Some(0.6)
     | _ => None
     }

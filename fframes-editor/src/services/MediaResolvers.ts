@@ -29,7 +29,9 @@ export const resolveAudio: MediaResolver = async (
     monoPcm[i] = data.pcm[j]; // or maybe we should do (data.pcm[j + 1]) / 2?
   }
 
+  console.log("Add", name);
   wasmController.add_audio_source(name, monoPcm);
+  console.log("Added", name);
   const audioData = await audioContext.decodeAudioData(arrayBuffer);
 
   return resolveMedia(name, {

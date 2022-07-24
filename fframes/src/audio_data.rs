@@ -182,7 +182,7 @@ pub fn get_visualization(
 
     let res = apply_fft_to_frame(&sample_size, None, audio, frame, ctx.fps as i64)
         .iter()
-        .map(|x| convert_fft_result_to_magnitude(x) / fft_size as f32)
+        .map(|x| x.norm() / fft_size as f32)
         .collect::<Vec<f32>>();
 
     res

@@ -644,6 +644,7 @@ dependencies = [
  "microfft",
  "num",
  "svgr-macro",
+ "wasm-bindgen",
  "webvtt-parser",
 ]
 

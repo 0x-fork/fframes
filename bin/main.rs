@@ -93,6 +93,7 @@ fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     logger.init_frames_rendering(duration_in_frames);
 
     let ctx = fframes_context::FFramesContext {
+        sample_rate: 44100,
         mode: fframes::FFramesMode::Renderer,
         fps,
         media_provider,
@@ -119,7 +120,7 @@ fn main() {
             media_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",
             logger: FFramesLoggerVariant::Compact,
             preferred_codec: "libx264",
-            render_backend: GpuRenderingBackend {},
+            render_backend: CpuRenderingBackend {},
             ..Default::default()
         },
     )

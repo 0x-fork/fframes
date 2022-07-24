@@ -378,7 +378,11 @@ impl EncoderFrame {
         (r, g, b)
     }
 
-    pub unsafe fn from_audio_data(&mut self, frame_index: i64, audio_data: &[i16]) -> *mut AVFrame {
+    pub unsafe fn fill_from_audio_data(
+        &mut self,
+        frame_index: i64,
+        audio_data: Vec<f32>,
+    ) -> *mut AVFrame {
         let is_writable = av_frame_make_writable(self.0);
         if is_writable < 0 {
             panic!("Can not reuse frame allocations");
@@ -389,18 +393,13 @@ impl EncoderFrame {
             return self.0;
         }
 
-        let mut new_data = audio_data
+        let mut fltp_audio_data = audio_data
             .into_iter()
-            .map(|data| (*data as f32 / i16::MAX as f32).to_le_bytes())
+            .map(|data| data.to_le_bytes())
             .flatten()
             .collect::<Vec<u8>>();
 
-        // let mut test =
-        //     std::slice::from_raw_parts(new_data.as_ptr() as *mut u8, new_data.len() * 4).to_vec();
-
-        // let mut test = bytemuck::cast_vec(new_data);
-
-        (*self.0).data[0] = new_data.as_mut_ptr();
+        (*self.0).data[0] = fltp_audio_data.as_mut_ptr();
 
         self.0
     }

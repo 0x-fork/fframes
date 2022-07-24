@@ -133,7 +133,7 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
       let (startFrame, endFrame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
 
       let y = Float.fromInt(timeline_margin_y + scene_height_size + startY)
-      let x = Float.fromInt(timeline_margin_x / 2 + startFrame) *. size.frameToPxRatio
+      let x = Float.fromInt(startFrame) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Float.fromInt
       let width = Float.fromInt(endFrame - startFrame) *. size.frameToPxRatio
 
       ctx->Canvas2d.save

@@ -32,8 +32,8 @@ macro_rules! setup_wasm_editor {
                     .lock()
                     .unwrap()
                     .get(&name.to_owned())
-                    .unwrap()
-                    .to_owned() as usize,
+                    .map(ToOwned::to_owned)
+                    .unwrap_or_default() as usize,
                 AudioTimestamp::Second(second) => second * $x::FPS,
             }
         }
@@ -77,7 +77,7 @@ macro_rules! setup_wasm_editor {
                         .collect::<HashMap<_, _>>()
                 });
 
-                JsValue::from_serde(&audio_map_frames_hash).unwrap()
+                JsValue::from_serde(&audio_map_frames_hash).expect("what?")
             }
 
             #[wasm_bindgen(getter)]
@@ -93,9 +93,9 @@ macro_rules! setup_wasm_editor {
                 fframes::Duration::FromAudio(audio) => unsafe {
                     let duration_in_frames = (load_audio_wasm_callback(audio)
                         .await
-                        .unwrap()
+                        .expect("Can not get the duration of audio")
                         .as_f64()
-                        .unwrap()
+                        .expect("Can not convert the duration of audio to f64")
                         * $x::FPS as f64) as i32;
 
                     let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
@@ -163,6 +163,7 @@ macro_rules! setup_wasm_editor {
                 &fframes_context::FFramesContext {
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
+                    sample_rate: 44100,
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
             )

@@ -95,6 +95,7 @@ let processImports = (~imports: Js.Dict.t<mediaImport>, ~wasmController: WasmCon
   ->Js.Dict.toArray
   ->Array.keepMap(((moduleRelativePath, moduleVal)) => {
     let name = moduleRelativePath->Utils.Path.getFilename
+    Js.Console.log(name);
 
     switch name {
     | name if name->Js.String.endsWith(".mp3") => Some(resolveAudio)

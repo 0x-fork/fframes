@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use std::{ops::Range, path::PathBuf, sync::Arc};
 
-use fframes::{fframes_context, frame, video::Video};
+use fframes::{fframes_context, frame, video::Video, ResolvedAudioMap};
 use uuid::Uuid;
 
 use crate::{
@@ -174,11 +174,13 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         })
         .collect::<FFramesResult<Vec<_>>>()?;
 
+        let resolved_audio_map: Option<ResolvedAudioMap> = video.audio().resolve(&ctx);
+
         unsafe {
             concatenator::concat_video_files_with_audio(
                 files.as_slice(),
                 output,
-                &video.audio(),
+                resolved_audio_map.as_ref(),
                 &ctx,
             )?;
         }

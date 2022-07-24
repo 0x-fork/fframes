@@ -1,8 +1,9 @@
 use ffmpeg_next::codec::Audio;
 use ffmpeg_next::{decoder::audio, sys::*};
 use fframes::video::Video;
-use fframes::{AudioMap, FFramesContext};
+use fframes::{AudioMap, FFramesContext, ResolvedAudioMap};
 use std::ffi::CString;
+use std::time::{Duration, Instant};
 
 use crate::{
     encoder::{Encoder, EncoderFrame, Stream, StreamVariant},
@@ -90,7 +91,7 @@ unsafe fn copy_codec_params(
 pub unsafe fn concat_video_files_with_audio(
     files: &[String],
     output: &str,
-    audio_map: &AudioMap,
+    audio_map: Option<&ResolvedAudioMap>,
     ctx: &FFramesContext,
 ) -> Result<(), AVError> {
     let mut input_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
@@ -166,7 +167,6 @@ pub unsafe fn concat_video_files_with_audio(
 
     let mut frame_i = 0;
     for (i, file) in files.into_iter().enumerate() {
-        let c_filename = CString::new(file.as_str()).unwrap();
         let mut input_format_ctx = std::ptr::null_mut();
 
         let input_video_stream = open_file_stream(
@@ -174,8 +174,6 @@ pub unsafe fn concat_video_files_with_audio(
             &mut input_format_ctx,
             AVMediaType::AVMEDIA_TYPE_VIDEO,
         )?;
-
-        // av_dump_format(input_format_ctx, 0, c_filename.as_ptr(), 0);
 
         loop {
             let res = av_read_frame(input_format_ctx, packet);
@@ -219,36 +217,33 @@ pub unsafe fn concat_video_files_with_audio(
         avformat_close_input(&mut input_format_ctx);
     }
 
-    let audio_stream_duration = av_rescale_q(
-        audio_map.calc_stream_duration_in_seconds(ctx) as i64,
-        AVRational { num: 1, den: 1 },
-        (*audio_stream.st).time_base,
-    ) as usize;
+    
+    if let Some(audio_map) = audio_map {
+        let audio_stream_duration = av_rescale_q(
+            audio_map.calc_stream_duration_in_seconds(ctx) as i64,
+            AVRational { num: 1, den: 1 },
+            (*audio_stream.st).time_base,
+        ) as usize;
 
-    let mut count = 0;
+        println!("audio_stream_duration: {}", audio_stream_duration);
+        
+        let mut audio_frame_pts = 0usize;
+        let frame_size = (*audio_stream.enc).frame_size as usize;
+        
+        while audio_frame_pts <= audio_stream_duration {
+            let start = Instant::now();
+            let audio_data = ctx.get_mixed_audio_data_in_fltp(audio_map, audio_frame_pts, frame_size);
+            let duration = start.elapsed();
+        
+            // println!("Time elapsed in expensive_function() is: {:?}", duration);
 
-    let mut audio_frame_pts = 0usize;
-    let frame_size = (*audio_stream.enc).frame_size as usize;
+            audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
+            encoder.send_frame(&audio_stream, audio_frame)?;
 
-    while audio_frame_pts <= audio_stream_duration {
-        count += 1;
-        let data = ctx
-            .get_audio_data("thought.mp3")
-            .get_range(audio_frame_pts..audio_frame_pts + frame_size);
-
-        match data {
-            Some(data) => {
-                audio_frame.from_audio_data(audio_frame_pts as i64, data);
-                encoder.send_frame(&audio_stream, audio_frame)?;
-            }
-            None => {
-                println!("No data");
-                break;
-            }
+            audio_frame_pts += frame_size;
         }
-
-        audio_frame_pts += frame_size;
     }
+
 
     avcodec_send_frame(codec, std::ptr::null_mut());
     avcodec_send_frame(audio_stream.enc, std::ptr::null_mut());
