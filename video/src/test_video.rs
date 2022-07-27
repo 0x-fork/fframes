@@ -8,7 +8,7 @@ impl Video for TestVideo {
     const FPS: usize = 30;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
-    const DURATION: fframes::Duration = fframes::Duration::Seconds(100);
+    const DURATION: fframes::Duration = fframes::Duration::Seconds(60);
 
     fn audio(&self) -> AudioMap {
         use fframes::AudioTimestamp::{Eof, Second};

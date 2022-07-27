@@ -1,6 +1,4 @@
-use std::collections::hash_map;
-
-use crate::{audio_data, audio_map, media_provider, subtitles, AudioMap, ResolvedAudioMap};
+use crate::{audio_data, media_provider, subtitles, ResolvedAudioMap};
 
 #[derive(Clone, Copy)]
 pub enum FFramesMode {
@@ -71,8 +69,6 @@ impl FFramesContext {
                             if filled_sample == 0. {
                                 audio_data[i] = fltp_sample
                             } else {
-                                // do not overflow
-                                // audio_data[i] = filled_sample / 2 + sample / 2;
                                 audio_data[i] =
                                     filled_sample + fltp_sample - (filled_sample * fltp_sample)
                             }
@@ -97,3 +93,4 @@ impl FFramesContext {
     //     }
     // }
 }
+

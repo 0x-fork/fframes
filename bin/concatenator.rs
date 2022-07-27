@@ -6,9 +6,11 @@ use std::ffi::CString;
 use std::time::{Duration, Instant};
 
 use crate::{
-    encoder::{Encoder, EncoderFrame, Stream, StreamVariant},
+    encoder::{Encoder, EncoderFrame},
     ffmpeg_action,
     renderer_error::{AVError, AVResult},
+    stream::Stream,
+    stream::StreamVariant,
 };
 
 unsafe fn open_file_stream(
@@ -112,7 +114,7 @@ pub unsafe fn concat_video_files_with_audio(
     );
 
     let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
-    let mut codec = (*output_video_stream).codec;
+    let codec = (*output_video_stream).codec;
 
     let audio_stream = Stream::make_audio(
         44100,
@@ -125,7 +127,7 @@ pub unsafe fn concat_video_files_with_audio(
         video_stream: Stream {
             st: output_video_stream,
             enc: codec,
-            variant: crate::encoder::StreamVariant::Video,
+            variant: StreamVariant::Video,
         },
         audio_stream: Some(audio_stream),
         oc: output_format_ctx,
@@ -159,11 +161,6 @@ pub unsafe fn concat_video_files_with_audio(
     let mut start_time = 0;
 
     let mut packet = av_packet_alloc();
-    let mut audio_frame = EncoderFrame::make(
-        &encoder
-            .audio_stream
-            .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
-    );
 
     let mut frame_i = 0;
     for (i, file) in files.into_iter().enumerate() {
@@ -217,33 +214,7 @@ pub unsafe fn concat_video_files_with_audio(
         avformat_close_input(&mut input_format_ctx);
     }
 
-    
-    if let Some(audio_map) = audio_map {
-        let audio_stream_duration = av_rescale_q(
-            audio_map.calc_stream_duration_in_seconds(ctx) as i64,
-            AVRational { num: 1, den: 1 },
-            (*audio_stream.st).time_base,
-        ) as usize;
-
-        println!("audio_stream_duration: {}", audio_stream_duration);
-        
-        let mut audio_frame_pts = 0usize;
-        let frame_size = (*audio_stream.enc).frame_size as usize;
-        
-        while audio_frame_pts <= audio_stream_duration {
-            let start = Instant::now();
-            let audio_data = ctx.get_mixed_audio_data_in_fltp(audio_map, audio_frame_pts, frame_size);
-            let duration = start.elapsed();
-        
-            // println!("Time elapsed in expensive_function() is: {:?}", duration);
-
-            audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
-            encoder.send_frame(&audio_stream, audio_frame)?;
-
-            audio_frame_pts += frame_size;
-        }
-    }
-
+    fill_audio_stream(&mut encoder, audio_map, ctx)?;
 
     avcodec_send_frame(codec, std::ptr::null_mut());
     avcodec_send_frame(audio_stream.enc, std::ptr::null_mut());
@@ -255,6 +226,44 @@ pub unsafe fn concat_video_files_with_audio(
     audio_stream.free();
 
     avio_close((*output_format_ctx).pb);
+
+    Ok(())
+}
+
+pub unsafe fn fill_audio_stream(
+    encoder: &mut Encoder,
+    audio_map: Option<&ResolvedAudioMap>,
+    ctx: &FFramesContext,
+) -> Result<(), AVError> {
+    match (audio_map, encoder.audio_stream) {
+        (Some(audio_map), Some(audio_stream)) => {
+            let mut audio_frame = EncoderFrame::make(
+                &encoder
+                    .audio_stream
+                    .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
+            );
+
+            let audio_stream_duration = av_rescale_q(
+                audio_map.calc_stream_duration_in_seconds(ctx) as i64,
+                AVRational { num: 1, den: 1 },
+                (*audio_stream.st).time_base,
+            ) as usize;
+
+            let mut audio_frame_pts = 0usize;
+            let frame_size = (*audio_stream.enc).frame_size as usize;
+
+            while audio_frame_pts <= audio_stream_duration {
+                let audio_data =
+                    ctx.get_mixed_audio_data_in_fltp(audio_map, audio_frame_pts, frame_size);
+
+                audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
+                encoder.send_frame(&audio_stream, audio_frame)?;
+
+                audio_frame_pts += frame_size;
+            }
+        }
+        _ => (),
+    }
 
     Ok(())
 }

@@ -1,15 +1,14 @@
 use std::{num::NonZeroU32, sync::Arc};
 
 use crate::{
+    concatenator::{self, fill_audio_stream},
     encoder::{Encoder, EncoderFrame, EncoderOptions},
     fframes_logger::FFramesLogger,
     render_backend::FFramesRenderBackend,
     renderer_error::FFramesResult,
-    RenderOptions,
 };
-use fframes::{frame, video::Video};
+use fframes::{frame, video::Video, ResolvedAudioMap};
 use futures::executor::block_on;
-use image::{ImageBuffer, Rgba};
 use wgpu::{include_wgsl, util::DeviceExt};
 
 use super::tesselator::{tesselate_svg, GpuGlobals, GpuPrimitive, GpuTransform, GpuVertex};
@@ -94,7 +93,8 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                 TVideo::FPS as i32,
                 output,
                 render_options.preferred_codec,
-                &mut |video_encoder| {
+                true,
+                &mut |video_encoder| -> FFramesResult<()> {
                     let mut frame = EncoderFrame::make(&video_encoder.video_stream);
 
                     for fr in 0..duration_in_frames {
@@ -231,7 +231,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                                 label: None,
                             });
 
-                        let mut render_pipeline_descriptor = wgpu::RenderPipelineDescriptor {
+                        let render_pipeline_descriptor = wgpu::RenderPipelineDescriptor {
                             label: None,
                             layout: Some(&pipeline_layout),
                             vertex: wgpu::VertexState {
@@ -308,9 +308,8 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                                 as wgpu::BufferAddress;
                         let output_buffer_desc = wgpu::BufferDescriptor {
                             size: output_buffer_size,
-                            usage: wgpu::BufferUsages::COPY_DST
-            // this tells wpgu that we want to read this buffer from the cpu
-            | wgpu::BufferUsages::MAP_READ,
+                            // this tells wpgu that we want to read this buffer from the cpu
+                            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
                             label: None,
                             mapped_at_creation: false,
                         };
@@ -375,15 +374,21 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                         frame.fill_from_rgba_pixmap(fr as i64, &data);
 
                         let stream = video_encoder.video_stream;
-                        video_encoder.send_frame(&stream, frame);
+                        video_encoder.send_frame(&stream, frame)?;
 
                         logger.log_frame(fr, 0, &svg)
                     }
-                },
-            )?;
-        }
 
-        // logger.success(output, directory.to_str());
+                    let resolved_audio_map: Option<ResolvedAudioMap> = video.audio().resolve(&ctx);
+                    fill_audio_stream(video_encoder, resolved_audio_map.as_ref(), &ctx)?;
+
+                    Ok(())
+                },
+            )?
+        }?;
+  
+
+        logger.success(output, None);
         Ok(())
     }
 }

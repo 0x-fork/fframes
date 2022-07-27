@@ -22,6 +22,7 @@ mod gpu;
 mod media_processor;
 pub mod render_backend;
 mod renderer_error;
+mod stream;
 
 #[derive(Debug, Clone, Default)]
 pub struct RenderOptions<'a, TBackend: FFramesRenderBackend> {

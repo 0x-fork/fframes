@@ -110,6 +110,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                     TVideo::FPS as i32,
                     file.as_str(),
                     "libx264",
+                    false,
                     &mut |encoder| {
                         let mut last_svg = "".to_owned();
                         let mut frame = EncoderFrame::make(&encoder.video_stream);
