@@ -78,7 +78,6 @@ function processImports(imports, wasmController) {
   return Promise.all(Belt_Array.keepMap(Object.entries(imports), (function (param) {
                       var moduleVal = param[1];
                       var name = Utils.Path.getFilename(param[0]);
-                      console.log(name);
                       return Belt_Option.map(name.endsWith(".mp3") ? resolveAudio : (
                                     name.endsWith(".vtt") ? resolveSubtitles : (
                                         name.endsWith(".ttf") || name.endsWith(".otf") ? resolveFont : (

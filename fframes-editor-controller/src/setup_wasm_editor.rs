@@ -27,7 +27,6 @@ macro_rules! setup_wasm_editor {
         fn audio_ts_to_frame(audio_ts: AudioTimestamp, name: &str) -> usize {
             match audio_ts {
                 AudioTimestamp::Frame(frame) => frame,
-                // TODO fix case when audio not processed
                 AudioTimestamp::Eof => AUDIO_DURATIONS
                     .lock()
                     .unwrap()
@@ -59,8 +58,11 @@ macro_rules! setup_wasm_editor {
             pub fn name(&self) -> String {
                 type_name::<$x>().to_owned()
             }
-
+            
             #[wasm_bindgen(getter, js_name = audioMap)]
+            /// Returns a resolved audio_map with audio timestamps converted to frames.
+            /// The audio timestamp fallbacks to 0 if audio not loaded yet
+            /// @returns {Record<string, [number, number]>}
             pub fn audio_map(&self) -> JsValue {
                 let audio_map_frames_hash = $x::audio(&$x::make()).0.map(|audio_map| {
                     audio_map
