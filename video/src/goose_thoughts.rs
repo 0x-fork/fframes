@@ -41,6 +41,7 @@ impl Video for GooseVideo {
                 sample_size: audio_data::SampleSize::S64,
                 ctx: &ctx,
                 smooth_level: 4,
+                window: None,
             },
         );
 

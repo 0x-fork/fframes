@@ -88,7 +88,6 @@ function frame(onFrame, _timestamp) {
 function connectAudioFiles(ctx, videoMeta) {
   var match = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var mediaList = match.mediaList;
-  console.log(videoMeta.audioMap);
   var map = videoMeta.audioMap;
   return Belt_Array.map(Belt_Array.keepMap((map == null) ? [] : Object.keys(map), (function (audioName) {
                     var media = Belt_MapString.getExn(mediaList, audioName);
@@ -108,11 +107,11 @@ function connectAudioFiles(ctx, videoMeta) {
                           return ;
                       
                     }
-                  })), (function (res) {
+                  })), (function (param) {
                 var source = ctx.createBufferSource();
-                source.buffer = res[1].audioData;
+                source.buffer = param[1].audioData;
                 return [
-                        res[0],
+                        param[0],
                         source
                       ];
               }));
@@ -124,13 +123,11 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
   Belt_Option.forEach(Caml_option.nullable_to_opt(videoMeta.audioMap), (function (audioMap) {
-          return Belt_Array.forEach(playingSources.contents, (function (nameAndSource) {
-                        var source = nameAndSource[1];
-                        var match = Utils.$$Option.unwrap(audioMap[nameAndSource[0]]);
-                        var endFrame = match[1];
-                        var startFrame = match[0];
-                        var offset = (currentFrame - startFrame | 0) / videoMeta.fps;
-                        var duration = Math.max(startFrame > currentFrame ? ((endFrame - startFrame | 0) - currentFrame | 0) / videoMeta.fps : (endFrame - currentFrame | 0) / videoMeta.fps, 0);
+          return Belt_Array.forEach(playingSources.contents, (function (param) {
+                        var source = param[1];
+                        var match = Utils.$$Option.unwrap(audioMap[param[0]]);
+                        var offset = (currentFrame - match[0] | 0) / videoMeta.fps;
+                        var duration = Math.max((match[1] - currentFrame | 0) / videoMeta.fps, 0);
                         source.connect(gain);
                         if (offset < 0) {
                           source.start(startTime.contents + Math.abs(offset), 0, duration);

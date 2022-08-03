@@ -1,13 +1,13 @@
 use crate::{audio_data, media_provider, subtitles, ResolvedAudioMap};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum FFramesMode {
     Editor,
     EditorTimelinePreview,
     Renderer,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FFramesContext {
     pub fps: usize,
     pub sample_rate: usize,
@@ -93,4 +93,3 @@ impl FFramesContext {
     //     }
     // }
 }
-

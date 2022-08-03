@@ -26,7 +26,7 @@ impl PreloadedAudioData {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum AudioData {
     Preloaded(PreloadedAudioData),
     Lazy,
@@ -55,6 +55,7 @@ impl AudioData {
     }
 }
 
+#[derive(Debug)]
 pub enum SampleSize {
     S2,
     S4,
@@ -83,16 +84,18 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
     }
 }
 
+#[derive(Debug)]
 pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
     pub smooth_level: usize,
     pub ctx: &'a fframes_context::FFramesContext,
+    pub window: Option<audio_window_functions::WindowFunction>,
 }
 
 fn apply_fft_to_frame(
     sample_size: &SampleSize,
-    window: Option<audio_window_functions::Window>,
+    window: &Option<audio_window_functions::WindowFunction>,
     audio_data: &AudioData,
     frame: i64,
     fps: i64,
@@ -100,7 +103,7 @@ fn apply_fft_to_frame(
     let apply_window = |size| -> Vec<f32> {
         let samples_per_frame = audio_data.get_frame_data(size, frame, fps);
         if let Some(window_function) = window {
-            audio_window_functions::apply_window_function(window_function, samples_per_frame)
+            audio_window_functions::apply_window_function(*window_function, samples_per_frame)
         } else {
             samples_per_frame
                 .iter()
@@ -171,6 +174,7 @@ pub fn get_visualization(
         sample_size,
         ctx,
         audio,
+        window,
         ..
     }: &VisualizeFrameInput,
 ) -> Vec<f32> {
@@ -180,7 +184,7 @@ pub fn get_visualization(
 
     let fft_size = get_fft_size_number(sample_size);
 
-    let res = apply_fft_to_frame(&sample_size, None, audio, frame, ctx.fps as i64)
+    let res = apply_fft_to_frame(&sample_size, window, audio, frame, ctx.fps as i64)
         .iter()
         .map(|x| x.norm() / fft_size as f32)
         .collect::<Vec<f32>>();

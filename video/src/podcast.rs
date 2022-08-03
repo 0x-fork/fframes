@@ -28,6 +28,7 @@ impl Video for PodcastVideo {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("me.mp3"),
                 sample_size: audio_data::SampleSize::S32,
+                window: None,
             },
         );
 
@@ -38,6 +39,7 @@ impl Video for PodcastVideo {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("vlad.mp3"),
                 sample_size: audio_data::SampleSize::S32,
+                window: None,
             },
         );
         let guest_vis = audio_data::visualize_audio_frame(
@@ -47,6 +49,7 @@ impl Video for PodcastVideo {
                 ctx: &ctx,
                 audio: ctx.get_audio_data("guest.mp3"),
                 sample_size: audio_data::SampleSize::S32,
+                window: None,
             },
         );
 

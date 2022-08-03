@@ -106,13 +106,13 @@ function renderAudioMap(ctx, size, editorContext) {
                         var x = startFrame * size.frameToPxRatio + 32;
                         var width = (endFrame - startFrame | 0) * size.frameToPxRatio;
                         ctx.save();
+                        Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#e2e8f0");
+                        ctx.fillText(audioName, x + 2, y - 8, undefined);
                         ctx.beginPath();
                         renderRoundedRect(ctx, x, y, width, 60, 4.0, undefined);
                         ctx.clip();
                         Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#059669");
                         ctx.fillRect(x, y, width, 60);
-                        Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#e2e8f0");
-                        ctx.fillText(audioName, x + 8, y + 16, undefined);
                         renderAudioWaveForm(ctx, endFrame, startFrame, x, y, width, audioName, editorContext);
                         ctx.closePath();
                         ctx.restore();

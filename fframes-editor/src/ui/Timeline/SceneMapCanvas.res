@@ -133,10 +133,14 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
       let (startFrame, endFrame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
 
       let y = Float.fromInt(timeline_margin_y + scene_height_size + startY)
-      let x = Float.fromInt(startFrame) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Float.fromInt
+      let x =
+        Float.fromInt(startFrame) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Float.fromInt
       let width = Float.fromInt(endFrame - startFrame) *. size.frameToPxRatio
 
       ctx->Canvas2d.save
+
+      ctx->Canvas2d.setFillStyle(String, "#e2e8f0")
+      audioName->Canvas2d.fillText(ctx, ~x=x +. 2., ~y=y -. 8.)
       ctx->Canvas2d.beginPath
 
       ctx->renderRoundedRect(
@@ -151,9 +155,6 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
 
       ctx->Canvas2d.setFillStyle(String, "#059669")
       ctx->Canvas2d.fillRect(~x, ~y, ~w=width, ~h=Float.fromInt(scene_height_size / 2))
-
-      ctx->Canvas2d.setFillStyle(String, "#e2e8f0")
-      audioName->Canvas2d.fillText(ctx, ~x=x +. 8., ~y=y +. 16.)
 
       ctx
       ->renderAudioWaveForm(

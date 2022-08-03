@@ -27,7 +27,7 @@ pub struct MarketingVideo {}
 
 impl MarketingVideo {
     fn render_ferris(&self, frame: &Frame) -> String {
-        if !(2.3f32..4.8f32).contains(&frame.get_current_second()) {
+        if !(2.3f32..5.0f32).contains(&frame.get_current_second()) {
             return "".to_owned();
         }
 
@@ -37,10 +37,16 @@ impl MarketingVideo {
             width="400"
             height="400"
             x="1456"
+
+
             y={frame.animate(fframes::timeline!(
                 on 2.3, val 1400. => 770., Animation::Easing::Spring2(1.85, 130.0, 16.0),
                 on 4.8, val 770. => 1400., Animation::Easing::Spring2(1.85, 130.0, 16.0)
             ))}
+
+
+
+
             version="1.1"
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -211,7 +217,7 @@ const BAR_WIDTH_WITH_MARGIN: usize = BAR_SIZE + BAR_MARGIN;
 const SPECTRUM_LEN: usize = 1920 - BAR_WIDTH_WITH_MARGIN * PRETTY_SPECTRUM.len() - BAR_MARGIN;
 
 impl Video for MarketingVideo {
-    const FPS: usize = 30;
+    const FPS: usize = 60;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("marketing.mp3");
@@ -221,11 +227,11 @@ impl Video for MarketingVideo {
 
         AudioMap::from([
             ("marketing.mp3", (Second(0), Eof)),
-            ("test.mp3", (Second(3), Eof)),
+            ("woosh.mp3", (Second(6), Eof))
         ])
     }
 
-    fn make() -> Self {
+    fn make() -> Self { 
         MarketingVideo {}
     }
 
@@ -237,7 +243,8 @@ impl Video for MarketingVideo {
                 audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: audio_data::SampleSize::S16,
                 ctx: &ctx,
-                smooth_level: 4,
+                smooth_level: 3 ,
+                window: Some(fframes::WindowFunction::Hamming),
             },
         );
 

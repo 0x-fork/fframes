@@ -7,4 +7,4 @@ use video::{marketing::MarketingVideo, test_video::TestVideo};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures;
 
-setup_wasm_editor!(TestVideo);
+setup_wasm_editor!(MarketingVideo);

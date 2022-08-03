@@ -33,7 +33,7 @@
     "workbox-strategies": "^6.4.2"
   },
   "devDependencies": {
-    "concurrently": "^6.4.0",
+    "concurrently": "^7.3.0",
     "esbuild": "^0.14.3"
   }
 }

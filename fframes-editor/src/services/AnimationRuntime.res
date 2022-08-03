@@ -50,7 +50,7 @@ module AudioRuntime = {
 
   let connectAudioFiles = (ctx, videoMeta: WasmController.videoMeta) => {
     let {mediaList} = MediaLoader.MediaLoaderObserver.get()
-    Js.Console.log(videoMeta.audioMap)
+
     videoMeta.audioMap
     ->Js.Nullable.toOption
     ->(
@@ -74,8 +74,7 @@ module AudioRuntime = {
               }
           )
         })
-        ->Array.map(res => {
-          let (name, info) = res
+        ->Array.map(((name, info)) => {
           let source = ctx->AudioContext.createBufferSource
           source->AudioNode.setBuffer(info.audioData)
 
@@ -92,19 +91,18 @@ module AudioRuntime = {
     gain->AudioNode.connect(ctx.destination)->ignore
     startTime := ctx.currentTime
 
+    @inline
+    let framesToSeconds = frames => frames->Float.fromInt /. videoMeta.fps->Float.fromInt
+
     videoMeta.audioMap
     ->Js.Nullable.toOption
     ->Belt.Option.forEach(audioMap => {
-      playingSources.contents->Array.forEach(nameAndSource => {
-        let (name, source) = nameAndSource
+      playingSources.contents->Array.forEach(((name, source)) => {
         let (startFrame, endFrame) = audioMap->Js.Dict.get(name)->Utils.Option.unwrap
 
-        let offset = (currentFrame - startFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
-        let duration = if startFrame > currentFrame {
-          (endFrame - startFrame - currentFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
-        } else {
-          (endFrame - currentFrame)->Float.fromInt /. videoMeta.fps->Float.fromInt
-        }->Js.Math.max(0.)
+        let offset = (currentFrame - startFrame)->framesToSeconds
+        let duration = (endFrame - currentFrame)->framesToSeconds->Js.Math.max(0.)
+
         source->AudioNode.connect(gain)
 
         if offset < 0. {

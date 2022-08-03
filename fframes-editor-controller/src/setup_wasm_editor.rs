@@ -58,7 +58,7 @@ macro_rules! setup_wasm_editor {
             pub fn name(&self) -> String {
                 type_name::<$x>().to_owned()
             }
-            
+
             #[wasm_bindgen(getter, js_name = audioMap)]
             /// Returns a resolved audio_map with audio timestamps converted to frames.
             /// The audio timestamp fallbacks to 0 if audio not loaded yet
@@ -68,13 +68,10 @@ macro_rules! setup_wasm_editor {
                     audio_map
                         .into_iter()
                         .map(|(name, (start_ts, end_ts))| {
-                            (
-                                name,
-                                (
-                                    audio_ts_to_frame(start_ts, name),
-                                    audio_ts_to_frame(end_ts, name),
-                                ),
-                            )
+                            let start = audio_ts_to_frame(start_ts, name);
+                            let end = audio_ts_to_frame(end_ts, name);
+
+                            (name, (start, start + end))
                         })
                         .collect::<HashMap<_, _>>()
                 });

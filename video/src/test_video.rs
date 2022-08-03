@@ -29,15 +29,6 @@ impl Video for TestVideo {
           >
             <rect width={Self::WIDTH} height={Self::HEIGHT} x="0" y="0" fill="white" />
             <text x="100" y="100" font-size="100">
-
-              <rect
-                x={frame.animate(fframes::timeline!(
-                  on 24., val 10.0 => 12.2, Animation::Easing::Linear(0.2),
-                  on 24., val 10.0 => 12.2, Animation::Easing::Linear(0.2),
-                  on 24., val 10.0 => 12.2, Animation::Easing::Linear(0.2)
-                ))}
-              />
-
               {format!("Hey! Frame number: {}, second: {}", frame.index + 1, frame.get_current_second())}
             </text>
           </svg>

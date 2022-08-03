@@ -32,15 +32,15 @@ pub fn hamming_window(samples: &[i16]) -> Vec<f32> {
     windowed_samples
 }
 
-#[derive(Debug)]
-pub enum Window {
+#[derive(Debug, Clone, Copy)]
+pub enum WindowFunction {
     Hann,
     Hamming,
 }
 
-pub fn apply_window_function(window: Window, samples: &[i16]) -> Vec<f32> {
+pub fn apply_window_function(window: WindowFunction, samples: &[i16]) -> Vec<f32> {
     match window {
-        Window::Hann => hann_window(samples),
-        Window::Hamming => hamming_window(samples),
+        WindowFunction::Hann => hann_window(samples),
+        WindowFunction::Hamming => hamming_window(samples),
     }
 }

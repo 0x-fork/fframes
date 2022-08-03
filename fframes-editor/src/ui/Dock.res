@@ -30,7 +30,7 @@ module DockButton = {
         DockSpace.baseClass,
         "hover:scale-110",
         highlight
-          ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 to:pink-300/80"
+          ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 hover:to-pink-300/80"
           : "bg-slate-700 hover:bg-slate-500",
       ])}>
       <span className="sr-only"> {React.string(label)} </span> {children}
@@ -101,10 +101,10 @@ let make = () => {
       ) {
         switch e->Dom.KeyboardEvent.key {
         | " " => handlePlayOrPause()
-        | "ArrowLeft" => handleSeekLeft()
-        | "ArrowRight" => handleSeekRight()
-        | "ArrowUp" => increaseVolume()
-        | "ArrowDown" => decreaseVolume()
+        | "ArrowLeft" | "a" => handleSeekLeft()
+        | "ArrowRight" | "d" => handleSeekRight()
+        | "ArrowUp" | "w" => increaseVolume()
+        | "ArrowDown" | "s" => decreaseVolume()
         | _ => ()
         }
       }
@@ -117,7 +117,6 @@ let make = () => {
     Some(
       () =>
         Dom.window
-        |> Utils.Log.andReturn
         |> DocumentEvent.asEventTarget
         |> Dom.EventTarget.removeKeyDownEventListener(handleKeydown),
     )
@@ -170,7 +169,7 @@ let make = () => {
       }}
     </DockButton>
     <DockButton onClick=handleSeekRight label="Play back 5 seconds">
-      <PlayForwardIcon className="h-6 w-6" />
+      <PlayBackIcon className="h-6 w-6 rotate-180" />
     </DockButton>
     <DockSpace>
       {switch player.volume {

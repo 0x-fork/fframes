@@ -3,16 +3,25 @@ import * as React from "react";
 export const PlayBackIcon = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-
+    className="ionicon"
     viewBox="0 0 512 512"
     {...props}
   >
+    <title>{"Play Skip Back"}</title>
     <path
-      d="M480 145.52v221c0 13.28-13 21.72-23.63 15.35L267.5 268.8c-9.24-5.53-9.24-20.07 0-25.6l188.87-113C467 123.8 480 132.24 480 145.52zm-228.57 0v221c0 13.28-13 21.72-23.63 15.35L38.93 268.8c-9.24-5.53-9.24-20.07 0-25.6l188.87-113c10.64-6.4 23.63 2.04 23.63 15.32z"
+      d="M400 111v290c0 17.44-17 28.52-31 20.16L121.09 272.79c-12.12-7.25-12.12-26.33 0-33.58L369 90.84c14-8.36 31 2.72 31 20.16z"
       fill="none"
       stroke="currentColor"
       strokeMiterlimit={10}
       strokeWidth={32}
+    />
+    <path
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeMiterlimit={10}
+      strokeWidth={32}
+      d="M112 80v352"
     />
   </svg>
 );

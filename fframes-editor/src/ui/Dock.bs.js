@@ -58,7 +58,7 @@ var make$2 = React.memo(function (Props) {
                   className: Cx.cx([
                         baseClass,
                         "hover:scale-110",
-                        highlight ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 to:pink-300/80" : "bg-slate-700 hover:bg-slate-500"
+                        highlight ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 hover:to-pink-300/80" : "bg-slate-700 hover:bg-slate-500"
                       ]),
                   onClick: (function (param) {
                       return Curry._1(onClick, undefined);
@@ -141,13 +141,17 @@ function Dock(Props) {
             switch (match) {
               case " " :
                   return Curry._1(handlePlayOrPause, undefined);
-              case "ArrowDown" :
-                  return Curry._1(decreaseVolume, undefined);
               case "ArrowLeft" :
+              case "a" :
                   return Curry._1(handleSeekLeft, undefined);
               case "ArrowRight" :
+              case "d" :
                   return Curry._1(handleSeekRight, undefined);
+              case "ArrowDown" :
+              case "s" :
+                  return Curry._1(decreaseVolume, undefined);
               case "ArrowUp" :
+              case "w" :
                   return Curry._1(increaseVolume, undefined);
               default:
                 return ;
@@ -155,7 +159,7 @@ function Dock(Props) {
           };
           window.addEventListener("keydown", handleKeydown);
           return (function (param) {
-                    Utils.Log.andReturn(window).removeEventListener("keydown", handleKeydown);
+                    window.removeEventListener("keydown", handleKeydown);
                     
                   });
         }), []);
@@ -214,8 +218,8 @@ function Dock(Props) {
                   onClick: handlePlayOrPause,
                   highlight: true
                 }), React.createElement(make$2, {
-                  children: React.createElement(Icons.PlayForwardIcon.make, {
-                        className: "h-6 w-6"
+                  children: React.createElement(Icons.PlayBackIcon.make, {
+                        className: "h-6 w-6 rotate-180"
                       }),
                   label: "Play back 5 seconds",
                   onClick: handleSeekRight
