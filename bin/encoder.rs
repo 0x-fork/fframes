@@ -91,9 +91,8 @@ impl Encoder {
             },
         };
 
-
         av_dump_format(oc, 0, c_filename.as_ptr(), 1);
-         
+
         ffmpeg_action!(
             avio_open(&mut (*oc).pb, c_filename.as_ptr(), 2),
             AVError::CantOpenFile(filename.to_owned())

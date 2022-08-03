@@ -7,7 +7,9 @@ use syn::{
     Stmt,
 };
 
-pub(crate) fn prepare_svg_nodes_for_format_statement(nodes: Vec<Node>) -> (String, Vec<Expr>, Vec<TokenStream>) {
+pub(crate) fn prepare_svg_nodes_for_format_statement(
+    nodes: Vec<Node>,
+) -> (String, Vec<Expr>, Vec<TokenStream>) {
     let mut out = String::new();
     let mut values = vec![];
     let mut animations = vec![];

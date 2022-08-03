@@ -227,11 +227,11 @@ impl Video for MarketingVideo {
 
         AudioMap::from([
             ("marketing.mp3", (Second(0), Eof)),
-            ("woosh.mp3", (Second(6), Eof))
+            ("woosh.mp3", (Second(6), Eof)),
         ])
     }
 
-    fn make() -> Self { 
+    fn make() -> Self {
         MarketingVideo {}
     }
 
@@ -243,7 +243,7 @@ impl Video for MarketingVideo {
                 audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: audio_data::SampleSize::S16,
                 ctx: &ctx,
-                smooth_level: 3 ,
+                smooth_level: 3,
                 window: Some(fframes::WindowFunction::Hamming),
             },
         );

@@ -386,7 +386,6 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                 },
             )?
         }?;
-  
 
         logger.success(output, None);
         Ok(())

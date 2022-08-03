@@ -140,24 +140,26 @@ impl Parser {
     fn is_animation_macro_statement(statements: &[Stmt]) -> bool {
         use Stmt::*;
 
-        let first_statement = &statements[0];   
+        let first_statement = &statements[0];
         match first_statement {
             Expr(mac) => match mac {
                 syn::Expr::MethodCall(method_call) => {
                     let first_arg = &method_call.args[0];
 
-                    method_call.method.to_string() == "animate" && method_call.args.len() == 1 && match &method_call.args[0] { 
-                        syn::Expr::Macro(macro_expr) => macro_expr
-                            .mac
-                            .path
-                            .segments
-                            .iter()
-                            .find(|segment| segment.ident.to_string() == "timeline")
-                            .is_some(),
-                        _=> false
-                    }
+                    method_call.method.to_string() == "animate"
+                        && method_call.args.len() == 1
+                        && match &method_call.args[0] {
+                            syn::Expr::Macro(macro_expr) => macro_expr
+                                .mac
+                                .path
+                                .segments
+                                .iter()
+                                .find(|segment| segment.ident.to_string() == "timeline")
+                                .is_some(),
+                            _ => false,
+                        }
                 }
-                
+
                 _ => false,
             },
             _ => false,
@@ -181,10 +183,7 @@ impl Parser {
 
         input.advance_to(&fork);
 
-        Ok((
-            block.into(),
-            NodeType::Block
-        ))
+        Ok((block.into(), NodeType::Block))
     }
 
     fn block_attribute_expr(&self, input: ParseStream) -> Result<(Expr, NodeType)> {
@@ -359,12 +358,12 @@ impl Parser {
                     if name.to_string() == "xlink:href" {
                         return Err(fork.error("Instead of hardcoding images please use xlink:href={ctx.get_image_link(\"image.png\"}"));
                     }
-                    
+
                     Ok((fork.parse()?, NodeType::Attribute))
                 }
             }).transpose()?;
 
-            let (value, node_type) = match res { 
+            let (value, node_type) = match res {
                 Some((expr, node_type)) => (Some(expr), node_type),
                 _ => (None, NodeType::Attribute),
             };

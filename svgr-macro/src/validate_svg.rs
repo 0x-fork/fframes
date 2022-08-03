@@ -32,6 +32,6 @@ pub(crate) fn validate_attribute(input: &ParseBuffer, node: &NodeName) -> Result
         name if UNSUPPORTED_ATTRS.contains(&name.as_str()) => {
             Err(input.error(format!("attribute {} is not supported", name)))
         }
-        _ => Ok(())
+        _ => Ok(()),
     }
 }

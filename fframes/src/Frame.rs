@@ -35,9 +35,12 @@ impl Frame {
     /// ```
     pub fn animate_runtime(
         &self,
-        AnimateRuntimeInput { 
-            on, from, to, animation_runtime
-        }: AnimateRuntimeInput
+        AnimateRuntimeInput {
+            on,
+            from,
+            to,
+            animation_runtime,
+        }: AnimateRuntimeInput,
     ) -> f32 {
         let duration = animation_runtime.get_duration();
 

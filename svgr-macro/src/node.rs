@@ -107,7 +107,7 @@ pub enum NodeType {
     /// Arbitrary rust code in braced `{}` blocks
     Block,
 
-    LazyTimelineBlock
+    LazyTimelineBlock,
 }
 
 impl fmt::Display for NodeType {
