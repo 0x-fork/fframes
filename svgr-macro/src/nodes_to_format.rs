@@ -1,15 +1,14 @@
 use crate::node::{Node, NodeType};
-use proc_macro2::{Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    punctuated::{self, Punctuated},
-    Expr, ExprBlock, ExprMethodCall, ExprPath, ExprReference, Path, PathArguments, PathSegment,
-    Stmt,
+    punctuated::Punctuated, Expr, ExprPath, ExprReference, Path, PathArguments, PathSegment,
 };
 
 pub(crate) fn prepare_svg_nodes_for_format_statement(
     nodes: Vec<Node>,
 ) -> (String, Vec<Expr>, Vec<TokenStream>) {
+    
     let mut out = String::new();
     let mut values = vec![];
     let mut animations = vec![];

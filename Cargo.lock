@@ -657,6 +657,7 @@ dependencies = [
  "fframes-editor-controller",
  "js-sys",
  "lazy_static",
+ "once_cell",
  "svgr-macro",
  "video",
  "wasm-bindgen",

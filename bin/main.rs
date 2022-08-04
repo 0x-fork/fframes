@@ -115,7 +115,7 @@ fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
 
 fn main() {
     render(
-        video::test_video::TestVideo::make(),
+        video::marketing::MarketingVideo::make(),
         "out.mp4",
         RenderOptions {
             media_dir: "/Users/dmtrkovalenko/dev/fframes/editor-wasm/media",

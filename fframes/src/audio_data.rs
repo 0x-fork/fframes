@@ -11,8 +11,8 @@ pub struct PreloadedAudioData {
 }
 
 impl PreloadedAudioData {
-    pub fn duration_in_seconds(&self) -> usize {
-        self.samples.len() / self.sample_rate as usize
+    pub fn duration_in_seconds(&self) -> f32 {
+        self.samples.len() as f32 / self.sample_rate as f32
     }
 
     pub fn get_range(&self, range: std::ops::Range<usize>) -> Option<&[i16]> {
@@ -33,9 +33,9 @@ pub enum AudioData {
 }
 
 impl AudioData {
-    pub fn duration_in_seconds(&self) -> usize {
+    pub fn duration_in_seconds(&self) -> f32 {
         match self {
-            AudioData::Lazy => 0,
+            AudioData::Lazy => 0.,
             AudioData::Preloaded(data) => data.duration_in_seconds(),
         }
     }
@@ -114,45 +114,47 @@ fn apply_fft_to_frame(
 
     match sample_size {
         SampleSize::S2 => {
-            let mut buffer: [_; 2] = apply_window(2).try_into().unwrap();
+            let mut buffer: [_; 2] = apply_window(2).try_into().unwrap_or_else(|_| [0.0; 2]);
             microfft::real::rfft_2(&mut buffer).to_vec()
         }
         SampleSize::S4 => {
-            let mut buffer: [_; 4] = apply_window(4).try_into().unwrap();
+            let mut buffer: [_; 4] = apply_window(4).try_into().unwrap_or_else(|_| [0.0; 4]);
             microfft::real::rfft_4(&mut buffer).to_vec()
         }
         SampleSize::S8 => {
-            let mut buffer: [_; 8] = apply_window(8).try_into().unwrap();
+            let mut buffer: [_; 8] = apply_window(8).try_into().unwrap_or_else(|_| [0.0; 8]);
             microfft::real::rfft_8(&mut buffer).to_vec()
         }
         SampleSize::S16 => {
-            let mut buffer: [_; 16] = apply_window(16).try_into().unwrap();
+            let mut buffer: [_; 16] = apply_window(16).try_into().unwrap_or_else(|_| [0.0; 16]);
             microfft::real::rfft_16(&mut buffer).to_vec()
         }
         SampleSize::S32 => {
-            let mut buffer: [_; 32] = apply_window(32).try_into().unwrap();
+            let mut buffer: [_; 32] = apply_window(32).try_into().unwrap_or_else(|_| [0.0; 32]);
 
             microfft::real::rfft_32(&mut buffer).to_vec()
         }
         SampleSize::S64 => {
-            let mut buffer: [_; 64] = apply_window(64).try_into().unwrap();
+            let mut buffer: [_; 64] = apply_window(64).try_into().unwrap_or_else(|_| [0.0; 64]);
             microfft::real::rfft_64(&mut buffer).to_vec()
         }
         SampleSize::S128 => {
-            let mut buffer: [_; 128] = apply_window(128).try_into().unwrap();
+            let mut buffer: [_; 128] = apply_window(128).try_into().unwrap_or_else(|_| [0.0; 128]);
 
             microfft::real::rfft_128(&mut buffer).to_vec()
         }
         SampleSize::S256 => {
-            let mut buffer: [_; 256] = apply_window(256).try_into().unwrap();
+            let mut buffer: [_; 256] = apply_window(256).try_into().unwrap_or_else(|_| [0.0; 256]);
             microfft::real::rfft_256(&mut buffer).to_vec()
         }
         SampleSize::S512 => {
-            let mut buffer: [_; 512] = apply_window(512).try_into().unwrap();
+            let mut buffer: [_; 512] = apply_window(512).try_into().unwrap_or_else(|_| [0.0; 512]);
             microfft::real::rfft_512(&mut buffer).to_vec()
         }
         SampleSize::S1024 => {
-            let mut buffer: [_; 1024] = apply_window(1024).try_into().unwrap();
+            let mut buffer: [_; 1024] = apply_window(1024)
+                .try_into()
+                .unwrap_or_else(|_| [0.0; 1024]);
             microfft::real::rfft_1024(&mut buffer).to_vec()
         }
     }

@@ -243,12 +243,8 @@ pub unsafe fn fill_audio_stream(
                     .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
             );
 
-            let audio_stream_duration = av_rescale_q(
-                audio_map.calc_stream_duration_in_seconds(ctx) as i64,
-                AVRational { num: 1, den: 1 },
-                (*audio_stream.st).time_base,
-            ) as usize;
-
+            let audio_stream_duration = audio_map.calc_stream_duration_in_samples(ctx);
+            
             let mut audio_frame_pts = 0usize;
             let frame_size = (*audio_stream.enc).frame_size as usize;
 

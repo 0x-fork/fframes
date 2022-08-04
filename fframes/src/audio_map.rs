@@ -10,11 +10,22 @@ pub enum AudioTimestamp {
 }
 
 impl AudioTimestamp {
-    fn to_seconds(&self, filename: &str, ctx: &FFramesContext) -> usize {
+    pub(crate) fn to_seconds(&self, filename: &str, ctx: &FFramesContext) -> f32 {
         match self {
-            AudioTimestamp::Frame(frame) => frame * ctx.fps,
-            AudioTimestamp::Second(seconds) => *seconds,
+            AudioTimestamp::Frame(frame) => *frame as f32 * ctx.fps as f32,
+            AudioTimestamp::Second(seconds) => *seconds as f32,
             AudioTimestamp::Eof => ctx.get_audio_data(filename).duration_in_seconds(),
+        }
+    }
+
+    pub(crate) fn to_samples(&self, filename: &str, ctx: &FFramesContext) -> usize {
+        match self {
+            AudioTimestamp::Frame(frame) => *frame * ctx.fps * ctx.sample_rate as usize,
+            AudioTimestamp::Second(seconds) => *seconds * ctx.sample_rate as usize,
+            AudioTimestamp::Eof => {
+                (ctx.get_audio_data(filename).duration_in_seconds() * ctx.sample_rate as f32)
+                    as usize
+            }
         }
     }
 }
@@ -26,10 +37,10 @@ pub struct AudioMap(pub Option<HashMap<&'static str, AudioDuration>>);
 pub struct ResolvedAudioMap(pub HashMap<&'static str, Range<usize>>);
 
 impl ResolvedAudioMap {
-    pub fn calc_stream_duration_in_seconds(&self, ctx: &FFramesContext) -> usize {
+    pub fn calc_stream_duration_in_samples(&self, ctx: &FFramesContext) -> usize {
         self.0
             .iter()
-            .map(|(_, range)| (range.start + range.end) / ctx.sample_rate)
+            .map(|(_, range)| (range.start + range.end))
             .max()
             .unwrap_or(0)
     }
@@ -43,8 +54,8 @@ impl AudioMap {
                 hash_map
                     .into_iter()
                     .map(|(f, (start_ts, end_ts))| {
-                        let start_sample = start_ts.to_seconds(f, ctx) * ctx.sample_rate;
-                        let end_sample = end_ts.to_seconds(f, ctx) * ctx.sample_rate;
+                        let start_sample = start_ts.to_samples(f, ctx);
+                        let end_sample = end_ts.to_samples(f, ctx) + start_sample;
 
                         (*f, start_sample..end_sample)
                     })
@@ -56,24 +67,6 @@ impl AudioMap {
     pub fn none() -> Self {
         AudioMap(None)
     }
-
-    pub fn calc_stream_duration_in_seconds(&self, ctx: &FFramesContext) -> usize {
-        let inner = self.0.as_ref();
-        match inner {
-            None => 0,
-            Some(audio_map) => audio_map
-                .into_iter()
-                .map(|val| get_audio_duration(val, &ctx))
-                .max()
-                .unwrap_or(0),
-        }
-    }
-}
-
-fn get_audio_duration((file, duration): (&&str, &AudioDuration), ctx: &FFramesContext) -> usize {
-    let (start, end) = duration;
-
-    start.to_seconds(file, ctx) + end.to_seconds(file, ctx)
 }
 
 impl<const N: usize> From<[(&'static str, AudioDuration); N]> for AudioMap {

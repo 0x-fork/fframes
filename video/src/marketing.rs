@@ -37,16 +37,10 @@ impl MarketingVideo {
             width="400"
             height="400"
             x="1456"
-
-
             y={frame.animate(fframes::timeline!(
                 on 2.3, val 1400. => 770., Animation::Easing::Spring2(1.85, 130.0, 16.0),
                 on 4.8, val 770. => 1400., Animation::Easing::Spring2(1.85, 130.0, 16.0)
             ))}
-
-
-
-
             version="1.1"
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -228,6 +222,7 @@ impl Video for MarketingVideo {
         AudioMap::from([
             ("marketing.mp3", (Second(0), Eof)),
             ("woosh.mp3", (Second(6), Eof)),
+            ("end.mp3", (Second(16), Eof)),
         ])
     }
 
@@ -400,7 +395,7 @@ impl Video for MarketingVideo {
             {if frame.get_current_second() > 16.25  {
               svgr!(
                 <g>
-                  <text x="960" y="570" font-family="Bubble" font-size="154" text-anchor="middle">
+                  <text x="960" y="570" font-family="Bubble Bobble" font-size="154" text-anchor="middle">
                     <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
                   </text>
                   <text x="960" y="610" font-family="Chalkboard SE" font-size="30" text-anchor="middle">

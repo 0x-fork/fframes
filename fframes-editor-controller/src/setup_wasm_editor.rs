@@ -9,6 +9,19 @@ macro_rules! setup_wasm_editor {
 
         lazy_static! {
             static ref VIDEO: $x = $x::make();
+            static ref AUDIO_MAP: Mutex<Option<HashMap<&'static str, (usize, usize)>>> = {
+                Mutex::new($x::audio(&VIDEO).0.map(|audio_map| {
+                    audio_map
+                        .into_iter()
+                        .map(|(name, (start_ts, end_ts))| {
+                            let start = audio_ts_to_frame(start_ts, name);
+                            let end = audio_ts_to_frame(end_ts, name);
+
+                            (name, (start, start + end))
+                        })
+                        .collect::<HashMap<_, _>>()
+                }))
+            };
             static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
             static ref MEDIA_PROVIDER: Mutex<fframes::media_provider::MediaProvider> =
                 Mutex::new(fframes::media_provider::MediaProvider {
@@ -64,19 +77,7 @@ macro_rules! setup_wasm_editor {
             /// The audio timestamp fallbacks to 0 if audio not loaded yet
             /// @returns {Record<string, [number, number]>}
             pub fn audio_map(&self) -> JsValue {
-                let audio_map_frames_hash = $x::audio(&$x::make()).0.map(|audio_map| {
-                    audio_map
-                        .into_iter()
-                        .map(|(name, (start_ts, end_ts))| {
-                            let start = audio_ts_to_frame(start_ts, name);
-                            let end = audio_ts_to_frame(end_ts, name);
-
-                            (name, (start, start + end))
-                        })
-                        .collect::<HashMap<_, _>>()
-                });
-
-                JsValue::from_serde(&audio_map_frames_hash).expect("what?")
+                JsValue::from_serde(&AUDIO_MAP.lock().unwrap().clone()).unwrap()
             }
 
             #[wasm_bindgen(getter)]
