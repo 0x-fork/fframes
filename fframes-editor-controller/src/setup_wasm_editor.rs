@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! setup_wasm_editor {
-    ($x:tt) => {
+    ($x:tt, $params:tt) => {
         #[wasm_bindgen(module = "fframes-editor")]
         extern "C" {
             #[wasm_bindgen(catch)]
@@ -8,7 +8,7 @@ macro_rules! setup_wasm_editor {
         }
 
         lazy_static! {
-            static ref VIDEO: $x = $x::make();
+            static ref VIDEO: $x = $x $params;
             static ref AUDIO_MAP: Mutex<Option<HashMap<&'static str, (usize, usize)>>> = {
                 Mutex::new($x::audio(&VIDEO).0.map(|audio_map| {
                     audio_map
