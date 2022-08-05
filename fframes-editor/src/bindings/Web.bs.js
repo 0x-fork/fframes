@@ -37,12 +37,12 @@ var $$Element = {
   isFocusable: isFocusable
 };
 
-var $$Float32Array = {};
+var $$Int16Array = {};
 
 export {
   $$Window ,
   $$Element ,
-  $$Float32Array ,
+  $$Int16Array ,
   
 }
 /* No side effect */

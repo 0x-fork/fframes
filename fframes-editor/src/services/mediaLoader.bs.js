@@ -85,7 +85,7 @@ function processImports(imports, wasmController) {
                                           )
                                       )
                                   ), (function (resolveFn) {
-                                    return Curry._3(resolveFn, name, moduleVal.default, wasmController);
+                                    return Curry._3(resolveFn, name, moduleVal, wasmController);
                                   }));
                     }))).then(function (param) {
               return Curry._1(MediaLoaderObserver.dispatch, /* MediaProcessingFinished */0);

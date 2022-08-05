@@ -7,6 +7,7 @@ pub enum ImageData {
     RawPng(Arc<Vec<u8>>),
     RawJpg(Arc<Vec<u8>>),
     None,
+    Base64(String),
 }
 
 #[derive(Clone, Debug)]

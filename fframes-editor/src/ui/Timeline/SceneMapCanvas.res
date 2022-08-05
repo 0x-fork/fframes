@@ -50,7 +50,7 @@ let renderMainScene = (ctx, size, editorContext: EditorContext.editorContext) =>
   let framesBreak = editorContext.videoMeta.durationInFrames / maxFramesInScene
 
   Range.forEach(0, maxFramesInScene, i => {
-    let svg = editorContext.wasmController.render_frame((i * framesBreak)->Js.BigInt.fromInt)
+    let svg = editorContext.wasmController.render_preview_frame((i * framesBreak)->Js.BigInt.fromInt)
 
     let image = Image.make(~width=Float.fromInt(width), ~height=scene_height_size->Float.fromInt)
 
@@ -95,7 +95,7 @@ let renderAudioWaveForm = (
   let media = MediaLoader.MediaLoaderObserver.get().mediaList->Belt.Map.String.get(audioName)
   let audioInfo = switch media {
   | Some(Media(Audio(audioInfo))) => audioInfo
-  | _ => failwith(`Unknown audio type ${audioName}`)
+  | _ => failwith(`Unknown audio file ${audioName}. Did you forget to add it to your media folder?`)
   }
 
   let positionStart = 0
@@ -113,7 +113,7 @@ let renderAudioWaveForm = (
   ctx->Canvas2d.setStrokeStyle(String, "#e2e8f0")
 
   while x.contents < audioSpaceWidth || position.contents < positionEnd {
-    let pcm = audioInfo.monoPcmData->Web.Float32Array.get(position.contents)
+    let pcm = audioInfo.monoPcmData->Web.Int16Array.get(position.contents)
 
     let y = mid +. y0 +. pcm /. 32768. *. mid
     ctx->Canvas2d.lineTo(~x=x.contents, ~y)

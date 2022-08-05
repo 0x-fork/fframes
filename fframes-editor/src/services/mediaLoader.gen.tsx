@@ -16,7 +16,7 @@ import type {Js_ArrayBuffer_t as ReScriptJs_Js_ArrayBuffer_t} from './shims/Js.s
 
 import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
 
-import type {Js_Float32Array_t as ReScriptJs_Js_Float32Array_t} from './shims/Js.shim';
+import type {Js_Int16Array_t as ReScriptJs_Js_Int16Array_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 
@@ -28,7 +28,7 @@ export type audioInfo = {
   readonly sampleRate: number; 
   readonly arrayBuffer: ReScriptJs_Js_ArrayBuffer_t; 
   readonly audioData: WebAudio_AudioBuffer_t; 
-  readonly monoPcmData: ReScriptJs_Js_Float32Array_t
+  readonly monoPcmData: ReScriptJs_Js_Int16Array_t
 };
 
 // tslint:disable-next-line:interface-over-type-literal
@@ -46,7 +46,7 @@ export type processedMedia =
   | { tag: "Audio"; value: audioInfo };
 
 // tslint:disable-next-line:interface-over-type-literal
-export type mediaImport = { readonly default: string };
+export type mediaImport = string;
 
 // tslint:disable-next-line:interface-over-type-literal
 export type forceTsReturnResolveMedia = "MediaResolved";

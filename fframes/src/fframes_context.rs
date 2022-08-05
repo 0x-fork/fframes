@@ -18,9 +18,10 @@ pub struct FFramesContext {
 
 impl FFramesContext {
     pub fn get_audio_data(&self, filename: &str) -> &audio_data::AudioData {
+        // crate::log!("{:?}", self.media_provider.audio);
         match self.media_provider.audio.get(filename) {
             Some(data) => data,
-            None => panic!("Audio data not found for {file}, please make sure that media folder contains {file}.mp3", file=filename)
+            None => panic!("Audio data not found for {file}, please make sure that media folder contains {file}", file=filename)
         }
     }
 
@@ -36,7 +37,12 @@ impl FFramesContext {
 
     pub fn get_image_link(&self, filename: &str) -> String {
         match self.media_provider.images.get(filename) {
-            Some((link, _)) => link.to_owned(),
+            Some((link, data)) => match (self.mode, data) {
+                (FFramesMode::EditorTimelinePreview, media_provider::ImageData::Base64(base64)) => {
+                    base64.to_owned()
+                }
+                _ => link.to_owned()
+            },
             None => panic!(
                 "Image {file} not found! Please make sure that media folder contains {file}",
                 file = filename

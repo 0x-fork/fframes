@@ -18,7 +18,7 @@ module Element = {
     }
 }
 
-module Float32Array = {
-  @get external length: Js.Float32Array.t => float = "length"
-  @get_index external get: (Js.Float32Array.t, int) => float = ""
+module Int16Array = {
+  @get external length: Js.Int16Array.t => float = "length"
+  @get_index external get: (Js.Int16Array.t, int) => float = ""
 }

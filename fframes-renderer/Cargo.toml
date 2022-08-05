@@ -1,0 +1,34 @@
+[package]
+name = "fframes_renderer"
+version = "0.1.0"
+edition = "2018"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tiny-skia = "0.6.1"
+resvg = "0.22.0"
+usvg = "0.22.0"
+handlebars = "4.0.1"
+rayon = "1.5.1"
+colored = "2"
+indicatif = "0.16.2"
+once_cell = "1.10.0"
+lazy_static = "1.3.0"
+lyon = "0.17.10"
+wgpu = "0.12.0"
+bytemuck = "1.9.1"
+futures = "0.3.1"
+
+syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
+ffmpeg-next = "4.4.0"
+uuid = { version = "0.8", features = ["v4"] }
+image = "0.24.1"
+svgr-macro = { path="../svgr-macro" }
+fframes = {path="../fframes"}
+media-loader = {path="../media-loader"}
+
+[build-dependencies]
+cc = "1.0"
+

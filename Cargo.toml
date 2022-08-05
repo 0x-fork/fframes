@@ -1,13 +1,23 @@
 [workspace]
 
 members = [
-    "bin",
     "svgr-macro",
-    "editor-wasm/bind",
-    "video",
     "media-loader",
     "webvtt-parser",
-    "fframes-editor-controller"
+    "fframes-renderer",
+    "fframes-editor-controller",
+    "examples/marketing",
+    "examples/marketing/editor/editor-bridge",
+    "examples/podcast",
+    "examples/podcast/editor/editor-bridge",
+    "examples/hello-world",
+    "examples/hello-world/editor/editor-bridge",
+    "examples/tiktok",
+    "examples/tiktok/editor/editor-bridge",
+]
+
+exclude = [
+    
 ]
 
 resolver="2"

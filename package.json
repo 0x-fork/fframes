@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "fframes-editor",
-    "editor-wasm"
+    "examples/**/*"
   ],
   "dependencies": {
     "react-from-svg": "^5.1.2"

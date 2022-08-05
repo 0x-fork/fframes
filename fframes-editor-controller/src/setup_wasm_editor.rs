@@ -69,7 +69,7 @@ macro_rules! setup_wasm_editor {
 
             #[wasm_bindgen(getter = name)]
             pub fn name(&self) -> String {
-                type_name::<$x>().to_owned()
+                std::any::type_name::<$x>().to_owned()
             }
 
             #[wasm_bindgen(getter, js_name = audioMap)]
@@ -146,11 +146,20 @@ macro_rules! setup_wasm_editor {
         }
 
         #[wasm_bindgen]
-        pub fn add_image_source(file: String, url: String) {
+        pub fn add_image_source(file: String, url: String, base64_data: Option<String>) {
             let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
-            media_provider
-                .images
-                .insert(file, (url, fframes::media_provider::ImageData::None));
+            media_provider.images.insert(
+                file,
+                (
+                    url,
+                    match base64_data {
+                        Some(base64_data) => {
+                            fframes::media_provider::ImageData::Base64(base64_data)
+                        }
+                        None => fframes::media_provider::ImageData::None,
+                    },
+                ),
+            );
         }
 
         #[wasm_bindgen]
@@ -162,6 +171,22 @@ macro_rules! setup_wasm_editor {
                 },
                 &fframes_context::FFramesContext {
                     mode: fframes_context::FFramesMode::Editor,
+                    fps: $x::FPS,
+                    sample_rate: 44100,
+                    media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
+                },
+            )
+        }
+
+        #[wasm_bindgen]
+        pub fn render_preview_frame(frame: i64) -> String {
+            VIDEO.render_frame(
+                &frame::Frame {
+                    fps: $x::FPS,
+                    index: frame,
+                },
+                &fframes_context::FFramesContext {
+                    mode: fframes_context::FFramesMode::EditorTimelinePreview,
                     fps: $x::FPS,
                     sample_rate: 44100,
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),

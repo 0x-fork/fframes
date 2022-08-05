@@ -20,6 +20,7 @@
     "@rescript/react": "^0.10.3",
     "bs-webapi": "^0.19.1",
     "gentype": "^4.3.0",
+    "minimp3-wasm": "^0.1.0",
     "react": "^0.0.0-experimental-3b3daf557-20211210",
     "react-dom": "^0.0.0-experimental-3b3daf557-20211210",
     "react-helmet": "^6.1.0",

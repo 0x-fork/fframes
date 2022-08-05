@@ -38,7 +38,7 @@ function renderMainScene(ctx, size, editorContext) {
   var maxFramesInScene = Caml_int32.div(size.maxSceneWidth | 0, width);
   var framesBreak = Caml_int32.div(editorContext.videoMeta.durationInFrames, maxFramesInScene);
   Belt_Range.forEach(0, maxFramesInScene, (function (i) {
-          var svg = Curry._1(editorContext.wasmController.render_frame, BigInt(Math.imul(i, framesBreak)));
+          var svg = Curry._1(editorContext.wasmController.render_preview_frame, BigInt(Math.imul(i, framesBreak)));
           var image = new Image(width, 120);
           image.src = "data:image/svg+xml;base64,".concat(window.btoa(svg));
           image.onload = (function (param) {
@@ -62,20 +62,28 @@ function renderScenesPlaceholder(ctx, size, _editorContext) {
 function renderAudioWaveForm(ctx, endFrame, startFrame, x0, y0, audioSpaceWidth, audioName, editorContext) {
   var media = Belt_MapString.get(Curry._1(MediaLoader.MediaLoaderObserver.get, undefined).mediaList, audioName);
   var audioInfo;
+  var exit = 0;
   if (media !== undefined) {
     switch (media.TAG | 0) {
       case /* Media */1 :
           var audioInfo$1 = media._0;
-          audioInfo = audioInfo$1.TAG === /* Audio */3 ? audioInfo$1._0 : Pervasives.failwith("Unknown audio type " + audioName);
+          if (audioInfo$1.TAG === /* Audio */3) {
+            audioInfo = audioInfo$1._0;
+          } else {
+            exit = 1;
+          }
           break;
       case /* Loading */0 :
       case /* Error */2 :
-          audioInfo = Pervasives.failwith("Unknown audio type " + audioName);
+          exit = 1;
           break;
       
     }
   } else {
-    audioInfo = Pervasives.failwith("Unknown audio type " + audioName);
+    exit = 1;
+  }
+  if (exit === 1) {
+    audioInfo = Pervasives.failwith("Unknown audio file " + audioName + ". Did you forget to add it to your media folder?");
   }
   var positionEnd = Math.imul(Caml_int32.div(endFrame - startFrame | 0, editorContext.videoMeta.fps), audioInfo.sampleRate);
   var length = positionEnd - 0 | 0;

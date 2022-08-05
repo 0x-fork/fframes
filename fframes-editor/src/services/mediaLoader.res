@@ -6,7 +6,7 @@ type audioInfo = {
   sampleRate: int,
   arrayBuffer: Js.ArrayBuffer.t,
   audioData: WebAudio.AudioBuffer.t,
-  monoPcmData: Js.Float32Array.t
+  monoPcmData: Js.Int16Array.t
 }
 
 type imageInfo = {
@@ -25,7 +25,7 @@ type processedMedia =
 type loadableMedia = Loading(string) | Media(processedMedia) | Error(string)
 
 @genType
-type mediaImport = {default: string}
+type mediaImport = string
 
 type action =
   | InitMediaProcessing(Js.Dict.t<mediaImport>)
@@ -107,7 +107,7 @@ let processImports = (~imports: Js.Dict.t<mediaImport>, ~wasmController: WasmCon
       name->Js.String.endsWith(".jpeg") =>
       Some(resolveImage)
     | _ => None
-    }->Option.map(resolveFn => resolveFn(name, moduleVal.default, wasmController))
+    }->Option.map(resolveFn => resolveFn(name, moduleVal, wasmController))
   })
   ->Promise.all
   ->Promise.thenResolve(_ => MediaLoaderObserver.dispatch(MediaProcessingFinished))

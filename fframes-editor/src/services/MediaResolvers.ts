@@ -9,10 +9,7 @@ export const resolveAudio: MediaResolver = async (
   name,
   url,
   wasmController
-) => {
-    // const audioElement = new Audio(url);
-    // await new Promise((resolve) => (audioElement.onloadedmetadata = resolve));
-
+) => { 
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
 
@@ -24,7 +21,7 @@ export const resolveAudio: MediaResolver = async (
   const data = await decoder.decode();
   const length = Math.floor(data.pcm.length / data.numChannels);
 
-  const monoPcm = new Float32Array(length);
+  const monoPcm = new Int16Array(length);
   for (let i = 0, j = 0; i < length; i += 1, j += data.numChannels) {
     monoPcm[i] = data.pcm[j]; // or maybe we should do (data.pcm[j + 1]) / 2?
   }
@@ -80,13 +77,29 @@ const loadImage = (url: string) =>
     img.src = url;
   });
 
+const imageToBase64 = (image: HTMLImageElement) => {
+  let canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+
+  let ctx = canvas.getContext("2d");
+  ctx?.drawImage(image, 0, 0);
+
+  return canvas.toDataURL("image/png");
+};
+
 export const resolveImage: MediaResolver = async (
   name,
   url,
   wasmController
 ) => {
   const image = await loadImage(url);
-  wasmController.add_image_source(name, url);
+  const base64 =
+    image.naturalHeight * image.naturalWidth > 250000
+      ? null
+      : imageToBase64(image);
+
+  wasmController.add_image_source(name, url, base64);
 
   return resolveMedia(name, {
     tag: "Image",

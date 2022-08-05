@@ -1,4 +1,3 @@
-import "../tw.css";
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { Editor } from "./ui/Editor.gen";
@@ -6,10 +5,11 @@ import { EditorContext } from "./EditorContext.gen";
 import type { WasmController } from "./WasmController.gen";
 import { processImports } from "./services/mediaLoader.gen";
 
-export function renderEditor(
-  imports: Parameters<typeof processImports>[0]["imports"],
-  wasmController: WasmController
-) {
+type Imports = Parameters<typeof processImports>[0]["imports"];
+let lastImports: Imports | null = null;
+
+export function renderEditor(imports: Imports, wasmController: WasmController) {
+  lastImports = imports;
   wasmController.default().then(() => {
     Promise.all([
       processImports({ imports, wasmController }),
@@ -31,7 +31,22 @@ export function renderEditor(
 }
 
 export async function load_audio_wasm_callback(name: string) {
-  const response = await fetch(`/media/${name}`);
+  if (!lastImports) {
+    throw new Error(
+      `Can not process audio duration callback for ${name} imports glob not provided.`
+    );
+  }
+
+  const importPath = Object.keys(lastImports).find((key) =>
+    lastImports?.[key].endsWith(name)
+  );
+  if (!importPath) {
+    throw new Error(
+      `Can not process file ${name}. Did you forget to include it in media folder?`
+    );
+  }
+
+  const response = await fetch(lastImports[importPath]);
 
   if (!response.ok) {
     throw new Error(

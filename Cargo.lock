@@ -504,6 +504,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "editor-bridge"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes-editor-controller",
+ "marketing-example",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "either"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -649,27 +659,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "fframes-editor-bind"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "fframes",
- "fframes-editor-controller",
- "js-sys",
- "lazy_static",
- "once_cell",
- "svgr-macro",
- "video",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
 name = "fframes-editor-controller"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "fframes",
+ "js-sys",
  "lazy_static",
  "serde",
  "wasm-bindgen",
@@ -677,7 +672,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "fframes-renderer"
+name = "fframes_renderer"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
@@ -700,7 +695,6 @@ dependencies = [
  "tiny-skia",
  "usvg",
  "uuid",
- "video",
  "wgpu",
 ]
 
@@ -997,6 +991,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "hello-world-editor-bridge"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes-editor-controller",
+ "hello-world-example",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "hello-world-example"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes_renderer",
+ "lazy_static",
+ "libm",
+ "svgr-macro",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1282,6 +1297,16 @@ name = "maplit"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
+
+[[package]]
+name = "marketing-example"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes_renderer",
+ "lazy_static",
+ "svgr-macro",
+]
 
 [[package]]
 name = "matches"
@@ -1725,6 +1750,27 @@ dependencies = [
  "deflate 0.9.1",
  "encoding",
  "miniz_oxide",
+]
+
+[[package]]
+name = "podcast-editor-bridge"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes-editor-controller",
+ "podcast-example",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "podcast-example"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes_renderer",
+ "lazy_static",
+ "libm",
+ "svgr-macro",
 ]
 
 [[package]]
@@ -2198,6 +2244,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiktok-editor-bridge"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes-editor-controller",
+ "tiktok-example",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "tiktok-example"
+version = "0.1.0"
+dependencies = [
+ "fframes",
+ "fframes_renderer",
+ "lazy_static",
+ "libm",
+ "svgr-macro",
+]
+
+[[package]]
 name = "tiny-skia"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2337,16 +2404,6 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
-
-[[package]]
-name = "video"
-version = "0.1.0"
-dependencies = [
- "fframes",
- "lazy_static",
- "libm",
- "svgr-macro",
-]
 
 [[package]]
 name = "walkdir"
