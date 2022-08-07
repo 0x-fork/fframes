@@ -1,4 +1,4 @@
-use crate::{Animation, AnimationRuntime};
+use crate::{animation, AnimationRuntime};
 
 pub struct Frame {
     pub index: i64,
@@ -26,10 +26,10 @@ impl Frame {
     /// # Examples
     ///
     /// ```rust
-    /// use fframes::{Animation, AnimationRuntime, Frame};
+    /// use fframes::{animation, AnimationRuntime, Frame};
     ///
     /// let frame = Frame { index: 0, fps: 60 };
-    /// const RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(Animation::Easing::Linear(2.0))
+    /// const RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(animation::Easing::Linear(2.0))
     ///
     /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000, to: 2000, animation_runtime: &RUNTIME);
     /// ```
@@ -44,7 +44,7 @@ impl Frame {
     ) -> f32 {
         let duration = animation_runtime.get_duration();
 
-        let res = match &self.get_current_second() {
+        match &self.get_current_second() {
             second if second < &on => from,
             second if second > &(on + duration) => to,
             second => {
@@ -53,8 +53,7 @@ impl Frame {
                 let animation_range = to - from;
                 from + animation_range * progress
             }
-        };
-        res
+        }
     }
 
     /// Returns the current value of the animation at the current second.
@@ -85,7 +84,7 @@ impl Frame {
     ///   />
     /// );
     /// ```
-    pub fn animate(&self, animation: &Animation::SteppedAnimation) -> f32 {
+    pub fn animate(&self, animation: &animation::Steppedanimation) -> f32 {
         let current_second = &self.get_current_second();
 
         let keyframe = animation
@@ -95,7 +94,7 @@ impl Frame {
             .find(|keyframe| keyframe.seconds_range.contains(current_second));
 
         match keyframe {
-            None => panic!("frame.animate can not get the value for frame {}. It may mean that SteppedAnimation is not correctly filled out./", self.index),
+            None => panic!("frame.animate can not get the value for frame {}. It may mean that Steppedanimation is not correctly filled out./", self.index),
             Some(keyframe) => {
                 let progress = keyframe
                     .animation_runtime

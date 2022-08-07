@@ -133,7 +133,9 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub fn add_subtitles_source(file: String, content: String) -> usize {
-            let parsed_subtitle = Subtitles::from_str(content.as_str());
+            use std::str::FromStr;
+
+            let parsed_subtitle = Subtitles::from_str(content.as_str()).unwrap();
             let phrases_count = parsed_subtitle.get_phrases_count();
 
             let mut media_provider = MEDIA_PROVIDER

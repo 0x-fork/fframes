@@ -1,4 +1,4 @@
-pub mod Animation;
+pub mod animation;
 pub mod audio_data;
 pub mod audio_map;
 pub mod audio_window_functions;
@@ -16,7 +16,7 @@ pub use fframes_context::*;
 pub use frame::*;
 pub use subtitles::*;
 pub use video::*;
-pub use Animation::*;
+pub use animation::*;
 
 pub use log::log::*;
 pub use svgr_macro::*;

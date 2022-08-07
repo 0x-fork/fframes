@@ -1,8 +1,5 @@
 use crate::{audio_window_functions, fframes_context, frame};
-use std::{
-    convert::TryInto,
-    ops::{Index, Range},
-};
+use std::{convert::TryInto, ops::Range};
 
 #[derive(Debug, Clone)]
 pub struct PreloadedAudioData {
@@ -93,6 +90,7 @@ pub struct VisualizeFrameInput<'a> {
     pub window: Option<audio_window_functions::WindowFunction>,
 }
 
+#[allow(clippy::unnecessary_lazy_evaluations)]
 fn apply_fft_to_frame(
     sample_size: &SampleSize,
     window: &Option<audio_window_functions::WindowFunction>,
@@ -160,16 +158,6 @@ fn apply_fft_to_frame(
     }
 }
 
-fn convert_fft_result_to_magnitude(num: &microfft::Complex32) -> f32 {
-    let magnitude = (num.re * num.re + num.im + num.im).sqrt();
-
-    if magnitude.is_nan() {
-        0f32
-    } else {
-        magnitude
-    }
-}
-
 pub fn get_visualization(
     frame: i64,
     VisualizeFrameInput {
@@ -180,13 +168,10 @@ pub fn get_visualization(
         ..
     }: &VisualizeFrameInput,
 ) -> Vec<f32> {
-    // if ctx.fft_hash.contains_key(frame) {
-    //     return ctx.fft_hash.get(frame).unwrap().to_owned();
-    // }
-
+    // TODO cache the results per frame to avoid same frame calculation when smoothing
     let fft_size = get_fft_size_number(sample_size);
 
-    let res = apply_fft_to_frame(&sample_size, window, audio, frame, ctx.fps as i64)
+    let res = apply_fft_to_frame(sample_size, window, audio, frame, ctx.fps as i64)
         .iter()
         .map(|x| x.norm() / fft_size as f32)
         .collect::<Vec<f32>>();

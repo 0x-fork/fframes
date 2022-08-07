@@ -25,7 +25,7 @@ impl Video for PodcastVideo {
             frame,
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
-                ctx: &ctx,
+                ctx,
                 audio: ctx.get_audio_data("me.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,
@@ -36,7 +36,7 @@ impl Video for PodcastVideo {
             frame,
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
-                ctx: &ctx,
+                ctx,
                 audio: ctx.get_audio_data("vlad.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,
@@ -46,7 +46,7 @@ impl Video for PodcastVideo {
             frame,
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
-                ctx: &ctx,
+                ctx,
                 audio: ctx.get_audio_data("guest.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,

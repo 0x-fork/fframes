@@ -3,7 +3,6 @@ use crate::ffmpeg_loggable_action;
 use crate::renderer_error::AVError;
 use crate::renderer_error::AVResult;
 use ffmpeg_next::sys::*;
-use std;
 use std::ffi::CStr;
 use std::ffi::CString;
 
@@ -160,21 +159,11 @@ impl Stream {
 
     pub(crate) unsafe fn set_swr_option(swr_ctx: *mut SwrContext, name: &str, val: i32) {
         let name = CString::new(name).unwrap();
-        av_opt_set_int(
-            swr_ctx as *mut std::ffi::c_void,
-            name.as_ptr(),
-            val.into(),
-            0,
-        );
+        av_opt_set_int(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val.into(), 0);
     }
 
     pub(crate) unsafe fn set_swr_fmt(swr_ctx: *mut SwrContext, name: &str, val: AVSampleFormat) {
         let name = CString::new(name).unwrap();
-        av_opt_set_sample_fmt(
-            swr_ctx as *mut std::ffi::c_void,
-            name.as_ptr(),
-            val.into(),
-            0,
-        );
+        av_opt_set_sample_fmt(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val, 0);
     }
 }

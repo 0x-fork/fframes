@@ -2,7 +2,7 @@ mod cue_settings_parser;
 pub mod error;
 mod vtt_parser;
 extern crate nom;
-use error::WebVttError;
+pub use error::VttError;
 use nom_locate::LocatedSpan;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
@@ -26,7 +26,7 @@ pub fn div_rem<T: std::ops::Div<Output = T> + std::ops::Rem<Output = T> + Copy>(
 impl Display for Time {
     fn fmt(&self, formatter: &mut Formatter) -> fmt::Result {
         // print hour if needed
-        let (hours, reminder) = div_rem(self.0, 3600_000);
+        let (hours, reminder) = div_rem(self.0, 3_600_000);
         let (minutes, reminder) = div_rem(reminder, 60_000);
         let (seconds, milliseconds) = div_rem(reminder, 1000);
 
@@ -144,7 +144,7 @@ impl Display for CueSettings {
         fn format_opt<T: Display>(name: &str, option: Option<T>) -> String {
             option
                 .map(|value| format!(" {}:{}", name, value))
-                .unwrap_or("".to_owned())
+                .unwrap_or_else(|| "".to_owned())
         }
 
         write!(
@@ -184,17 +184,17 @@ impl Display for Cue {
             self.note
                 .as_ref()
                 .map(|comment| format!("NOTE {}\n", comment))
-                .unwrap_or("".to_owned()),
+                .unwrap_or_else(|| "".to_owned()),
             self.name
                 .as_ref()
                 .map(|comment| format!("NOTE {}\n", comment))
-                .unwrap_or("".to_owned()),
+                .unwrap_or_else(|| "".to_owned()),
             self.start,
             self.end,
             self.cue_settings
                 .as_ref()
                 .map(|setting| format!("{}", setting))
-                .unwrap_or("".to_owned()),
+                .unwrap_or_else(|| "".to_owned()),
             self.text
         )
     }
@@ -222,20 +222,6 @@ impl Display for Vtt {
     }
 }
 
-impl<'a> Debug for WebVttError<'a> {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            formatter,
-            "\n\nparse error: was looking for {}\nmessage: {:?}\nextra: {:?}\n\n{} | {}\n\n",
-            self.looking_for,
-            self.message,
-            self.input.extra,
-            self.input.location_line(),
-            self.input.fragment(),
-        )
-    }
-}
-
 /// Parse [webvtt subtitles](https://developer.mozilla.org/en-US/docs/Web/API/WebVTT_API) from provided string.
 /// # Example
 /// ```rust
@@ -258,7 +244,7 @@ impl<'a> Debug for WebVttError<'a> {
 
 pub type Span<'a> = LocatedSpan<&'a str>;
 
-pub fn parse_vtt(content: &str) -> Result<Vtt, WebVttError> {
+pub fn parse_vtt(content: &str) -> Result<Vtt, VttError> {
     let content = Span::from(content);
 
     let (_, vtt) = vtt_parser::parse(content)?;
@@ -457,10 +443,11 @@ mod tests {
 
         match parse_vtt(&content) {
             Ok(_) => panic!("The data is invalid, should fail."),
-            Err(WebVttError {
+            Err(VttError {
                 looking_for,
                 input,
                 message,
+                ..
             }) => {
                 assert_eq!(looking_for, "Tag");
                 assert_eq!(
@@ -485,11 +472,7 @@ mod tests {
 
         match parse_vtt(&content) {
             Ok(_) => (),
-            Err(WebVttError {
-                looking_for,
-                input,
-                message,
-            }) => panic!("The data is valid, shouldn't fail."),
+            Err(VttError { .. }) => panic!("The data is valid, shouldn't fail."),
         }
     }
 }

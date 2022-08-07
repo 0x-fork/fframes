@@ -1,10 +1,11 @@
-use crate::{AnimateRuntimeInput, Animation, Frame};
-use svgr_macro::svgr;
+use crate::{AnimateRuntimeInput, animation, Frame};
+
 
 mod fframes {
-    pub use crate::*;
+  pub use crate::*;
 }
 
+use svgr_macro::svgr;
 pub struct Ctx;
 
 impl Ctx {
@@ -35,9 +36,9 @@ pub fn macro_animations() {
 
             <rect
                 x={frame.animate(fframes::timeline!(
-                  on 0., val 10.0 => 12.2, Animation::Easing::Linear(0.2),
-                  on 10., val 10.0 => 12.2, Animation::Easing::Linear(0.2),
-                  on 12., val 10.0 => 12.2, Animation::Easing::Linear(0.2)
+                  on 0., val 10.0 => 12.2, animation::Easing::Linear(0.2),
+                  on 10., val 10.0 => 12.2, animation::Easing::Linear(0.2),
+                  on 12., val 10.0 => 12.2, animation::Easing::Linear(0.2)
                 ))}
             />
           </svg>

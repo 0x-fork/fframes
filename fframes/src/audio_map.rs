@@ -1,6 +1,5 @@
-use std::{array, collections::HashMap, ops::Range};
-
 use crate::FFramesContext;
+use std::{collections::HashMap, ops::Range};
 
 pub enum AudioTimestamp {
     Frame(usize),
@@ -10,7 +9,7 @@ pub enum AudioTimestamp {
 }
 
 impl AudioTimestamp {
-    pub(crate) fn to_seconds(&self, filename: &str, ctx: &FFramesContext) -> f32 {
+    pub fn to_seconds(&self, filename: &str, ctx: &FFramesContext) -> f32 {
         match self {
             AudioTimestamp::Frame(frame) => *frame as f32 * ctx.fps as f32,
             AudioTimestamp::Second(seconds) => *seconds as f32,
@@ -37,7 +36,7 @@ pub struct AudioMap(pub Option<HashMap<&'static str, AudioDuration>>);
 pub struct ResolvedAudioMap(pub HashMap<&'static str, Range<usize>>);
 
 impl ResolvedAudioMap {
-    pub fn calc_stream_duration_in_samples(&self, ctx: &FFramesContext) -> usize {
+    pub fn calc_stream_duration_in_samples(&self) -> usize {
         self.0
             .iter()
             .map(|(_, range)| (range.start + range.end))
@@ -52,7 +51,7 @@ impl AudioMap {
             .as_ref()
             .map(|hash_map| {
                 hash_map
-                    .into_iter()
+                    .iter()
                     .map(|(f, (start_ts, end_ts))| {
                         let start_sample = start_ts.to_samples(f, ctx);
                         let end_sample = end_ts.to_samples(f, ctx) + start_sample;

@@ -1,10 +1,6 @@
 use crate::audio_map::AudioMap;
-use crate::{audio_data, fframes_context, frame};
-use std::{array, collections::HashMap, hash::Hash};
+use crate::{fframes_context, frame};
 
-pub struct EnvContext {
-    pub audio: HashMap<String, audio_data::AudioData>,
-}
 pub enum Duration {
     FromAudio(&'static str),
     Seconds(usize),

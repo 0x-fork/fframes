@@ -1,6 +1,8 @@
 use crate::frame::Frame;
-use std::{fs, path::Path};
-use webvtt_parser::{self, parse_vtt, Vtt};
+use std::{fs, path::Path, str::FromStr};
+use webvtt_parser::{self, parse_vtt, Vtt, VttError};
+
+pub type SubtitlesError = VttError;
 
 #[derive(Debug, Clone)]
 pub struct Subtitles {
@@ -13,14 +15,16 @@ impl Subtitles {
     }
 }
 
-impl Subtitles {
-    pub fn from_str(content: &str) -> Self {
-        Subtitles {
-            subtitles: parse_vtt(content).unwrap(),
-        }
-    }
+impl FromStr for Subtitles {
+    type Err = VttError;
 
-    pub fn from_file<P: AsRef<Path>>(path: P) -> Self {
+    fn from_str(content: &str) -> Result<Subtitles, VttError> {
+        parse_vtt(content).map(|subtitles| Subtitles { subtitles })
+    }
+}
+
+impl Subtitles {
+    pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self, VttError> {
         let file = fs::read_to_string(path).unwrap();
         Self::from_str(file.as_str())
     }

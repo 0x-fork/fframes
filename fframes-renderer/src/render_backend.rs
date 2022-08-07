@@ -11,6 +11,7 @@ use crate::{
     renderer_error::{FFramesError, FFramesResult},
 };
 
+#[allow(clippy::too_many_arguments)]
 pub trait FFramesRenderBackend {
     fn render<'a, TVideo: Video + Sync + Sized>(
         &self,
@@ -117,7 +118,6 @@ impl FFramesRenderBackend for CpuRenderingBackend {
 
                         chunk_range
                             .to_owned()
-                            .into_iter()
                             .enumerate()
                             .try_for_each(|(index, fr)| {
                                 let svg = video.render_frame(

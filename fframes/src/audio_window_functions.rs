@@ -25,9 +25,9 @@ pub fn hann_window(samples: &[i16]) -> Vec<f32> {
 pub fn hamming_window(samples: &[i16]) -> Vec<f32> {
     let mut windowed_samples = Vec::with_capacity(samples.len());
     let samples_len_f32 = samples.len() as f32;
-    for i in 0..samples.len() {
+    for (i, sample) in samples.iter().enumerate() {
         let multiplier = 0.54 - (0.46 * (2.0 * PI * i as f32 / cosf(samples_len_f32 - 1.0)));
-        windowed_samples.push(multiplier * samples[i] as f32)
+        windowed_samples.push(multiplier * *sample as f32)
     }
     windowed_samples
 }

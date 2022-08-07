@@ -11,12 +11,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::fframes_logger::FFramesLogger;
+use crate::{fframes_logger::FFramesLogger, renderer_error::FFramesResult};
 
 pub fn load_media_from_folder(
     logger: &Arc<dyn FFramesLogger>,
     folder_path: &str,
-) -> io::Result<MediaProvider> {
+) -> FFramesResult<MediaProvider> {
     let audio_hash = Arc::new(Mutex::new(HashMap::new()));
     let subtitles_hash = Arc::new(Mutex::new(HashMap::new()));
     let image_hash = Arc::new(Mutex::new(HashMap::new()));
@@ -27,84 +27,87 @@ pub fn load_media_from_folder(
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput, // todo change to NotADirectory when this https://github.com/rust-lang/rust/issues/86442 will be stable
             "resources_dir must be a folder",
-        ));
+        )
+        .into());
     }
 
     let media_files = fs::read_dir(folder_path)?
         .filter_map(|path_buf| {
-            path_buf
-                .ok()
-                .map(|path_buf| {
-                    let path = path_buf.path();
-                    if path.is_dir() {
-                        None
-                    } else {
-                        Some(path)
-                    }
-                })
-                .flatten()
+            path_buf.ok().and_then(|path_buf| {
+                let path = path_buf.path();
+                if path.is_dir() {
+                    None
+                } else {
+                    Some(path)
+                }
+            })
         })
         .collect::<Vec<_>>();
 
     logger.init_media_processing(media_files.len());
 
-    media_files.into_par_iter().for_each(|path| {
-        match path.file_name().map(|os_str| os_str.to_str()).flatten() {
-            Some(filename) => {
-                logger.log_media_processing_start(filename, &path);
+    media_files
+        .into_par_iter()
+        .try_for_each(|path| -> FFramesResult<()> {
+            match path.file_name().and_then(|os_str| os_str.to_str()) {
+                Some(filename) => {
+                    logger.log_media_processing_start(filename, &path);
 
-                match filename {
-                    filename if filename.ends_with(".mp3") => {
-                        let (sample_rate, samples) = media_loader::decode_mp3(&path);
+                    match filename {
+                        filename if filename.ends_with(".mp3") => {
+                            let (sample_rate, samples) = media_loader::decode_mp3(&path);
 
-                        audio_hash.lock().unwrap().insert(
-                            filename.to_owned(),
-                            audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
-                                sample_rate,
-                                samples,
-                            }),
-                        );
-                    }
-                    filename if filename.ends_with(".vtt") => {
-                        subtitles_hash
-                            .lock()
-                            .unwrap()
-                            .insert(filename.to_owned(), Subtitles::from_file(&path));
-                    }
-                    filename if filename.ends_with(".ttf") || filename.ends_with(".woff") => {
-                        path.to_str().map(|font_path| {
-                            fonts_hash
+                            audio_hash.lock().unwrap().insert(
+                                filename.to_owned(),
+                                audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
+                                    sample_rate,
+                                    samples,
+                                }),
+                            );
+                        }
+                        filename if filename.ends_with(".vtt") => {
+                            subtitles_hash
                                 .lock()
                                 .unwrap()
-                                .insert(filename.to_owned(), font_path.to_owned());
-                        });
-                    }
-                    filename if filename.ends_with(".png") => {
-                        image_hash.lock().unwrap().insert(
-                            filename.to_owned(),
-                            (
+                                .insert(filename.to_owned(), Subtitles::from_file(&path)?);
+                        }
+                        filename if filename.ends_with(".ttf") || filename.ends_with(".woff") => {
+                            path.to_str().map(|font_path| {
+                                fonts_hash
+                                    .lock()
+                                    .unwrap()
+                                    .insert(filename.to_owned(), font_path.to_owned());
+                            });
+                        }
+                        filename if filename.ends_with(".png") => {
+                            image_hash.lock().unwrap().insert(
                                 filename.to_owned(),
-                                ImageData::RawPng(Arc::new(fs::read(&path).unwrap())),
-                            ),
-                        );
-                    }
-                    filename if filename.ends_with(".jpg") || filename.ends_with(".jpeg") => {
-                        image_hash.lock().unwrap().insert(
-                            filename.to_owned(),
-                            (
+                                (
+                                    filename.to_owned(),
+                                    ImageData::RawPng(Arc::new(fs::read(&path).unwrap())),
+                                ),
+                            );
+                        }
+                        filename if filename.ends_with(".jpg") || filename.ends_with(".jpeg") => {
+                            image_hash.lock().unwrap().insert(
                                 filename.to_owned(),
-                                ImageData::RawJpg(Arc::new(fs::read(&path).unwrap())),
-                            ),
-                        );
-                    }
-                    filename => logger.log_unprocessed_media_file(filename),
+                                (
+                                    filename.to_owned(),
+                                    ImageData::RawJpg(Arc::new(fs::read(&path).unwrap())),
+                                ),
+                            );
+                        }
+                        filename => {
+                            logger.log_unprocessed_media_file(filename);
+                        }
+                    };
                 }
-            }
-            _ => (),
-        }
+                _ => (),
+            };
 
-        logger.log_processed_media(&path);
-    });
+            logger.log_processed_media(&path);
+            Ok(())
+        })?;
 
     let audio = audio_hash.lock().unwrap();
     let images = image_hash.lock().unwrap();

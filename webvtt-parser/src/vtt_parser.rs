@@ -24,7 +24,7 @@ fn parse_note(input: Span) -> IResult<Span, Option<String>> {
     let (note_body, _) = tag("NOTE ")(line)?;
     let (rest, _) = newline(rest)?;
 
-    Ok((rest, Some(note_body.to_string().to_owned())))
+    Ok((rest, Some(note_body.to_string())))
 }
 
 pub(crate) fn parse_number<TNumber: std::str::FromStr>(input: Span) -> IResult<Span, TNumber> {
@@ -59,7 +59,7 @@ fn parse_cue_identifier(input: Span) -> IResult<Span, Option<String>> {
         Ok((input, None))
     } else {
         let (rest, _) = newline(rest)?;
-        Ok((rest, Some(line.to_string().to_owned())))
+        Ok((rest, Some(line.to_string())))
     }
 }
 

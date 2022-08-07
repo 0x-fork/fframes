@@ -2,13 +2,13 @@ pub use fframes::{
     audio_data, audio_window_functions, fframes_context, frame::Frame, subtitles, video::Video,
 };
 use fframes::{
-    Animation::{self, AnimationRuntime},
+    animation::{self, AnimationRuntime},
     AudioMap, AudioTimestamp,
 };
 use lazy_static::lazy_static;
 use svgr_macro::{self, svgr};
 
-const SPRING: Animation::Easing = Animation::Easing::Spring2(1.85, 130., 16.);
+const SPRING: animation::Easing = animation::Easing::Spring2(1.85, 130., 16.);
 
 lazy_static! {
     static ref SPRING_RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(&SPRING);
@@ -38,7 +38,7 @@ impl Video for GooseVideo {
             &audio_data::VisualizeFrameInput {
                 audio: ctx.get_audio_data("thought.mp3"),
                 sample_size: audio_data::SampleSize::S64,
-                ctx: &ctx,
+                ctx,
                 smooth_level: 4,
                 window: None,
             },

@@ -11,7 +11,6 @@ mod ffmpeg_helper;
 pub mod fframes_logger;
 pub use fframes_logger::*;
 use renderer_error::FFramesError;
-use usvg::Image;
 mod gpu;
 mod media_processor;
 pub mod render_backend;
@@ -35,10 +34,10 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     options: RenderOptions<'a, TBackend>,
 ) -> Result<(), FFramesError> {
     let fps = TVideo::FPS;
-    let mut logger = fframes_logger::make_logger(options.logger);
+    let logger = fframes_logger::make_logger(options.logger);
 
     let media_provider =
-        media_processor::load_media_from_folder(&mut logger, options.media_dir).unwrap();
+        media_processor::load_media_from_folder(&logger, options.media_dir).unwrap();
 
     let mut opt = usvg::Options::default();
 
@@ -60,7 +59,9 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
                 .map(|(_, image)| match image {
                     ImageData::RawJpg(data) => usvg::ImageKind::JPEG(data.to_owned()),
                     ImageData::RawPng(data) => usvg::ImageKind::PNG(data.to_owned()),
-                    ImageData::Base64(_) => panic!("Did not expect base64 image during rendering. Failing."),
+                    ImageData::Base64(_) => {
+                        panic!("Did not expect base64 image during rendering. Failing.")
+                    }
                     ImageData::None => {
                         panic!("Somehow missing image data during rendering phase. Failing.")
                     }
@@ -73,7 +74,7 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
             let main_audio = media_provider
                 .audio
                 .get(audio)
-                .ok_or(FFramesError::MissingRequiredMedia(audio.to_owned()))?;
+                .ok_or_else(|| FFramesError::MissingRequiredMedia(audio.to_owned()))?;
 
             match main_audio {
                 AudioData::Preloaded(data) => {

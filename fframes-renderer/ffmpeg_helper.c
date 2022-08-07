@@ -11,7 +11,7 @@ const char *av_error_to_string(int error_code)
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 
-int make_stereo_layout_channel(AVCodecContext *c, AVCodec *codec)
+void make_stereo_layout_channel(AVCodecContext *c, AVCodec *codec)
 {
 
   c->channels = av_get_channel_layout_nb_channels(c->channel_layout);

@@ -2,13 +2,13 @@ use colored::*;
 use core::fmt::Debug;
 use indicatif::ProgressBar;
 use once_cell::sync::OnceCell;
-use std::{path::PathBuf, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 pub trait FFramesLogger: Sync + Send {
     fn init_media_processing(&self, media_count: usize);
-    fn log_processed_media(&self, path: &PathBuf);
+    fn log_processed_media(&self, path: &Path);
     fn log_unprocessed_media_file(&self, filename: &str);
-    fn log_media_processing_start(&self, filename: &str, path: &PathBuf);
+    fn log_media_processing_start(&self, filename: &str, path: &Path);
 
     fn init_frames_rendering(&self, all_frames: usize);
     fn log_frame(&self, index: usize, thread_number: usize, svg: &str);
@@ -59,9 +59,9 @@ impl FFramesLogger for CompactFFramesLogger {
         self.media_progress_bar.set(progress_bar).unwrap();
     }
 
-    fn log_media_processing_start(&self, _filename: &str, _path: &PathBuf) {}
+    fn log_media_processing_start(&self, _filename: &str, _path: &Path) {}
 
-    fn log_processed_media(&self, _path: &PathBuf) {
+    fn log_processed_media(&self, _path: &Path) {
         let pb = self
             .media_progress_bar
             .get()
@@ -86,9 +86,9 @@ impl FFramesLogger for SilentLogger {
 
     fn init_media_processing(&self, _all_frames: usize) {}
 
-    fn log_processed_media(&self, _path: &PathBuf) {}
+    fn log_processed_media(&self, _path: &Path) {}
 
-    fn log_media_processing_start(&self, _filename: &str, _path: &PathBuf) {}
+    fn log_media_processing_start(&self, _filename: &str, _path: &Path) {}
 }
 
 impl Debug for dyn FFramesLogger {

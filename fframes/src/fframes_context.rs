@@ -68,7 +68,7 @@ impl FFramesContext {
                         start_of_this_frame_in_file..start_of_this_frame_in_file + frame_size,
                     )
                     .map(|data| {
-                        data.into_iter().enumerate().for_each(|(i, sample)| {
+                        data.iter().enumerate().for_each(|(i, sample)| {
                             let fltp_sample = *sample as f32 / i16::MAX as f32;
                             let filled_sample = audio_data[i];
 

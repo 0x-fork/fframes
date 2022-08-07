@@ -41,6 +41,7 @@ pub enum FFramesError {
     FFmpegError(AVError),
     RenderChunkError(usize, AVError),
     MediaError(std::io::Error),
+    SubtitlesParsingError(fframes::SubtitlesError),
     MissingRequiredMedia(String),
 }
 
@@ -62,6 +63,7 @@ impl fmt::Debug for FFramesError {
                     "Missing required media {}. Verify that you provided correct media_dir.",
                     required_media.magenta().bold()
                 ),
+                Self::SubtitlesParsingError(err) => format!("{:?}", err),
             }
         )
     }
@@ -78,5 +80,11 @@ impl From<AVError> for FFramesError {
 impl From<std::io::Error> for FFramesError {
     fn from(io_error: std::io::Error) -> Self {
         Self::MediaError(io_error)
+    }
+}
+
+impl From<fframes::SubtitlesError> for FFramesError {
+    fn from(err: fframes::SubtitlesError) -> Self {
+        Self::SubtitlesParsingError(err)
     }
 }

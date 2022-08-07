@@ -8,7 +8,6 @@ use syn::{
 pub(crate) fn prepare_svg_nodes_for_format_statement(
     nodes: Vec<Node>,
 ) -> (String, Vec<Expr>, Vec<TokenStream>) {
-    
     let mut out = String::new();
     let mut values = vec![];
     let mut animations = vec![];
@@ -76,7 +75,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                 let block = match block {
                     Expr::Block(val) => match &val.block.stmts[0] {
                         syn::Stmt::Expr(expr) => match expr {
-                            Expr::MethodCall(method) if method.method.to_string() == "animate" => {
+                            Expr::MethodCall(method) if method.method == "animate" => {
                                 macro_call = Some(method.args[0].clone());
 
                                 let mut method_call_with_replaced_animation_ref = method.clone();
@@ -105,7 +104,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
 
                 if let Some(macro_call) = macro_call {
                     animations.push(quote! {
-                        static ref #identifier: fframes::Animation::SteppedAnimation = #macro_call;
+                        static ref #identifier: fframes::animation::Steppedanimation = #macro_call;
                     });
                 }
 

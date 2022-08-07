@@ -1,7 +1,7 @@
 use std::{num::NonZeroU32, sync::Arc};
 
 use crate::{
-    concatenator::{self, fill_audio_stream},
+    concatenator::fill_audio_stream,
     encoder::{Encoder, EncoderFrame, EncoderOptions},
     fframes_logger::FFramesLogger,
     render_backend::FFramesRenderBackend,

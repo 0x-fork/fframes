@@ -4,9 +4,9 @@ use syn::{
     ext::IdentExt,
     parse::{discouraged::Speculative, Parse, ParseStream, Parser as _, Peek},
     punctuated::Punctuated,
-    token::{Brace, Colon, Colon2, Token},
-    Block, Error, Expr, ExprBlock, ExprLit, ExprMacro, ExprPath, Ident, Macro, Path, PathSegment,
-    Result, Stmt, Token,
+    token::{Brace, Colon, Colon2},
+    Block, Error, Expr, ExprBlock, ExprLit, ExprPath, Ident, Path, PathSegment, Result, Stmt,
+    Token,
 };
 
 use crate::{node::*, punctuation::*, validate_svg::validate_attribute};
@@ -131,7 +131,7 @@ impl Parser {
             label: None,
             block: Block {
                 brace_token: Brace { span },
-                stmts: Block::parse_within(&input)?,
+                stmts: Block::parse_within(input)?,
             },
         }
         .into())
@@ -142,26 +142,19 @@ impl Parser {
 
         let first_statement = &statements[0];
         match first_statement {
-            Expr(mac) => match mac {
-                syn::Expr::MethodCall(method_call) => {
-                    let first_arg = &method_call.args[0];
-
-                    method_call.method.to_string() == "animate"
-                        && method_call.args.len() == 1
-                        && match &method_call.args[0] {
-                            syn::Expr::Macro(macro_expr) => macro_expr
-                                .mac
-                                .path
-                                .segments
-                                .iter()
-                                .find(|segment| segment.ident.to_string() == "timeline")
-                                .is_some(),
-                            _ => false,
-                        }
-                }
-
-                _ => false,
-            },
+            Expr(syn::Expr::MethodCall(method_call)) => {
+                method_call.method == "animate"
+                    && method_call.args.len() == 1
+                    && match &method_call.args[0] {
+                        syn::Expr::Macro(macro_expr) => macro_expr
+                            .mac
+                            .path
+                            .segments
+                            .iter()
+                            .any(|segment| segment.ident == "timeline"),
+                        _ => false,
+                    }
+            }
             _ => false,
         }
     }
@@ -337,7 +330,7 @@ impl Parser {
 
             Ok(Node {
                 name: None,
-                node_type: node_type,
+                node_type,
                 value: Some(value),
                 attributes: vec![],
                 children: vec![],

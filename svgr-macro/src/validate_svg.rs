@@ -1,7 +1,7 @@
 use crate::node::NodeName;
 use syn::{parse::ParseBuffer, Result};
 
-const UNSUPPORTED_NODES: [&'static str; 9] = [
+const UNSUPPORTED_NODES: [&str; 9] = [
     "altGlyph",
     "altGlyphDef",
     "animate",
@@ -22,7 +22,7 @@ pub(crate) fn validate_node(input: &ParseBuffer, node: &NodeName) -> Result<()> 
     }
 }
 
-const UNSUPPORTED_ATTRS: [&'static str; 1] = ["dominant-baseline"];
+const UNSUPPORTED_ATTRS: [&str; 1] = ["dominant-baseline"];
 
 pub(crate) fn validate_attribute(input: &ParseBuffer, node: &NodeName) -> Result<()> {
     match node.to_string() {

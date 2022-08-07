@@ -30,12 +30,6 @@ fn parse(tokens: proc_macro::TokenStream) -> Result<Vec<Node>> {
     parser.parse(tokens)
 }
 
-fn parse_with_config(tokens: proc_macro::TokenStream, config: ParserOptions) -> Result<Vec<Node>> {
-    let parser = move |input: ParseStream| Parser::new(config).parse(input);
-
-    parser.parse(tokens)
-}
-
 #[proc_macro]
 pub fn svgr(tokens: TokenStream) -> TokenStream {
     match parse(tokens) {

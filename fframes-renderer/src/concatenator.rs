@@ -1,9 +1,6 @@
-use ffmpeg_next::codec::Audio;
-use ffmpeg_next::{decoder::audio, sys::*};
-use fframes::video::Video;
-use fframes::{AudioMap, FFramesContext, ResolvedAudioMap};
+use ffmpeg_next::sys::*;
+use fframes::{FFramesContext, ResolvedAudioMap};
 use std::ffi::CString;
-use std::time::{Duration, Instant};
 
 use crate::{
     encoder::{Encoder, EncoderFrame},
@@ -162,15 +159,11 @@ pub unsafe fn concat_video_files_with_audio(
 
     let mut packet = av_packet_alloc();
 
-    let mut frame_i = 0;
-    for (i, file) in files.into_iter().enumerate() {
+    for (i, file) in files.iter().enumerate() {
         let mut input_format_ctx = std::ptr::null_mut();
 
-        let input_video_stream = open_file_stream(
-            &file,
-            &mut input_format_ctx,
-            AVMediaType::AVMEDIA_TYPE_VIDEO,
-        )?;
+        let input_video_stream =
+            open_file_stream(file, &mut input_format_ctx, AVMediaType::AVMEDIA_TYPE_VIDEO)?;
 
         loop {
             let res = av_read_frame(input_format_ctx, packet);
@@ -206,8 +199,6 @@ pub unsafe fn concat_video_files_with_audio(
                 (*output_video_stream).time_base,
             );
             av_interleaved_write_frame(output_format_ctx, packet);
-
-            frame_i = frame_i + 1;
         }
 
         start_time += (*input_format_ctx).duration + 1024;
@@ -235,30 +226,27 @@ pub unsafe fn fill_audio_stream(
     audio_map: Option<&ResolvedAudioMap>,
     ctx: &FFramesContext,
 ) -> Result<(), AVError> {
-    match (audio_map, encoder.audio_stream) {
-        (Some(audio_map), Some(audio_stream)) => {
-            let mut audio_frame = EncoderFrame::make(
-                &encoder
-                    .audio_stream
-                    .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
-            );
+    if let (Some(audio_map), Some(audio_stream)) = (audio_map, encoder.audio_stream) {
+        let mut audio_frame = EncoderFrame::make(
+            &encoder
+                .audio_stream
+                .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
+        );
 
-            let audio_stream_duration = audio_map.calc_stream_duration_in_samples(ctx);
-            
-            let mut audio_frame_pts = 0usize;
-            let frame_size = (*audio_stream.enc).frame_size as usize;
+        let audio_stream_duration = audio_map.calc_stream_duration_in_samples();
 
-            while audio_frame_pts <= audio_stream_duration {
-                let audio_data =
-                    ctx.get_mixed_audio_data_in_fltp(audio_map, audio_frame_pts, frame_size);
+        let mut audio_frame_pts = 0usize;
+        let frame_size = (*audio_stream.enc).frame_size as usize;
 
-                audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
-                encoder.send_frame(&audio_stream, audio_frame)?;
+        while audio_frame_pts <= audio_stream_duration {
+            let audio_data =
+                ctx.get_mixed_audio_data_in_fltp(audio_map, audio_frame_pts, frame_size);
 
-                audio_frame_pts += frame_size;
-            }
+            audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
+            encoder.send_frame(&audio_stream, audio_frame)?;
+
+            audio_frame_pts += frame_size;
         }
-        _ => (),
     }
 
     Ok(())

@@ -62,7 +62,7 @@ fn parse_vertical(input: Span) -> IResult<Span, Vertical> {
 
     Ok((
         input,
-        if vertical.to_string() == "rl".to_string() {
+        if vertical.to_string() == *"rl" {
             Vertical::RightToLeft
         } else {
             Vertical::LeftToRight

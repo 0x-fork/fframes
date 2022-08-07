@@ -4,13 +4,13 @@ pub use fframes::{
     subtitles,
     video::Video,
     AnimateRuntimeInput,
-    Animation::{self, AnimationRuntime},
+    animation::{self, AnimationRuntime},
     AudioMap,
 };
 use lazy_static::lazy_static;
 use svgr_macro::{self, svgr};
 
-const SPRING: Animation::Easing = Animation::Easing::Spring2(1.85, 130., 16.);
+const SPRING: animation::Easing = animation::Easing::Spring2(1.85, 130., 16.);
 
 lazy_static! {
     static ref SPRING_RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(&SPRING);
@@ -39,8 +39,8 @@ impl MarketingVideo {
             height="400"
             x="1456"
             y={frame.animate(fframes::timeline!(
-                on 2.3, val 1400. => 770., Animation::Easing::Spring2(1.85, 130.0, 16.0),
-                on 4.8, val 770. => 1400., Animation::Easing::Spring2(1.85, 130.0, 16.0)
+                on 2.3, val 1400. => 770., animation::Easing::Spring2(1.85, 130.0, 16.0),
+                on 4.8, val 770. => 1400., animation::Easing::Spring2(1.85, 130.0, 16.0)
             ))}
             version="1.1"
             xmlns="http://www.w3.org/2000/svg"
@@ -96,8 +96,8 @@ impl MarketingVideo {
                 <g
                   transform={format!("matrix(1,0,0,1,{},435.209)",
                     frame.animate(&fframes::timeline!(
-                        on 3.4, val 727. => 777., Animation::Easing::Linear(0.25),
-                        on 4.1, val 777. => 727., Animation::Easing::Linear(0.25)
+                        on 3.4, val 727. => 777., animation::Easing::Linear(0.25),
+                        on 4.1, val 777. => 727., animation::Easing::Linear(0.25)
                     ))
                   )}
                 >
@@ -114,8 +114,8 @@ impl MarketingVideo {
                 <g
                   transform={format!("matrix(1,0,0,1,{},436.428)",
                     frame.animate(&fframes::timeline!(
-                      on 3.4, val 520. => 570., Animation::Easing::Linear(0.25),
-                      on 4.1, val 570. => 520., Animation::Easing::Linear(0.25)
+                      on 3.4, val 520. => 570., animation::Easing::Linear(0.25),
+                      on 4.1, val 570. => 520., animation::Easing::Linear(0.25)
                     ))
                   )}
                 >
@@ -238,7 +238,7 @@ impl Video for MarketingVideo {
             &audio_data::VisualizeFrameInput {
                 audio: ctx.get_audio_data("marketing.mp3"),
                 sample_size: audio_data::SampleSize::S16,
-                ctx: &ctx,
+                ctx,
                 smooth_level: 3,
                 window: Some(fframes::WindowFunction::Hamming),
             },
@@ -303,7 +303,7 @@ impl Video for MarketingVideo {
                      <stop offset="1" stop-color={to_color} />
                   </linearGradient>
                    <rect
-                    y={500 as f32 - bar_height / 2.0}
+                    y={500. - bar_height / 2.0}
                     x={frame.animate_runtime(
                       AnimateRuntimeInput {
                         on: 16.0,
@@ -322,7 +322,7 @@ impl Video for MarketingVideo {
                     ry={BAR_SIZE / 2}
                   />
                   <rect
-                    y={500 as f32 - bar_height / 2.0}
+                    y={500. - bar_height / 2.0}
                     x={frame.animate_runtime(
                       AnimateRuntimeInput {
                         on: 16.0,
@@ -352,8 +352,8 @@ impl Video for MarketingVideo {
               viewBox="0 0 598.3520004127504 417.989493060112"
               width="298"
               opacity={frame.animate(fframes::timeline!(
-                  on 5.8, val 0. => 1., &Animation::Easing::Spring2(1.85, 130., 16.),
-                  on 9.0, val 1. => 0., &Animation::Easing::Spring2(1.85, 130., 16.)
+                  on 5.8, val 0. => 1., &animation::Easing::Spring2(1.85, 130., 16.),
+                  on 9.0, val 1. => 0., &animation::Easing::Spring2(1.85, 130., 16.)
               ))}
             >
               <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
@@ -376,8 +376,8 @@ impl Video for MarketingVideo {
               height="900"
               xlink:href={ctx.get_image_link("code.png")}
               x={frame.animate(fframes::timeline!(
-                  on 5.8, val -1000. => 40., &Animation::Easing::Spring2(0.85, 80., 16.),
-                  on 9.0, val 40. => -1200., &Animation::Easing::Spring2(0.85, 80., 16.)
+                  on 5.8, val -1000. => 40., &animation::Easing::Spring2(0.85, 80., 16.),
+                  on 9.0, val 40. => -1200., &animation::Easing::Spring2(0.85, 80., 16.)
               ))}
               y="10"
             />
@@ -389,7 +389,7 @@ impl Video for MarketingVideo {
               fill="#fff"
               cy="500"
               r={frame.animate(fframes::timeline!(
-                on 16.2, val 0. => 1200.0, &Animation::Easing::Linear(0.3)
+                on 16.2, val 0. => 1200.0, &animation::Easing::Linear(0.3)
               ))}
             />
 
@@ -412,7 +412,7 @@ impl Video for MarketingVideo {
                      stroke-linejoin="round"
                      stroke-miterlimit="10"
                      stroke-dashoffset={frame.animate(fframes::timeline!(
-                       on 16.3, val -700. => 41.0, &Animation::Easing::Linear(2.5)
+                       on 16.3, val -700. => 41.0, &animation::Easing::Linear(2.5)
                      ))}
                      stroke-dasharray="40.4579px, 796.447px"
                      d="M505,55c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50S5,27.4,5,55"
@@ -427,15 +427,15 @@ impl Video for MarketingVideo {
                       stroke-linejoin="round"
                       opacity={frame.animate(
                         fframes::timeline!(
-                          on 18.6, val 1. => 0.55, &Animation::Easing::Linear(0.2)
+                          on 18.6, val 1. => 0.55, &animation::Easing::Linear(0.2)
                         )
                       )}
                       stroke-dashoffset={frame.animate(fframes::timeline!(
-                       on 18.7, val -40. => 0.0, &Animation::Easing::Linear(0.2)
+                       on 18.7, val -40. => 0.0, &animation::Easing::Linear(0.2)
                       ))}
                       stroke-dasharray={
                         format!("{}, 137px", frame.animate(
-                          &fframes::timeline!(on 18.7, val 30.0 => 12.0, &Animation::Easing::Linear(0.2)))
+                          &fframes::timeline!(on 18.7, val 30.0 => 12.0, &animation::Easing::Linear(0.2)))
                         )
                       }
                       d="M549.7,46.6l-21.8,12.6 M531.9,25.8l-12.6,21.8 M504.2,18.3v25.1 M476.4,25.8L489,47.6 M458.7,46.6l21.8,12.6"

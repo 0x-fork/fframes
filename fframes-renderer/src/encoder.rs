@@ -235,14 +235,13 @@ impl EncoderFrame {
         }
 
         (*self.0).pts = frame_index;
-        if audio_data.len() == 0 {
+        if audio_data.is_empty() {
             return self.0;
         }
 
         let mut fltp_audio_data = audio_data
             .into_iter()
-            .map(|data| data.to_le_bytes())
-            .flatten()
+            .flat_map(|data| data.to_le_bytes())
             .collect::<Vec<u8>>();
 
         (*self.0).data[0] = fltp_audio_data.as_mut_ptr();
@@ -252,6 +251,7 @@ impl EncoderFrame {
 
     /// We support only yuv420 format as for now so we can pretty efficiently convert the bitmap buffer.
     /// yuv420 represented by y per each pixel and uv (cb and cr) per each 2x2 pixel block.
+    #[allow(clippy::precedence)]
     pub unsafe fn fill_from_rgba_pixmap(
         &mut self,
         frame_index: i64,
@@ -275,7 +275,7 @@ impl EncoderFrame {
 
         for y in 0..height {
             for x in 0..width {
-                let (r, g, b) = EncoderFrame::get_rgb(&rgb_pixels, y * width + x);
+                let (r, g, b) = EncoderFrame::get_rgb(rgb_pixels, y * width + x);
 
                 y_pixels[(y * (*av_frame).linesize[0] as usize + x) as usize] =
                     (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;

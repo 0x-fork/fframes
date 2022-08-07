@@ -42,6 +42,7 @@ pub struct Node {
     pub children: Vec<Node>,
 }
 
+#[allow(dead_code)]
 impl Node {
     /// Returns `String` if `name` is `Some` and not `NodeName::Block`
     pub fn name_as_string(&self) -> Option<String> {
