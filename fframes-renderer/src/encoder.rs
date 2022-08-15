@@ -277,6 +277,7 @@ impl EncoderFrame {
             for x in 0..width {
                 let (r, g, b) = EncoderFrame::get_rgb(rgb_pixels, y * width + x);
 
+                // use a linesize to get the correct index for the pixel as it can differ for different dimensions.
                 y_pixels[(y * (*av_frame).linesize[0] as usize + x) as usize] =
                     (16 + (66 * r + 129 * g + 25 * b) >> 8) as u8;
 

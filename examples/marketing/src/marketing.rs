@@ -1,11 +1,10 @@
 pub use fframes::{
+    animation::{self, AnimationRuntime},
     audio_data, audio_window_functions, fframes_context,
     frame::Frame,
     subtitles,
     video::Video,
-    AnimateRuntimeInput,
-    animation::{self, AnimationRuntime},
-    AudioMap,
+    AnimateRuntimeInput, AudioMap,
 };
 use lazy_static::lazy_static;
 use svgr_macro::{self, svgr};
@@ -245,208 +244,208 @@ impl Video for MarketingVideo {
         );
 
         svgr!(
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
-            width="1920"
-            height="1080"
-          >
-            <defs>
-              <linearGradient id="gradient-test" x1="1" y1="1">
-                <stop stop-color="#3a1c71"/>
-                <stop offset=".5" stop-color="#d76d77"/>
-                <stop offset="1" stop-color="#ffaf7b"/>
-              </linearGradient>
-              <linearGradient id="cover" gradientUnits="userSpaceOnUse" x1="14.66%" y1="108.81%" x2="85.34%" y2="-8.81%">
-                <stop stop-color="#ffa69e"/>
-                <stop offset="1" stop-color="#7351d8"/>
-              </linearGradient>
-            <linearGradient id="anim">
-              <stop stop-color="#ec77ab"/>
-              <stop offset="1" stop-color="#4F46E5"/>
-            </linearGradient>
-            <linearGradient id="g1" x1="1" y1="1" x2="0">
-              <stop stop-color="#2d3436"/>
-              <stop offset=".74" stop-color="#000000"/>
-            </linearGradient>
-            </defs>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    xmlns:xlink="http://www.w3.org/1999/xlink"
+                    width="1920"
+                    height="1080"
+                  >
+                    <defs>
+                      <linearGradient id="gradient-test" x1="1" y1="1">
+                        <stop stop-color="#3a1c71"/>
+                        <stop offset=".5" stop-color="#d76d77"/>
+                        <stop offset="1" stop-color="#ffaf7b"/>
+                      </linearGradient>
+                      <linearGradient id="cover" gradientUnits="userSpaceOnUse" x1="14.66%" y1="108.81%" x2="85.34%" y2="-8.81%">
+                        <stop stop-color="#ffa69e"/>
+                        <stop offset="1" stop-color="#7351d8"/>
+                      </linearGradient>
+                    <linearGradient id="anim">
+                      <stop stop-color="#ec77ab"/>
+                      <stop offset="1" stop-color="#4F46E5"/>
+                    </linearGradient>
+                    <linearGradient id="g1" x1="1" y1="1" x2="0">
+                      <stop stop-color="#2d3436"/>
+                      <stop offset=".74" stop-color="#000000"/>
+                    </linearGradient>
+                    </defs>
 
-            <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
+                    <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
 
-           {
-              PRETTY_SPECTRUM
-              .iter()
-              .map(|SpectrumValue { spectrum_index, from_color, to_color, position }|  {
-                let val: f32 = audio_visualization[*spectrum_index];
 
-                let bar_height = match val / 20.0 {
-                  height if height.is_nan() => BAR_SIZE_F32,
-                  height if height < BAR_SIZE_F32 => BAR_SIZE_F32,
-                  height if height > 720.0 => 720.0,
-                  height => height.to_owned()
-                };
+                   {
+                      PRETTY_SPECTRUM
+                      .iter()
+                      .map(|SpectrumValue { spectrum_index, from_color, to_color, position }|  {
+                        let val: f32 = audio_visualization[*spectrum_index];
 
-                 svgr_macro::svgr!(
-                  <filter id={format!("{}-shadow", position)} x="-100%" y="-100%" width="300%" height="300%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="10.4"/>
-                    <feOffset dx="0" dy="3" result="offsetblur"/>
-                    <feFlood flood-color={to_color}  flood-opacity="0.5" />
-                    <feComposite in2="offsetblur" operator="in"/>
-                    <feMerge>
-                      <feMergeNode/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
+                        let bar_height = match val / 20.0 {
+                          height if height.is_nan() => BAR_SIZE_F32,
+                          height if height < BAR_SIZE_F32 => BAR_SIZE_F32,
+                          height if height > 720.0 => 720.0,
+                          height => height.to_owned()
+                        };
 
-                  <linearGradient id={format!("{}-gradient", position)} y2="1">
-                     <stop stop-color={from_color}/>
-                     <stop offset="1" stop-color={to_color} />
-                  </linearGradient>
-                   <rect
-                    y={500. - bar_height / 2.0}
-                    x={frame.animate_runtime(
-                      AnimateRuntimeInput {
-                        on: 16.0,
-                        from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
-                        to: 944.,
-                        animation_runtime: &SPRING_RUNTIME,
-                      }
-                    )}
-                    transform-origin="center center"
-                    height={bar_height + 8.0}
-                    fill="transparent"
-                    stroke="white"
-                    stroke-width="4"
-                    width={BAR_SIZE + 8}
-                    rx={BAR_SIZE / 2}
-                    ry={BAR_SIZE / 2}
-                  />
-                  <rect
-                    y={500. - bar_height / 2.0}
-                    x={frame.animate_runtime(
-                      AnimateRuntimeInput {
-                        on: 16.0,
-                        from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
-                        to: 944.,
-                        animation_runtime: &SPRING_RUNTIME,
-                      }
-                    )}
-                    transform-origin="center center"
-                    fill={format!("url(#{}-gradient)", position)}
-                    filter={format!("url(#{}-shadow)", position)}
-                    height={bar_height}
-                    width={BAR_SIZE}
-                    rx={BAR_SIZE / 2}
-                    ry={BAR_SIZE / 2}
-                  />
-               )
-               })
-              .collect::<Vec<String>>().join("\n")
-            }
+                         svgr_macro::svgr!(
+                          <filter id={format!("{}-shadow", position)} x="-100%" y="-100%" width="300%" height="300%">
+                            <feGaussianBlur in="SourceAlpha" stdDeviation="10.4"/>
+                            <feOffset dx="0" dy="3" result="offsetblur"/>
+                            <feFlood flood-color={to_color}  flood-opacity="0.5" />
+                            <feComposite in2="offsetblur" operator="in"/>
+                            <feMerge>
+                              <feMergeNode/>
+                              <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                          </filter>
 
-            <svg
-              x="200"
-              y="290"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 598.3520004127504 417.989493060112"
-              width="298"
-              opacity={frame.animate(fframes::timeline!(
-                  on 5.8, val 0. => 1., &animation::Easing::Spring2(1.85, 130., 16.),
-                  on 9.0, val 1. => 0., &animation::Easing::Spring2(1.85, 130., 16.)
-              ))}
-            >
-              <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
-              <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
-            </svg>
+                          <linearGradient id={format!("{}-gradient", position)} y2="1">
+                             <stop stop-color={from_color}/>
+                             <stop offset="1" stop-color={to_color} />
+                          </linearGradient>
+                           <rect
+                            y={500. - bar_height / 2.0}
+                            x={frame.animate_runtime(
+                              AnimateRuntimeInput {
+                                on: 16.0,
+                                from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
+                                to: 944.,
+                                animation_runtime: &SPRING_RUNTIME,
+                              }
+                            )}
+                            transform-origin="center center"
+                            height={bar_height + 8.0}
+                            fill="transparent"
+                            stroke="white"
+                            stroke-width="4"
+                            width={BAR_SIZE + 8}
+                            rx={BAR_SIZE / 2}
+                            ry={BAR_SIZE / 2}
+                          />
+                          <rect
+                            y={500. - bar_height / 2.0}
+                            x={frame.animate_runtime(
+                              AnimateRuntimeInput {
+                                on: 16.0,
+                                from: ((SPECTRUM_LEN / 2) + (position * BAR_WIDTH_WITH_MARGIN)) as f32,
+                                to: 944.,
+                                animation_runtime: &SPRING_RUNTIME,
+                              }
+                            )}
+                            transform-origin="center center"
+                            fill={format!("url(#{}-gradient)", position)}
+                            filter={format!("url(#{}-shadow)", position)}
+                            height={bar_height}
+                            width={BAR_SIZE}
+                            rx={BAR_SIZE / 2}
+                            ry={BAR_SIZE / 2}
+                          />
+                       )
+                       })
+                      .collect::<Vec<String>>().join("\n")
+                    }
 
-            <text
-              font-size="64"
-              y="87%"
-              x="50%"
-              text-anchor="middle"
-              fill="white"
-              font-family="Chalkboard SE"
-            >
-              {subtitles.get_phrase_for_frame(frame).unwrap_or("")}
-            </text>
-
-            <image
-              width="900"
-              height="900"
-              xlink:href={ctx.get_image_link("code.png")}
-              x={frame.animate(fframes::timeline!(
-                  on 5.8, val -1000. => 40., &animation::Easing::Spring2(0.85, 80., 16.),
-                  on 9.0, val 40. => -1200., &animation::Easing::Spring2(0.85, 80., 16.)
-              ))}
-              y="10"
-            />
-
-            {self.render_ferris(frame)}
-
-            <circle
-              cx={960}
-              fill="#fff"
-              cy="500"
-              r={frame.animate(fframes::timeline!(
-                on 16.2, val 0. => 1200.0, &animation::Easing::Linear(0.3)
-              ))}
-            />
-
-            {if frame.get_current_second() > 16.25  {
-              svgr!(
-                <g>
-                  <text x="960" y="570" font-family="Bubble Bobble" font-size="154" text-anchor="middle">
-                    <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
-                  </text>
-                  <text x="960" y="610" font-family="Chalkboard SE" font-size="30" text-anchor="middle">
-                    "Write some code. Get video. Enjoy!"
-                  </text>
-
-                  <g y="540" transform="scale(2.7) translate(-218, 110)">
-                    <path
-                     fill="none"
-                     stroke="url(#anim)"
-                     stroke-width="10"
-                     stroke-linecap="round"
-                     stroke-linejoin="round"
-                     stroke-miterlimit="10"
-                     stroke-dashoffset={frame.animate(fframes::timeline!(
-                       on 16.3, val -700. => 41.0, &animation::Easing::Linear(2.5)
-                     ))}
-                     stroke-dasharray="40.4579px, 796.447px"
-                     d="M505,55c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50S5,27.4,5,55"
-                    />
-
-                    <path
-                      class="splash-lines"
-                      fill="none"
-                      stroke="#4F46E5"
-                      stroke-width="6"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      opacity={frame.animate(
-                        fframes::timeline!(
-                          on 18.6, val 1. => 0.55, &animation::Easing::Linear(0.2)
-                        )
-                      )}
-                      stroke-dashoffset={frame.animate(fframes::timeline!(
-                       on 18.7, val -40. => 0.0, &animation::Easing::Linear(0.2)
+                    <svg
+                      x="200"
+                      y="290"
+                      version="1.1"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 598.3520004127504 417.989493060112"
+                      width="298"
+                      opacity={frame.animate(fframes::timeline!(
+                          on 5.8, val 0. => 1., &animation::Easing::Spring2(1.85, 130., 16.),
+                          on 9.0, val 1. => 0., &animation::Easing::Spring2(1.85, 130., 16.)
                       ))}
-                      stroke-dasharray={
-                        format!("{}, 137px", frame.animate(
-                          &fframes::timeline!(on 18.7, val 30.0 => 12.0, &animation::Easing::Linear(0.2)))
-                        )
-                      }
-                      d="M549.7,46.6l-21.8,12.6 M531.9,25.8l-12.6,21.8 M504.2,18.3v25.1 M476.4,25.8L489,47.6 M458.7,46.6l21.8,12.6"
+                    >
+                      <g stroke-linecap="round" transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)">
+                      <path d="M-2.19 -1.63 C8.29 53.64, -34.21 264.71, 62.09 331.05 C158.39 397.38, 490.59 385.91, 575.58 396.36" stroke="#fff" stroke-width="4.5" fill="none" stroke-dasharray="8 12"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M544.61 406.42 C552.39 404.4, 562.6 396.92, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g><g transform="translate(12.76795062351539 11.630295608565234) rotate(0 286.4080495828598 197.36445092149077)"><path d="M545.58 385.92 C553.02 389.43, 562.97 387.49, 572.02 395.84" stroke="#fff" stroke-width="4.5" fill="none"></path></g>
+                    </svg>
+
+                    <text
+                      font-size="64"
+                      y="87%"
+                      x="50%"
+                      text-anchor="middle"
+                      fill="white"
+                      font-family="Chalkboard SE"
+                    >
+                      {subtitles.get_phrase_for_frame(frame).unwrap_or("")}
+                    </text>
+
+                    <image
+                      width="900"
+                      height="900"
+                      xlink:href={ctx.get_image_link("code.png")}
+                      x={frame.animate(fframes::timeline!(
+                          on 5.8, val -1000. => 40., &animation::Easing::Spring2(0.85, 80., 16.),
+                          on 9.0, val 40. => -1200., &animation::Easing::Spring2(0.85, 80., 16.)
+                      ))}
+                      y="10"
                     />
-                  </g>
-                </g>
-              )
-            } else {
-              "".to_owned()
-            }}
-          </svg>
-        )
+
+                    {self.render_ferris(frame)}
+                    <circle
+                      cx={960}
+                      fill="#fff"
+                      cy="500"
+                      r={frame.animate(fframes::timeline!(
+                        on 16.2, val 0. => 1200.0, &animation::Easing::Linear(0.3)
+                      ))}
+                    />
+
+                    {if frame.get_current_second() > 16.25  {
+                      svgr!(
+                        <g>
+                          <text x="960" y="570" font-family="Bubble Bobble" font-size="154" text-anchor="middle">
+                            <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
+                          </text>
+                          <text x="960" y="610" font-family="Chalkboard SE" font-size="30" text-anchor="middle">
+                            "Write some code. Get video. Enjoy!"
+                          </text>
+
+                          <g y="540" transform="scale(2.7) translate(-218, 110)">
+                            <path
+                             fill="none"
+                             stroke="url(#anim)"
+                             stroke-width="10"
+                             stroke-linecap="round"
+                             stroke-linejoin="round"
+                             stroke-miterlimit="10"
+                             stroke-dashoffset={frame.animate(fframes::timeline!(
+                               on 16.3, val -700. => 41.0, &animation::Easing::Linear(2.5)
+                             ))}
+                             stroke-dasharray="40.4579px, 796.447px"
+                             d="M505,55c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50s-50,22.4-50,50c0-27.6-22.4-50-50-50S5,27.4,5,55"
+                            />
+
+                            <path
+                              class="splash-lines"
+                              fill="none"
+                              stroke="#4F46E5"
+                              stroke-width="6"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              opacity={frame.animate(
+                                fframes::timeline!(
+                                  on 18.6, val 1. => 0.55, &animation::Easing::Linear(0.2)
+                                )
+                              )}
+                              stroke-dashoffset={frame.animate(fframes::timeline!(
+                               on 18.7, val -40. => 0.0, &animation::Easing::Linear(0.2)
+                              ))}
+                              stroke-dasharray={
+                                format!("{}, 137px", frame.animate(
+                                  &fframes::timeline!(on 18.7, val 30.0 => 12.0, &animation::Easing::Linear(0.2)))
+                                )
+                              }
+                              d="M549.7,46.6l-21.8,12.6 M531.9,25.8l-12.6,21.8 M504.2,18.3v25.1 M476.4,25.8L489,47.6 M458.7,46.6l21.8,12.6"
+                            />
+                          </g>
+                        </g>
+                      )
+                    } else {
+                      "".to_owned()
+                    }}
+                  </svg>
+                )
     }
 }

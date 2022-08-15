@@ -103,8 +103,35 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                 };
 
                 if let Some(macro_call) = macro_call {
+                    let animation_type = match &macro_call {
+                        Expr::Macro(macro_expr) => {
+                            let first_animation_value = macro_expr
+                                .mac
+                                .tokens
+                                .clone()
+                                .into_iter()
+                                .skip_while(|el| match el {
+                                    proc_macro2::TokenTree::Ident(ident) => {
+                                        ident.to_string() != "val"
+                                    }
+                                    _ => true,
+                                }).nth(1);
+                            
+                            // We only support the color and f32 as animation params so here we are doing a very unsafe assumption that 
+                            // any literal is an f32 and everything else is a color. I do not want to pass additional types at to the macro
+                            // so let's check how it will work for now and would real users have any problems with this.
+                            match first_animation_value {
+                                Some(proc_macro2::TokenTree::Punct(val)) if val.as_char() == '-' => quote! { f32 },
+                                Some(proc_macro2::TokenTree::Literal(_)) => quote! { f32 },
+                                Some(proc_macro2::TokenTree::Ident(_)) => quote! { fframes::Color },
+                                _ => panic!("Can not infer the type of animation value. Did you set something else than a f32 or fframes::Color as the animation value? {:?}", first_animation_value),
+                            }
+                        }
+                        _ => panic!("It looks like something else than fframes::timeline! macro used as a parameter for frame.animate. Make sure to avoid this."),
+                    };
+
                     animations.push(quote! {
-                        static ref #identifier: fframes::animation::Steppedanimation = #macro_call;
+                        static ref #identifier: fframes::animation::SteppedAnimation<#animation_type> = #macro_call;
                     });
                 }
 

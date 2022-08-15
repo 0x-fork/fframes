@@ -84,7 +84,7 @@ impl Frame {
     ///   />
     /// );
     /// ```
-    pub fn animate(&self, animation: &animation::Steppedanimation) -> f32 {
+    pub fn animate<T: crate::Animatable + Copy>(&self, animation: &animation::SteppedAnimation<T>) -> T {
         let current_second = &self.get_current_second();
 
         let keyframe = animation
@@ -94,15 +94,13 @@ impl Frame {
             .find(|keyframe| keyframe.seconds_range.contains(current_second));
 
         match keyframe {
-            None => panic!("frame.animate can not get the value for frame {}. It may mean that Steppedanimation is not correctly filled out./", self.index),
+            None => panic!("frame.animate can not get the value for frame {}. It may mean that SteppedAnimation is not correctly filled out./", self.index),
             Some(keyframe) => {
                 let progress = keyframe
                     .animation_runtime
                     .solve(&(current_second - keyframe.seconds_range.start));
 
-                let animation_range = keyframe.to - keyframe.from;
-
-                keyframe.from + animation_range * progress
+                keyframe.from.apply_progress(&keyframe.to, progress)
             }
         }
     }

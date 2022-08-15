@@ -1,8 +1,7 @@
-use crate::{AnimateRuntimeInput, animation, Frame};
-
+use crate::{animation, AnimateRuntimeInput, Frame};
 
 mod fframes {
-  pub use crate::*;
+    pub use crate::*;
 }
 
 use svgr_macro::svgr;
@@ -61,7 +60,7 @@ pub fn macro_frame_animate_runtime() {
                 on: 16.0,
                 from: 100.,
                 to: 944.,
-                animation_runtime: &crate::AnimationRuntime::Static(0., 0.),
+                animation_runtime: &crate::AnimationRuntime::Static(0.),
               }
             )}
           />

@@ -4,7 +4,7 @@ use std::ops::Range;
 #[derive(Clone, Copy, Debug)]
 pub enum AnimationRuntime {
     /// No animation, used internally for filling gaps keyframe
-    Static(f32, f32),
+    Static(f32),
     Linear(f32),
     SpringRuntime(spring::SpringRuntime, f32),
 }
@@ -36,7 +36,7 @@ impl AnimationRuntime {
         match &self {
             AnimationRuntime::Linear(duration) => *duration,
             AnimationRuntime::SpringRuntime(_spring, duration) => *duration,
-            AnimationRuntime::Static(_, _) => todo!(),
+            AnimationRuntime::Static(_) => todo!(),
         }
     }
 
@@ -44,7 +44,7 @@ impl AnimationRuntime {
         match &self {
             &AnimationRuntime::Linear(duration) => t / duration,
             &AnimationRuntime::SpringRuntime(spring, _) => spring.solve(t),
-            AnimationRuntime::Static(permanent_value, _) => permanent_value.to_owned(),
+            AnimationRuntime::Static(_) => 1.,
         }
     }
 }
@@ -65,27 +65,39 @@ pub enum Easing {
 pub struct LinearRuntime {}
 
 #[derive(Clone, Copy, Debug)]
-pub struct Tween<'a> {
+pub struct Tween<'a, T: Animatable> {
     pub start: f32,
-    pub to: f32,
-    pub from: f32,
+    pub to: T,
+    pub from: T,
     pub easing: &'a Easing,
 }
 
+pub trait Animatable {
+    fn apply_progress(&self, to: &Self, progress: f32) -> Self;
+}
+
+impl Animatable for f32 {
+    fn apply_progress(&self, to: &Self, progress: f32) -> Self {
+        let animation_range = to - self;
+
+        self + animation_range * progress
+    }
+}
+
 #[derive(Clone, Debug)]
-pub(crate) struct KeyFrame {
+pub(crate) struct KeyFrame<T: Animatable + Copy> {
     pub(crate) seconds_range: Range<f32>,
-    pub(crate) from: f32,
-    pub(crate) to: f32,
+    pub(crate) from: T,
+    pub(crate) to: T,
     pub(crate) animation_runtime: AnimationRuntime,
 }
 
-pub struct Steppedanimation {
-    pub(crate) keyframes: Vec<KeyFrame>,
+pub struct SteppedAnimation<T: Animatable + Copy> {
+    pub(crate) keyframes: Vec<KeyFrame<T>>,
 }
 
-impl Steppedanimation {
-    pub fn make_from_tweens(tweens: Vec<Tween>) -> Self {
+impl<T: Animatable + Copy> SteppedAnimation<T> {
+    pub fn make_from_tweens(tweens: Vec<Tween<T>>) -> Self {
         let mut sorted_tweens = tweens;
         sorted_tweens.sort_by(|a, b| a.start.partial_cmp(&b.start).unwrap());
 
@@ -121,30 +133,29 @@ impl Steppedanimation {
                     }
                 }
             })
-            .collect::<Vec<KeyFrame>>();
+            .collect::<Vec<_>>();
 
         if sorted_tweens[0].start > 0. {
+            let seconds_range = 0f32..sorted_tweens[0].start;
             keyframes.insert(
                 0,
                 KeyFrame {
                     from: sorted_tweens[0].from,
                     to: sorted_tweens[0].from,
-                    seconds_range: 0f32..sorted_tweens[0].start,
                     animation_runtime: AnimationRuntime::Static(
-                        sorted_tweens[0].from,
-                        sorted_tweens[0].start,
+                        seconds_range.end - seconds_range.start,
                     ),
+                    seconds_range,
                 },
             );
         }
 
         let last_keyframe = &keyframes[keyframes.len() - 1];
-        if last_keyframe.to < f32::MAX {
+        if last_keyframe.seconds_range.end < f32::MAX {
             let last_filling_keyframe = KeyFrame {
                 from: last_keyframe.to,
                 to: last_keyframe.to,
                 animation_runtime: AnimationRuntime::Static(
-                    last_keyframe.to,
                     f32::MAX - last_keyframe.seconds_range.end,
                 ),
                 seconds_range: last_keyframe.seconds_range.end..f32::MAX,
@@ -153,14 +164,14 @@ impl Steppedanimation {
             keyframes.push(last_filling_keyframe);
         }
 
-        Steppedanimation { keyframes }
+        SteppedAnimation { keyframes }
     }
 }
 
 #[macro_export]
 macro_rules! timeline {
     ($(on $start: expr, val $from:expr => $to:expr, $easing:expr),+) => {
-        fframes::animation::Steppedanimation::make_from_tweens(vec![
+        fframes::animation::SteppedAnimation::make_from_tweens(vec![
            $(
             fframes::animation::Tween {
                 start: $start,
