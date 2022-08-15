@@ -8,6 +8,7 @@ pub mod prelude {
     pub use lazy_static::lazy_static;
     pub use serde;
     pub use std::{collections::HashMap, sync::Mutex};
+    pub use ttf_parser;
     pub use wasm_bindgen;
     pub use wasm_bindgen::prelude::*;
     pub use wasm_bindgen_futures;

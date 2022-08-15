@@ -12,6 +12,8 @@ import type {Js_Nullable_t as ReScriptJs_Js_Nullable_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 
+import type {Js_Uint8Array_t as ReScriptJs_Js_Uint8Array_t} from './shims/Js.shim';
+
 // tslint:disable-next-line:interface-over-type-literal
 export type videoMeta = {
   readonly name: string; 
@@ -31,6 +33,7 @@ export type t = {
   readonly default: () => ReScriptJs_Js_Promise_t<void>; 
   readonly prepare: () => ReScriptJs_Js_Promise_t<videoMeta>; 
   readonly render_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
-  readonly render_preview_frame: (_1:ReScriptJs_Js_BigInt_t) => string
+  readonly render_preview_frame: (_1:ReScriptJs_Js_BigInt_t) => string; 
+  readonly get_font_file_family: (_1:ReScriptJs_Js_Uint8Array_t) => ReScriptJs_Js_Nullable_t<ReScriptJs_Js_Uint8Array_t>
 };
 export type WasmController = t;

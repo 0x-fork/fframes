@@ -3,6 +3,8 @@
 
 var $$Window = {};
 
+var $$Document = {};
+
 var targetAsElement = (_ => _);
 
 function isFocusable(el) {
@@ -41,6 +43,7 @@ var $$Int16Array = {};
 
 export {
   $$Window ,
+  $$Document ,
   $$Element ,
   $$Int16Array ,
   

@@ -2,6 +2,7 @@ import { MediaResolver, resolveMedia } from "./mediaLoader.gen";
 import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
 // @ts-expect-error no  types
 import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
+import { WasmController } from "src/WasmController.gen";
 
 const audioContext = new AudioContext();
 
@@ -9,7 +10,7 @@ export const resolveAudio: MediaResolver = async (
   name,
   url,
   wasmController
-) => { 
+) => {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
 
@@ -56,16 +57,54 @@ export const resolveSubtitles: MediaResolver = async (
   });
 };
 
+function getCachedFontFamilyName(
+  url: string,
+  arrayBuffer: ArrayBuffer,
+  wasmController: WasmController
+) {
+  const cacheKey = `font-${url}-${arrayBuffer.byteLength}`;
+
+  let fontName = localStorage.getItem(cacheKey);
+  if (fontName) {
+    return fontName;
+  }
+
+  const result = wasmController.get_font_file_family(
+    new Uint8Array(arrayBuffer)
+  );
+
+  if (result !== null) {
+    const decoder = new TextDecoder("utf-8");
+    fontName = decoder.decode(result);
+
+    localStorage.setItem(cacheKey, fontName);
+  }
+
+  return fontName;
+}
+
 export const resolveFont: MediaResolver = async (name, url, wasmController) => {
-  const fontName = name.replace(/\.[^/.]+$/, "");
-  const fontFace = new FontFace(fontName, `url(${url})`);
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+
+  const fontName = getCachedFontFamilyName(url, arrayBuffer, wasmController);
+  if (fontName) {
+    console.error(
+      `Can not parse the font file ${url} there is a huge change that this font file won't work in the renderer. For now trying to fallback to browser based font`
+    );
+  }
+
+  const fontFace = new FontFace(
+    fontName ?? name.replace(/\.[^/.]+$/, ""),
+    arrayBuffer
+  );
 
   const loadedFont = await fontFace.load();
   document.fonts.add(loadedFont);
 
   return resolveMedia(name, {
     tag: "Font",
-    value: `${loadedFont.weight} (${loadedFont.unicodeRange})`,
+    value: `${fontName} (${loadedFont.unicodeRange})`,
   });
 };
 

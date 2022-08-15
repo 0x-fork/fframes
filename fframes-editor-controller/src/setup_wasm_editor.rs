@@ -195,5 +195,25 @@ macro_rules! setup_wasm_editor {
                 },
             )
         }
+
+        fn parse_family_name(raw_face: &ttf_parser::RawFace) -> Option<Vec<u8>> {
+            const NAME_TAG: ttf_parser::Tag = ttf_parser::Tag::from_bytes(b"name");
+            let name_data = raw_face.table(NAME_TAG)?;
+            let name_table = ttf_parser::name::Table::parse(name_data)?;
+
+            name_table.names.into_iter().find_map(|name| {
+                if name.name_id == ttf_parser::name_id::FAMILY {
+                    Some(name.name.to_vec().into_iter().filter(|b| *b != 0).collect())
+                } else {
+                    None
+                }
+            })
+        }
+
+        #[wasm_bindgen]
+        pub fn get_font_file_family(slice: &[u8]) -> Option<Vec<u8>> {
+            let font = ttf_parser::RawFace::from_slice(slice, 0).unwrap();
+            parse_family_name(&font)
+        }
     };
 }
