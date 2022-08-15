@@ -69,7 +69,8 @@ let make = (~size) => {
   }, (size, player.frame, player.playState))
 
   let hanldeMouseMove = e => {
-    if player.playState !== Playing {
+
+    if player.playState !== Playing && Webapi.Dom.document->Web.Document.hasFocus {
       dispatch(NewFrame(calculateFrameFromEvent(e, ~size)))
     }
   }

@@ -2,6 +2,10 @@ module Window = {
   @val @scope("window") external devicePixelRatio: float = "devicePixelRatio"
 }
 
+module Document = {
+  @send external hasFocus: (Webapi.Dom.Document.t) => bool = "hasFocus"
+}
+
 module Element = {
   @get external style: Webapi.Dom.Element.t => {..} = "style"
 

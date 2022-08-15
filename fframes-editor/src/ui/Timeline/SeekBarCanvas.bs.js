@@ -62,7 +62,7 @@ function SeekBarCanvas(Props) {
         player.playState
       ]);
   var hanldeMouseMove = function (e) {
-    if (player.playState !== /* Playing */0) {
+    if (player.playState !== /* Playing */0 && document.hasFocus()) {
       return Curry._1(dispatch, {
                   TAG: /* NewFrame */1,
                   _0: calculateFrameFromEvent(e, size)

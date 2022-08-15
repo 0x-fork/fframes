@@ -17,6 +17,7 @@ type t = {
   prepare: unit => Js.Promise.t<videoMeta>,
   render_frame: Js.BigInt.t => string,
   render_preview_frame: Js.BigInt.t => string,
+  get_font_file_family: Js.Uint8Array.t => Js.Nullable.t<Js.Uint8Array.t>,
 }
 
 module type WasmBridge = {
