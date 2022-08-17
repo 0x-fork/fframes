@@ -1,5 +1,5 @@
 import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import { Editor } from "./ui/Editor.gen";
 import { EditorContext } from "./EditorContext.gen";
 import type { WasmController } from "./WasmController.gen";
@@ -10,21 +10,17 @@ let lastImports: Imports | null = null;
 
 export function renderEditor(imports: Imports, wasmController: WasmController) {
   lastImports = imports;
+  const root = createRoot(document.getElementById("root")!);
+
   wasmController.default().then(() => {
     Promise.all([
       processImports({ imports, wasmController }),
       wasmController.prepare().then((videoMeta) => {
-        ReactDOM
-          // @ts-expect-error REACT 18 BINDINGS are missing aaaaa
-          .createRoot(document.getElementById("root"))
-          .render(
-            <EditorContext
-              wasmController={wasmController}
-              videoMeta={videoMeta}
-            >
-              <Editor />
-            </EditorContext>
-          );
+        root.render(
+          <EditorContext wasmController={wasmController} videoMeta={videoMeta}>
+            <Editor />
+          </EditorContext>
+        );
       }),
     ]);
   });
