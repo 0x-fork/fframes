@@ -157,7 +157,7 @@ impl Video for PodcastVideo {
                .enumerate()
                .map(|(i, fr)|  {
                  let db = 10.0*libm::log10f(*fr);
-                 let save_height = if db.is_nan() || db < 10.0 { &10.0 } else { &db };
+                 let save_height = db.max(10.0);
 
                  svgr_macro::svgr!(
                    <rect
