@@ -88,9 +88,9 @@ export const resolveFont: MediaResolver = async (name, url, wasmController) => {
   const arrayBuffer = await response.arrayBuffer();
 
   const fontName = getCachedFontFamilyName(url, arrayBuffer, wasmController);
-  if (fontName) {
+  if (!fontName) {
     console.error(
-      `Can not parse the font file ${url} there is a huge change that this font file won't work in the renderer. For now trying to fallback to browser based font`
+      `Can not parse the font file ${url} there is a huge chance that this font file won't work in the renderer. For now trying to fallback to browser based font`
     );
   }
 

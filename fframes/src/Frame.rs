@@ -84,7 +84,10 @@ impl Frame {
     ///   />
     /// );
     /// ```
-    pub fn animate<T: crate::Animatable + Copy>(&self, animation: &animation::SteppedAnimation<T>) -> T {
+    pub fn animate<T: crate::Animatable + Copy>(
+        &self,
+        animation: &animation::SteppedAnimation<T>,
+    ) -> T {
         let current_second = &self.get_current_second();
 
         let keyframe = animation

@@ -159,7 +159,12 @@ impl Stream {
 
     pub(crate) unsafe fn set_swr_option(swr_ctx: *mut SwrContext, name: &str, val: i32) {
         let name = CString::new(name).unwrap();
-        av_opt_set_int(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val.into(), 0);
+        av_opt_set_int(
+            swr_ctx as *mut std::ffi::c_void,
+            name.as_ptr(),
+            val.into(),
+            0,
+        );
     }
 
     pub(crate) unsafe fn set_swr_fmt(swr_ctx: *mut SwrContext, name: &str, val: AVSampleFormat) {

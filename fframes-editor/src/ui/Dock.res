@@ -100,11 +100,11 @@ let make = () => {
         ->Utils.Bool.invert
       ) {
         switch e->Dom.KeyboardEvent.key {
-        | " " => handlePlayOrPause()
-        | "ArrowLeft" | "a" => handleSeekLeft()
-        | "ArrowRight" | "d" => handleSeekRight()
-        | "ArrowUp" | "w" => increaseVolume()
-        | "ArrowDown" | "s" => decreaseVolume()
+        | " " | "k" => handlePlayOrPause()
+        | "ArrowLeft" | "a" | "A" => handleSeekLeft()
+        | "ArrowRight" | "d" | "D" => handleSeekRight()
+        | "ArrowUp" | "w" | "W" => increaseVolume()
+        | "ArrowDown" | "s" | "S" => decreaseVolume()
         | _ => ()
         }
       }

@@ -139,18 +139,23 @@ function Dock(Props) {
             }
             var match = e.key;
             switch (match) {
-              case " " :
-                  return Curry._1(handlePlayOrPause, undefined);
+              case "A" :
               case "ArrowLeft" :
               case "a" :
                   return Curry._1(handleSeekLeft, undefined);
               case "ArrowRight" :
+              case "D" :
               case "d" :
                   return Curry._1(handleSeekRight, undefined);
+              case " " :
+              case "k" :
+                  return Curry._1(handlePlayOrPause, undefined);
               case "ArrowDown" :
+              case "S" :
               case "s" :
                   return Curry._1(decreaseVolume, undefined);
               case "ArrowUp" :
+              case "W" :
               case "w" :
                   return Curry._1(increaseVolume, undefined);
               default:

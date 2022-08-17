@@ -41,7 +41,7 @@ impl FFramesContext {
                 (FFramesMode::EditorTimelinePreview, media_provider::ImageData::Base64(base64)) => {
                     base64.to_owned()
                 }
-                _ => link.to_owned()
+                _ => link.to_owned(),
             },
             None => panic!(
                 "Image {file} not found! Please make sure that media folder contains {file}",

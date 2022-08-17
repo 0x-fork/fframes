@@ -112,11 +112,11 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                                 .into_iter()
                                 .skip_while(|el| match el {
                                     proc_macro2::TokenTree::Ident(ident) => {
-                                        ident.to_string() != "val"
+                                        *ident != "val"
                                     }
                                     _ => true,
                                 }).nth(1);
-                            
+
                             // We only support the color and f32 as animation params so here we are doing a very unsafe assumption that 
                             // any literal is an f32 and everything else is a color. I do not want to pass additional types at to the macro
                             // so let's check how it will work for now and would real users have any problems with this.

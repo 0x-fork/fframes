@@ -4,3 +4,15 @@ clippy:
 build:
   cargo build
   cd fframes-editor && yarn rescript:build
+
+init-repo:
+  ffmpeg -version
+  rustc --version
+  yarn --version
+
+  cargo build
+  yarn install
+  cd fframes-editor && yarn rescript:build && yarn bundle:dev
+
+run example:
+  cd examples/{{example}}/editor && yarn dev
