@@ -42,11 +42,15 @@ let make = () => {
       <div
         id="editor-preview"
         style={layout.preview->UseEditorLayout.sizeToStyle}
-        className="bg-black"
-        dangerouslySetInnerHTML={{
-          "__html": player.svg->Utils.Option.unwrapOr(""),
-        }}
-      />
+        className="bg-black">
+        {player.svg
+        ->Utils.Option.unwrapOr("")
+        ->VDom.parseReactElement({
+          htmlparser2: {
+            xmlMode: true,
+          },
+        })}
+      </div>
     </div>
     <div
       style={layout.timeLine->UseEditorLayout.sizeToStyle}

@@ -10,6 +10,7 @@ import * as $$MediaList from "./MediaList.bs.js";
 import * as ReactHelmet from "react-helmet";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as UseEditorLayout from "../hooks/useEditorLayout.bs.js";
+import HtmlReactParser from "html-react-parser";
 
 function a(prim) {
   return {};
@@ -43,11 +44,12 @@ function Editor(Props) {
                         }, videoTitle), React.createElement($$MediaList.make, {})), React.createElement("div", {
                       className: "bg-black",
                       id: "editor-preview",
-                      style: UseEditorLayout.sizeToStyle(layout.preview),
-                      dangerouslySetInnerHTML: {
-                        __html: Utils.$$Option.unwrapOr(match[0].svg, "")
-                      }
-                    })), React.createElement("div", {
+                      style: UseEditorLayout.sizeToStyle(layout.preview)
+                    }, HtmlReactParser(Utils.$$Option.unwrapOr(match[0].svg, ""), {
+                          htmlparser2: {
+                            xmlMode: true
+                          }
+                        }))), React.createElement("div", {
                   className: "shadow-lg w-screen bg-gray-800",
                   style: UseEditorLayout.sizeToStyle(layout.timeLine)
                 }, React.createElement(Timeline.make, {
