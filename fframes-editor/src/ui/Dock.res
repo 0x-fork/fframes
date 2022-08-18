@@ -2,7 +2,6 @@ open Icons
 open Cx
 open Webapi
 open Belt
-
 module DocumentEvent = Dom.EventTarget.Impl(Dom.Window)
 
 module DockDivider = {
@@ -52,7 +51,7 @@ let getFpsMarker = (fps, desiredFps) => {
 }
 
 @react.component
-let make = () => {
+let make = (~fullScreenToggler: Hooks.toggle) => {
   let context = EditorContext.useEditorContext()
   let (player, dispatch) = context.usePlayer()
 
@@ -90,6 +89,18 @@ let make = () => {
     dispatch(Seek(player.frame + 5 * context.videoMeta.fps))
   })
 
+  let toggleDock = () => {
+    ()
+  }
+
+  let toggleMute = () => {
+    ()
+  }
+
+  let setMagnet = () => {
+    ()
+  }
+
   React.useEffect1(() => {
     let handleKeydown = e => {
       if (
@@ -101,10 +112,15 @@ let make = () => {
       ) {
         switch e->Dom.KeyboardEvent.key {
         | " " | "k" => handlePlayOrPause()
+        | "ArrowLeft" | "a" | "A" if e->Dom.KeyboardEvent.metaKey => dispatch(Seek(0))
         | "ArrowLeft" | "a" | "A" => handleSeekLeft()
         | "ArrowRight" | "d" | "D" => handleSeekRight()
         | "ArrowUp" | "w" | "W" => increaseVolume()
         | "ArrowDown" | "s" | "S" => decreaseVolume()
+        | "m" | "M" if e->Dom.KeyboardEvent.metaKey => setMagnet()
+        | "m" => toggleMute()
+        | "h" | "H" => toggleDock()
+        | "f" | "F"  => fullScreenToggler.toggle()
         | _ => ()
         }
       }
@@ -123,7 +139,7 @@ let make = () => {
   }, [])
 
   <div
-    className="absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-slate-50/5 shadow-xl rounded-t-lg backdrop-blur-xl flex transform -translate-x-1/2">
+    className="absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-[#2a3441]/75 border-t border-x border-gray-100/5 shadow-xl rounded-t-lg backdrop-blur flex transform -translate-x-1/2">
     <DockSpace className="tabular-nums space-x-1">
       <span> {player.frame->Utils.Duration.formatFrame(context.videoMeta.fps)->React.string} </span>
       <span className="normal-nums relative bottom-px"> {React.string(" / ")} </span>
@@ -190,7 +206,7 @@ let make = () => {
     <DockButton onClick=Js.Console.log label="Magnet to this position">
       <MagnetIcon className="h-6 w-6" />
     </DockButton>
-    <DockButton onClick=Js.Console.log label="Full screen">
+    <DockButton onClick=fullScreenToggler.toggle label="Full screen">
       <FullScreenIcon className="h-6 w-6" />
     </DockButton>
     <DockButton onClick=Js.Console.log label="Collapse control bar">

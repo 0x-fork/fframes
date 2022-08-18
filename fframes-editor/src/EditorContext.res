@@ -43,28 +43,6 @@ module MakeEditorContext = (Wasm: WasmController.WasmBridge) => {
       (PlayerObserver.useObservable(), PlayerObserver.dispatch)
     }
 
-    // React.useEffect1(() => {
-    //   let handleKeydown = e => {
-    //     // Js.Console.log(PlayerObserver.get().playState)
-    //     switch e->Dom.KeyboardEvent.key {
-    //     | " " if PlayerObserver.get().playState === Playing => PlayerObserver.dispatch(Pause)
-    //     | " " => PlayerObserver.dispatch(Play)
-    //     | _ => ()
-    //     }
-    //   }
-
-    //   Dom.window
-    //   |> DocumentEvent.asEventTarget
-    //   |> Dom.EventTarget.addKeyDownEventListener(handleKeydown)
-
-    //   Some(
-    //     () =>
-    //       Dom.window
-    //       |> DocumentEvent.asEventTarget
-    //       |> Dom.EventTarget.removeKeyDownEventListener(handleKeydown),
-    //   )
-    // }, [])
-
     React.createElement(
       providerElement,
       {

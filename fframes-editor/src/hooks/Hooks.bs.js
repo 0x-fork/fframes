@@ -16,6 +16,38 @@ function useEvent(fn) {
               }), []);
 }
 
+function useToggle($$default) {
+  var match = React.useState(function () {
+        return $$default;
+      });
+  var setState = match[1];
+  var on = React.useCallback((function (param) {
+          return Curry._1(setState, (function (param) {
+                        return true;
+                      }));
+        }), []);
+  var off = React.useCallback((function (param) {
+          return Curry._1(setState, (function (param) {
+                        return false;
+                      }));
+        }), []);
+  var toggle = React.useCallback((function (param) {
+          return Curry._1(setState, (function (state) {
+                        return !state;
+                      }));
+        }), []);
+  return [
+          match[0],
+          React.useMemo((function () {
+                  return {
+                          on: on,
+                          off: off,
+                          toggle: toggle
+                        };
+                }), [])
+        ];
+}
+
 var DocumentEvent = UseDimensions.DocumentEvent;
 
 var getDimensions = UseDimensions.getDimensions;
@@ -25,6 +57,8 @@ var useDimensions = UseDimensions.useDimensions;
 var min_timeline_height = UseEditorLayout.min_timeline_height;
 
 var min_media_controls_width = UseEditorLayout.min_media_controls_width;
+
+var emptySize = UseEditorLayout.emptySize;
 
 var sizeToStyle = UseEditorLayout.sizeToStyle;
 
@@ -38,10 +72,12 @@ export {
   useDimensions ,
   min_timeline_height ,
   min_media_controls_width ,
+  emptySize ,
   sizeToStyle ,
   calculatePreviewSize ,
   useEditorLayout ,
   useEvent ,
+  useToggle ,
   
 }
 /* react Not a pure module */

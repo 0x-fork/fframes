@@ -5,10 +5,10 @@ let a = Js.Dict.empty
 
 @genType.as("Editor") @react.component
 let make = () => {
-  let layout = useEditorLayout()
-
   let context = EditorContext.useEditorContext()
   let (player, _) = context.usePlayer()
+  let (isFullScreen, fullScreenToggler) = Hooks.useToggle(false)
+  let layout = useEditorLayout(~isFullScreen)
 
   let videoTitle = React.useMemo1(() => {
     switch context.videoMeta.name->Js.String.split("::")->Utils.Array.last {
@@ -31,13 +31,20 @@ let make = () => {
         )}
       </style>
     </ReactHelmet>
-    <div className="overflow-auto flex w-full">
-      // MediaList
-      <div
-        style={layout.mediaControls->UseEditorLayout.sizeToStyle}
-        className="col-span-2 h-full overflow-auto flex flex-col py-6 border-r border-gray-800">
-        <h1 className="text-2xl mb-6 font-medium text-white px-6"> {videoTitle} </h1> <MediaList />
-      </div>
+    <div className="overflow-auto flex justify-center w-full">
+      {
+        // MediaList
+        layout.mediaControls
+        ->Belt.Option.map(size =>
+          <div
+            style={size->UseEditorLayout.sizeToStyle}
+            className="col-span-2 h-full overflow-auto flex flex-col py-6 border-r border-gray-800">
+            <h1 className="text-2xl mb-6 font-medium text-white px-6"> {videoTitle} </h1>
+            <MediaList />
+          </div>
+        )
+        ->Utils.Option.unwrapOr(React.null)
+      }
       // Preview
       <div
         id="editor-preview"
@@ -52,11 +59,14 @@ let make = () => {
         })}
       </div>
     </div>
-    <div
-      style={layout.timeLine->UseEditorLayout.sizeToStyle}
-      className="shadow-lg w-screen bg-gray-800">
-      <Timeline sectionSize=layout.timeLine />
-    </div>
-    <Dock />
+    {layout.timeLine
+    ->Belt.Option.map(sectionSize =>
+      <div
+        style={sectionSize->UseEditorLayout.sizeToStyle} className="shadow-lg w-screen bg-gray-800">
+        <Timeline sectionSize />
+      </div>
+    )
+    ->Utils.Option.unwrapOr(React.null)}
+    <Dock fullScreenToggler />
   </div>
 }

@@ -9,6 +9,12 @@ type sectionSize = {
   scale: float,
 }
 
+let emptySize: sectionSize = {
+  height: 0.0,
+  width: 0.0,
+  scale: 0.0,
+}
+
 let sizeToStyle = ({width, height}: sectionSize) => {
   ReactDOMStyle.make(
     ~width=`${width->Belt.Float.toString}px`,
@@ -18,14 +24,16 @@ let sizeToStyle = ({width, height}: sectionSize) => {
 }
 
 type editorLayout = {
-  timeLine: sectionSize,
   preview: sectionSize,
-  mediaControls: sectionSize,
+  timeLine: option<sectionSize>,
+  mediaControls: option<sectionSize>,
 }
 
 let calculatePreviewSize = (
   windowDimensions: dimensions,
   {width, height}: WasmController.videoMeta,
+  ~min_media_controls_width,
+  ~min_timeline_height,
 ) => {
   let max_preview_width = windowDimensions.width - min_media_controls_width
   let max_preview_height = windowDimensions.height - min_timeline_height
@@ -50,25 +58,40 @@ let calculatePreviewSize = (
   }
 }
 
-let useEditorLayout = () => {
+let useEditorLayout = (~isFullScreen) => {
   let viewportSize = useDimensions()
   let {videoMeta} = EditorContext.useEditorContext()
 
-  viewportSize
-  ->calculatePreviewSize(videoMeta)
-  ->(
-    previewSize => {
-      preview: previewSize,
-      mediaControls: {
-        width: viewportSize.width->Belt.Int.toFloat -. previewSize.width,
-        height: previewSize.height,
-        scale: 1.0,
-      },
-      timeLine: {
-        height: viewportSize.height->Belt.Int.toFloat -. previewSize.height,
-        width: viewportSize.width->Belt.Int.toFloat,
-        scale: 1.0,
-      },
+  React.useMemo3(() => {
+    if isFullScreen {
+      {
+        preview: calculatePreviewSize(
+          viewportSize,
+          videoMeta,
+          ~min_media_controls_width=0,
+          ~min_timeline_height=0,
+        ),
+        mediaControls: None,
+        timeLine: None,
+      }
+    } else {
+      viewportSize
+      ->calculatePreviewSize(videoMeta, ~min_media_controls_width, ~min_timeline_height)
+      ->(
+        previewSize => {
+          preview: previewSize,
+          mediaControls: Some({
+            width: viewportSize.width->Belt.Int.toFloat -. previewSize.width,
+            height: previewSize.height,
+            scale: 1.0,
+          }),
+          timeLine: Some({
+            height: viewportSize.height->Belt.Int.toFloat -. previewSize.height,
+            width: viewportSize.width->Belt.Int.toFloat,
+            scale: 1.0,
+          }),
+        }
+      )
     }
-  )
+  }, (viewportSize.height, viewportSize.width, isFullScreen))
 }

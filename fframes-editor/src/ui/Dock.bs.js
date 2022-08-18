@@ -87,6 +87,7 @@ function getFpsMarker(fps, desiredFps) {
 }
 
 function Dock(Props) {
+  var fullScreenToggler = Props.fullScreenToggler;
   var context = EditorContext.useEditorContext(undefined);
   var match = Curry._1(context.usePlayer, undefined);
   var dispatch = match[1];
@@ -138,18 +139,33 @@ function Dock(Props) {
               return ;
             }
             var match = e.key;
+            var exit = 0;
             switch (match) {
               case "A" :
               case "ArrowLeft" :
               case "a" :
-                  return Curry._1(handleSeekLeft, undefined);
+                  exit = 1;
+                  break;
               case "ArrowRight" :
               case "D" :
               case "d" :
                   return Curry._1(handleSeekRight, undefined);
+              case "F" :
+              case "f" :
+                  return Curry._1(fullScreenToggler.toggle, undefined);
+              case "H" :
+              case "h" :
+                  return ;
               case " " :
               case "k" :
                   return Curry._1(handlePlayOrPause, undefined);
+              case "M" :
+              case "m" :
+                  if (e.metaKey) {
+                    return ;
+                  }
+                  exit = 2;
+                  break;
               case "ArrowDown" :
               case "S" :
               case "s" :
@@ -159,7 +175,21 @@ function Dock(Props) {
               case "w" :
                   return Curry._1(increaseVolume, undefined);
               default:
-                return ;
+                exit = 2;
+            }
+            switch (exit) {
+              case 1 :
+                  if (e.metaKey) {
+                    return Curry._1(dispatch, {
+                                TAG: /* Seek */0,
+                                _0: 0
+                              });
+                  } else {
+                    return Curry._1(handleSeekLeft, undefined);
+                  }
+              case 2 :
+                  return ;
+              
             }
           };
           window.addEventListener("keydown", handleKeydown);
@@ -188,7 +218,7 @@ function Dock(Props) {
   var match$3 = player.playState;
   var volume = player.volume;
   return React.createElement("div", {
-              className: "absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-slate-50/5 shadow-xl rounded-t-lg backdrop-blur-xl flex transform -translate-x-1/2"
+              className: "absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-[#2a3441]/75 border-t border-x border-gray-100/5 shadow-xl rounded-t-lg backdrop-blur flex transform -translate-x-1/2"
             }, React.createElement(make$1, {
                   children: null,
                   className: "tabular-nums space-x-1"
@@ -259,10 +289,7 @@ function Dock(Props) {
                         className: "h-6 w-6"
                       }),
                   label: "Full screen",
-                  onClick: (function (prim) {
-                      console.log(prim);
-                      
-                    })
+                  onClick: fullScreenToggler.toggle
                 }), React.createElement(make$2, {
                   children: React.createElement(Icons.CollapseIcon.make, {
                         className: "h-6 w-6"

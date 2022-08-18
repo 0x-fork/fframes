@@ -7,6 +7,7 @@ import * as Utils from "../Utils.bs.js";
 import * as React from "react";
 import * as Timeline from "./Timeline/Timeline.bs.js";
 import * as $$MediaList from "./MediaList.bs.js";
+import * as Belt_Option from "rescript/lib/es6/belt_Option.js";
 import * as ReactHelmet from "react-helmet";
 import * as EditorContext from "../EditorContext.bs.js";
 import * as UseEditorLayout from "../hooks/useEditorLayout.bs.js";
@@ -17,9 +18,10 @@ function a(prim) {
 }
 
 function Editor(Props) {
-  var layout = Hooks.useEditorLayout(undefined);
   var context = EditorContext.useEditorContext(undefined);
   var match = Curry._1(context.usePlayer, undefined);
+  var match$1 = Hooks.useToggle(false);
+  var layout = Hooks.useEditorLayout(match$1[0]);
   var videoTitle = React.useMemo((function () {
           var name = Utils.$$Array.last(context.videoMeta.name.split("::"));
           if (name !== undefined) {
@@ -35,13 +37,15 @@ function Editor(Props) {
                 }, React.createElement("title", undefined, videoTitle), React.createElement("style", {
                       type: "text/css"
                     }, "\n            #editor-preview > svg {\n              transform-origin: top left !important;\n              transform: scale(" + layout.preview.scale.toString() + ") !important\n            }\n          ")), React.createElement("div", {
-                  className: "overflow-auto flex w-full"
-                }, React.createElement("div", {
-                      className: "col-span-2 h-full overflow-auto flex flex-col py-6 border-r border-gray-800",
-                      style: UseEditorLayout.sizeToStyle(layout.mediaControls)
-                    }, React.createElement("h1", {
-                          className: "text-2xl mb-6 font-medium text-white px-6"
-                        }, videoTitle), React.createElement($$MediaList.make, {})), React.createElement("div", {
+                  className: "overflow-auto flex justify-center w-full"
+                }, Utils.$$Option.unwrapOr(Belt_Option.map(layout.mediaControls, (function (size) {
+                            return React.createElement("div", {
+                                        className: "col-span-2 h-full overflow-auto flex flex-col py-6 border-r border-gray-800",
+                                        style: UseEditorLayout.sizeToStyle(size)
+                                      }, React.createElement("h1", {
+                                            className: "text-2xl mb-6 font-medium text-white px-6"
+                                          }, videoTitle), React.createElement($$MediaList.make, {}));
+                          })), null), React.createElement("div", {
                       className: "bg-black",
                       id: "editor-preview",
                       style: UseEditorLayout.sizeToStyle(layout.preview)
@@ -49,12 +53,16 @@ function Editor(Props) {
                           htmlparser2: {
                             xmlMode: true
                           }
-                        }))), React.createElement("div", {
-                  className: "shadow-lg w-screen bg-gray-800",
-                  style: UseEditorLayout.sizeToStyle(layout.timeLine)
-                }, React.createElement(Timeline.make, {
-                      sectionSize: layout.timeLine
-                    })), React.createElement(Dock.make, {}));
+                        }))), Utils.$$Option.unwrapOr(Belt_Option.map(layout.timeLine, (function (sectionSize) {
+                        return React.createElement("div", {
+                                    className: "shadow-lg w-screen bg-gray-800",
+                                    style: UseEditorLayout.sizeToStyle(sectionSize)
+                                  }, React.createElement(Timeline.make, {
+                                        sectionSize: sectionSize
+                                      }));
+                      })), null), React.createElement(Dock.make, {
+                  fullScreenToggler: match$1[1]
+                }));
 }
 
 var make = Editor;
