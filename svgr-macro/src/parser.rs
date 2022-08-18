@@ -265,7 +265,7 @@ impl Parser {
 
     fn tag_open(&self, input: ParseStream) -> Result<(NodeName, Vec<Node>, bool)> {
         input.parse::<Token![<]>()?;
-        let name = self.node_name(input)?;
+        let tag_name = self.node_name(input)?;
 
         let mut attributes = TokenStream::new();
         let self_closing = loop {
@@ -282,13 +282,14 @@ impl Parser {
         };
 
         let attributes = if !attributes.is_empty() {
-            let parser = move |input: ParseStream| self.attributes(input);
+            let tag_name = &tag_name;
+            let parser = move |input: ParseStream| self.attributes(input, tag_name);
             parser.parse2(attributes)?
         } else {
             vec![]
         };
 
-        Ok((name, attributes, self_closing))
+        Ok((tag_name, attributes, self_closing))
     }
 
     fn tag_open_end(&self, input: ParseStream) -> Result<bool> {
@@ -307,7 +308,7 @@ impl Parser {
         Ok(name)
     }
 
-    fn attributes(&self, input: ParseStream) -> Result<Vec<Node>> {
+    fn attributes(&self, input: ParseStream, tag_name: &NodeName) -> Result<Vec<Node>> {
         let mut nodes = vec![];
 
         loop {
@@ -315,13 +316,13 @@ impl Parser {
                 break;
             }
 
-            nodes.push(self.attribute(input)?);
+            nodes.push(self.attribute(input, tag_name)?);
         }
 
         Ok(nodes)
     }
 
-    fn attribute(&self, input: ParseStream) -> Result<Node> {
+    fn attribute(&self, input: ParseStream, tag_name: &NodeName) -> Result<Node> {
         let fork = &input.fork();
 
         if fork.peek(Brace) {
@@ -338,27 +339,27 @@ impl Parser {
         } else {
             let name = self.node_name(fork)?;
 
-            validate_attribute(input, &name)?;
-
-            let res = fork.parse::<Option<Token![=]>>()?.map(|_eq| {
-                if fork.is_empty() {
-                    return Err(Error::new(name.span(), "missing attribute value"));
-                }
-
-                if fork.peek(Brace) {
-                    Ok(self.block_attribute_expr(fork)?)
-                } else {
-                    if name.to_string() == "xlink:href" {
-                        return Err(fork.error("Instead of hardcoding images please use xlink:href={ctx.get_image_link(\"image.png\"}"));
+            let res = fork
+                .parse::<Option<Token![=]>>()?
+                .map(|_eq| {
+                    if fork.is_empty() {
+                        return Err(Error::new(name.span(), "missing attribute value"));
                     }
 
-                    Ok((fork.parse()?, NodeType::Attribute))
-                }
-            }).transpose()?;
+                    if fork.peek(Brace) {
+                        Ok(self.block_attribute_expr(fork)?)
+                    } else {
+                        Ok((fork.parse()?, NodeType::Attribute))
+                    }
+                })
+                .transpose()?;
 
-            let (value, node_type) = match res {
-                Some((expr, node_type)) => (Some(expr), node_type),
-                _ => (None, NodeType::Attribute),
+            let (value, node_type) = if let Some((expr, node_type)) = res {
+                validate_attribute(input, &name, tag_name, matches!(expr, Expr::Block(_)))?;
+
+                (Some(expr), node_type)
+            } else {
+                (None, NodeType::Attribute)
             };
 
             input.advance_to(fork);
