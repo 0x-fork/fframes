@@ -23,4 +23,6 @@ pub use video::*;
 pub use log::log::*;
 pub use svgr_macro::*;
 
+pub use roxmltree;
+
 mod tests;

@@ -85,7 +85,6 @@ impl FFramesRenderBackend for GpuRenderingBackend {
         });
 
         let msaa_texture_view = msaa_texture.create_view(&Default::default());
-
         unsafe {
             Encoder::with_output(
                 TVideo::WIDTH as i32,
@@ -106,7 +105,6 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                             &ctx,
                         );
                         let rtree = usvg::Tree::from_str(&svg, usvg_options).unwrap();
-
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);
 
                         let prim_buffer_byte_size =

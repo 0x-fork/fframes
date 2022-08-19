@@ -4,7 +4,7 @@ use svgr_macro::{self, svgr};
 pub struct PodcastVideo {}
 
 impl Video for PodcastVideo {
-    const FPS: usize = 30;
+    const FPS: usize = 60;
     const HEIGHT: usize = 1080;
     const WIDTH: usize = 1920;
     const DURATION: fframes::Duration = fframes::Duration::FromAudio("final.mp3");
@@ -21,23 +21,23 @@ impl Video for PodcastVideo {
     }
 
     fn render_frame(&self, frame: &frame::Frame, ctx: &fframes_context::FFramesContext) -> String {
-        let me_vis = audio_data::visualize_audio_frame(
+        let goose_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
                 ctx,
-                audio: ctx.get_audio_data("me.mp3"),
+                audio: ctx.get_audio_data("final.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,
             },
         );
 
-        let vlad_vis = audio_data::visualize_audio_frame(
+        let duck_vis = audio_data::visualize_audio_frame(
             frame,
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
                 ctx,
-                audio: ctx.get_audio_data("vlad.mp3"),
+                audio: ctx.get_audio_data("final.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,
             },
@@ -47,7 +47,7 @@ impl Video for PodcastVideo {
             &audio_data::VisualizeFrameInput {
                 smooth_level: 2,
                 ctx,
-                audio: ctx.get_audio_data("guest.mp3"),
+                audio: ctx.get_audio_data("final.mp3"),
                 sample_size: audio_data::SampleSize::S32,
                 window: None,
             },
@@ -98,16 +98,20 @@ impl Video for PodcastVideo {
             </defs>
 
              <defs>
+               <circle r="180" cx="400" stroke="black" stroke-width="16" cy="680" width="100%" height="100%" />
+               <clipPath id="clip">
+                 <use xlink:href="#rect"/>
+               </clipPath>
                <clipPath id="clip0">
                  <path fill="#fff" d="M0 0h1920v1080H0z" />
                </clipPath>
                <clipPath id="clip1">
                  <path fill="#fff" transform="matrix(-1 0 0 1 1257.75 110.456)" d="M0 0h350.203v350.203H0z" />
                </clipPath>
-               <pattern id="image" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
+               <pattern id="goose" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
                  <image x="0%" y="0%" width="480" height="480" xlink:href={ctx.get_image_link("goose.jpeg")}></image>
                </pattern>
-               <pattern id="vlad" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
+               <pattern id="duck" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
                  <image x="0%" y="0%" width="480" height="480" xlink:href={ctx.get_image_link("duck.jpg")}></image>
                </pattern>
                <pattern id="guest" x="0%" y="0%" height="100%" width="100%" viewBox="0 0 480 480">
@@ -115,10 +119,10 @@ impl Video for PodcastVideo {
                </pattern>
              </defs>
 
-             <circle r="180" cx="400" stroke="black" stroke-width="16" cy="680" fill="url(#image)" />
+             <circle r="180" cx="400" stroke="black" stroke-width="16" cy="680" fill="url(#goose)" />
 
              {
-               me_vis
+               goose_vis
                .iter()
                .enumerate()
                .map(|(i, fr)|  {
@@ -143,12 +147,12 @@ impl Video for PodcastVideo {
              <circle r="180" cx="960" stroke="black" stroke-width="16" cy="680" fill="url(#guest)" />
              <rect
               y={900}
-              x={1920 / 2 - (48 + me_vis.len() * 20) / 2}
+              x={1920 / 2 - (48 + goose_vis.len() * 20) / 2}
               rx="32"
               ry="32"
               fill="black"
               height={100}
-              width={48 + me_vis.len() * 20}
+              width={48 + goose_vis.len() * 20}
              />
 
              {
@@ -173,9 +177,9 @@ impl Video for PodcastVideo {
                .collect::<Vec<String>>().join("\n")
              }
 
-             <circle r="180" cx="1520" stroke="black" stroke-width="16" cy="680" fill="url(#vlad)" />
+             <circle r="180" cx="1520" stroke="black" stroke-width="16" cy="680" fill="url(#duck)" />
              {
-               vlad_vis
+               duck_vis
                .iter()
                .enumerate()
                .map(|(i, fr)|  {

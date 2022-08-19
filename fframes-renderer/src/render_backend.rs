@@ -7,9 +7,10 @@ use crate::{
     concatenator,
     encoder::{Encoder, EncoderFrame, EncoderOptions},
     fframes_logger::FFramesLogger,
-    gpu::GpuRenderingBackend,
     renderer_error::{FFramesError, FFramesResult},
 };
+
+pub use crate::gpu::GpuRenderingBackend;
 
 #[allow(clippy::too_many_arguments)]
 pub trait FFramesRenderBackend {
