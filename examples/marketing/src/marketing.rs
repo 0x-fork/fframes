@@ -226,22 +226,15 @@ impl Video for MarketingVideo {
         ])
     }
 
-    fn make() -> Self {
-        MarketingVideo {}
-    }
-
-    fn render_frame(&self, frame: &Frame, ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: fframes::Frame, ctx: &fframes_context::FFramesContext) -> String {
         let subtitles = ctx.get_subtitles("subtitles.vtt");
-        let audio_visualization = audio_data::visualize_audio_frame(
-            frame,
-            &audio_data::VisualizeFrameInput {
-                audio: ctx.get_audio_data("marketing.mp3"),
-                sample_size: audio_data::SampleSize::S16,
-                ctx,
-                smooth_level: 3,
-                window: Some(fframes::WindowFunction::Hamming),
-            },
-        );
+        let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
+            audio: ctx.get_audio_data("marketing.mp3"),
+            sample_size: audio_data::SampleSize::S16,
+            ctx,
+            smooth_level: 3,
+            window: Some(fframes::WindowFunction::Hamming),
+        });
 
         svgr!(
           <svg
@@ -368,7 +361,7 @@ impl Video for MarketingVideo {
               fill="white"
               font-family="Chalkboard SE"
             >
-              {subtitles.get_phrase_for_frame(frame).unwrap_or("")}
+              {subtitles.get_phrase_for_frame(&frame).unwrap_or("")}
             </text>
 
             <image
@@ -382,7 +375,8 @@ impl Video for MarketingVideo {
               y="10"
             />
 
-            {self.render_ferris(frame)}
+            {self.render_ferris(&frame)}
+            
             <circle
               cx={960}
               fill="#fff"

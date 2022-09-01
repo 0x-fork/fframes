@@ -7,8 +7,10 @@ macro_rules! setup_wasm_editor {
             async fn load_audio_wasm_callback(path: &str) -> Result<JsValue, JsValue>;
         }
 
+        static VIDEO: $x = $x $params;
+
         lazy_static! {
-            static ref VIDEO: $x = $x $params;
+            static ref SCENES: Mutex<Option<fframes::ResolvedScenesTimeline>> = Mutex::new(None);
             static ref AUDIO_MAP: Mutex<Option<HashMap<&'static str, (usize, usize)>>> = {
                 Mutex::new($x::audio(&VIDEO).0.map(|audio_map| {
                     audio_map
@@ -86,12 +88,24 @@ macro_rules! setup_wasm_editor {
             }
         }
 
+        async fn load_audio_duration(audio: &str) -> fframes::error::Result<usize> {
+            let duration_in_frames = (load_audio_wasm_callback(audio)
+                .await
+                .expect("Can not get the duration of audio")
+                .as_f64()
+                .expect("Can not convert the duration of audio to f64")
+                * $x::FPS as f64) as i32;
+
+            let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
+            durations_hash.insert(audio.to_owned(), duration_in_frames);
+
+            Ok(duration_in_frames as usize)
+        }
+
         async fn get_duration_frames() -> i32 {
-            match $x::DURATION {
-                fframes::Duration::Frames(frames) => frames as i32,
-                fframes::Duration::Seconds(seconds) => (seconds * $x::FPS) as i32,
-                fframes::Duration::FromAudio(audio) => unsafe {
-                    let duration_in_frames = (load_audio_wasm_callback(audio)
+            let (duration, scenes) =
+                fframes::resolve_duration_and_scenes_async(&VIDEO, async move |audio: String| {
+                    let duration_in_frames = (load_audio_wasm_callback(audio.as_str())
                         .await
                         .expect("Can not get the duration of audio")
                         .as_f64()
@@ -101,11 +115,18 @@ macro_rules! setup_wasm_editor {
                     let mut durations_hash = AUDIO_DURATIONS.lock().unwrap();
                     durations_hash.insert(audio.to_owned(), duration_in_frames);
 
-                    duration_in_frames
-                },
-            }
-        }
+                    Ok(duration_in_frames as usize)
+                })
+                .await
+                .unwrap();
 
+                if let Some(scenes) = scenes {
+                    SCENES.lock().unwrap().replace(scenes);
+                }
+
+
+            duration as i32
+        }
         #[wasm_bindgen]
         pub async fn prepare() -> Result<VideoMetadata, JsValue> {
             console_error_panic_hook::set_once();
@@ -167,14 +188,17 @@ macro_rules! setup_wasm_editor {
         #[wasm_bindgen]
         pub fn render_frame(frame: i64) -> String {
             VIDEO.render_frame(
-                &frame::Frame {
+                frame::Frame {
                     fps: $x::FPS,
-                    index: frame,
+                    index: frame as usize,
+                    global_index: frame as usize
                 },
                 &fframes_context::FFramesContext {
+                    duration_in_frames: 0,
                     mode: fframes_context::FFramesMode::Editor,
                     fps: $x::FPS,
                     sample_rate: 44100,
+                    scenes:  SCENES.lock().unwrap().as_ref(),
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
             )
@@ -183,14 +207,17 @@ macro_rules! setup_wasm_editor {
         #[wasm_bindgen]
         pub fn render_preview_frame(frame: i64) -> String {
             VIDEO.render_frame(
-                &frame::Frame {
+                frame::Frame {
                     fps: $x::FPS,
-                    index: frame,
+                    index: frame as usize,
+                    global_index: frame as usize
                 },
                 &fframes_context::FFramesContext {
+                    duration_in_frames: 0,
                     mode: fframes_context::FFramesMode::EditorTimelinePreview,
                     fps: $x::FPS,
                     sample_rate: 44100,
+                    scenes:  SCENES.lock().unwrap().as_ref(),
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
             )

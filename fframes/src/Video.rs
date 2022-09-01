@@ -1,22 +1,143 @@
+use std::future::Future;
+
 use crate::audio_map::AudioMap;
-use crate::{fframes_context, frame};
+use crate::{fframes_context, frame, scenes::*};
 
 pub enum Duration {
+    /// Get the duration from the audio file.
     FromAudio(&'static str),
     Seconds(usize),
     Frames(usize),
+    Auto,
 }
 
-pub trait Video: Sized {
+impl Duration {
+    pub(super) async fn to_frames_async<
+        TGetAudioFn: Fn(String) -> TResult,
+        TResult: Future<Output = super::error::Result<usize>>,
+    >(
+        &self,
+        fps: usize,
+        resolve_audio_duration: TGetAudioFn,
+    ) -> crate::error::Result<usize> {
+        match self {
+            Duration::FromAudio(audio) => resolve_audio_duration((*audio).to_owned()).await,
+            Duration::Seconds(seconds) => Ok(seconds * fps),
+            Duration::Frames(frames) => Ok(*frames),
+            Duration::Auto => Err(crate::error::FFramesCoreError::MissingDurationOrScenes),
+        }
+    }
+
+    pub(super) fn to_frames_sync<TGetAudioFn: Fn(&str) -> crate::error::Result<usize>>(
+        &self,
+        fps: usize,
+        resolve_audio_duration: TGetAudioFn,
+    ) -> crate::error::Result<usize> {
+        match self {
+            Duration::FromAudio(audio) => resolve_audio_duration(audio),
+            Duration::Seconds(seconds) => Ok(seconds * fps),
+            Duration::Frames(frames) => Ok(*frames),
+            Duration::Auto => Err(crate::error::FFramesCoreError::MissingDurationOrScenes),
+        }
+    }
+}
+
+pub trait Video: Sync + Sized {
     const FPS: usize;
     const WIDTH: usize;
     const HEIGHT: usize;
-    const DURATION: Duration;
-
-    fn make() -> Self
-    where
-        Self: Sync + Sized;
+    const DURATION: Duration = Duration::Auto;
 
     fn audio(&self) -> AudioMap;
-    fn render_frame(&self, frame: &frame::Frame, ctx: &fframes_context::FFramesContext) -> String;
+    fn define_scenes(&self) -> Scenes {
+        Scenes(None)
+    }
+
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> String;
+}
+
+#[derive(Debug)]
+pub struct ResolvedScenesTimeline(pub(crate) Vec<(std::ops::Range<usize>, Box<dyn Scene>)>);
+
+// TODO figure out how to reuse. This function completely duplicates a sync version ot it.
+pub async fn resolve_duration_and_scenes_async<
+    TGetAudioFn: Fn(String) -> TResult,
+    TResult: Future<Output = crate::error::Result<usize>>,
+    TVideo: Video,
+>(
+    video: &TVideo,
+    resolve_audio_duration: TGetAudioFn,
+) -> crate::error::Result<(usize, Option<ResolvedScenesTimeline>)> {
+    match (video.define_scenes().0, TVideo::DURATION) {
+        (Some(scenes), Duration::Auto) => {
+            let mut final_duration = 0;
+            let mut resolved_scenes = Vec::new();
+
+            for scene in scenes {
+                let duration = scene
+                    .duration()
+                    .to_frames_async(TVideo::FPS, &resolve_audio_duration)
+                    .await?;
+
+                let (overlap_prev, overlap_next) = scene.overlap().to_frames(TVideo::FPS);
+                resolved_scenes.push((
+                    final_duration - overlap_prev..final_duration + duration + overlap_next,
+                    scene,
+                ));
+
+                final_duration += duration;
+            }
+
+            Ok((
+                final_duration,
+                Some(ResolvedScenesTimeline(resolved_scenes)),
+            ))
+        }
+        (None, duration) => Ok((
+            duration
+                .to_frames_async(TVideo::FPS, resolve_audio_duration)
+                .await?,
+            None,
+        )),
+        _ => Err(crate::error::FFramesCoreError::MissingDurationOrScenes),
+    }
+}
+
+pub fn resolve_duration_and_scenes_sync<
+    TGetAudioFn: Fn(&str) -> crate::error::Result<usize>,
+    TVideo: Video,
+>(
+    video: &TVideo,
+    resolve_audio_duration: TGetAudioFn,
+) -> crate::error::Result<(usize, Option<ResolvedScenesTimeline>)> {
+    match (video.define_scenes().0, TVideo::DURATION) {
+        (Some(scenes), Duration::Auto) => {
+            let mut final_duration = 0;
+            let mut resolved_scenes = Vec::new();
+
+            for scene in scenes {
+                let duration = scene
+                    .duration()
+                    .to_frames_sync(TVideo::FPS, &resolve_audio_duration)?;
+
+                let (overlap_prev, overlap_next) = scene.overlap().to_frames(TVideo::FPS);
+                resolved_scenes.push((
+                    final_duration - overlap_prev..final_duration + duration + overlap_next,
+                    scene,
+                ));
+
+                final_duration += duration;
+            }
+
+            Ok((
+                final_duration,
+                Some(ResolvedScenesTimeline(resolved_scenes)),
+            ))
+        }
+        (None, duration) => Ok((
+            duration.to_frames_sync(TVideo::FPS, resolve_audio_duration)?,
+            None,
+        )),
+        _ => Err(crate::error::FFramesCoreError::MissingDurationOrScenes),
+    }
 }

@@ -10,7 +10,7 @@ pub trait FFramesLogger: Sync + Send {
     fn log_unprocessed_media_file(&self, filename: &str);
     fn log_media_processing_start(&self, filename: &str, path: &Path);
 
-    fn init_frames_rendering(&self, all_frames: usize);
+    fn init_frames_rendering(&self, duration_in_frames: usize);
     fn log_frame(&self, index: usize, thread_number: usize, svg: &str);
 
     fn success(&self, output_path: &str, temp_files_dir: Option<&str>);

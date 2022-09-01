@@ -1,7 +1,8 @@
-use crate::{animation, AnimationRuntime};
+use crate::{animation, get_visualization, AnimationRuntime, VisualizeFrameInput};
 
 pub struct Frame {
-    pub index: i64,
+    pub index: usize,
+    pub global_index: usize,
     pub fps: usize,
 }
 
@@ -106,5 +107,25 @@ impl Frame {
                 keyframe.from.apply_progress(&keyframe.to, progress)
             }
         }
+    }
+
+    pub fn visualize_audio_frame(&self, input: VisualizeFrameInput) -> Vec<f32> {
+        if self.index < input.smooth_level * 2 + 1 {
+            return get_visualization(self.index, &input);
+        }
+
+        let frames_to_smooth = ((self.index - input.smooth_level)
+            ..(self.index + input.smooth_level))
+            .into_iter()
+            .map(|i| get_visualization(i, &input))
+            .collect::<Vec<_>>();
+
+        (0..frames_to_smooth[1].len())
+            .into_iter()
+            .map(|frame| {
+                frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
+                    / frames_to_smooth.len() as f32
+            })
+            .collect()
     }
 }

@@ -98,9 +98,10 @@ impl FFramesRenderBackend for GpuRenderingBackend {
 
                     for fr in 0..duration_in_frames {
                         let svg = video.render_frame(
-                            &frame::Frame {
+                            frame::Frame {
                                 fps: TVideo::FPS,
-                                index: fr as i64,
+                                index: fr,
+                                global_index: fr,
                             },
                             &ctx,
                         );

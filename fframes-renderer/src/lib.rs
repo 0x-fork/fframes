@@ -1,7 +1,7 @@
 use encoder::EncoderOptions;
 use fframes::media_provider::ImageData;
-use fframes::{fframes_context, video::Video};
-use fframes::{AudioData, Duration};
+use fframes::video::Video;
+use fframes::{fframes_context, AudioData};
 use fframes_logger::FFramesLoggerVariant;
 use render_backend::FFramesRenderBackend;
 
@@ -10,7 +10,7 @@ mod encoder;
 mod ffmpeg_helper;
 pub mod fframes_logger;
 pub use fframes_logger::*;
-use renderer_error::FFramesError;
+use renderer_error::FFramesResult;
 mod gpu;
 mod media_processor;
 pub mod render_backend;
@@ -32,7 +32,7 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     video: TVideo,
     output: &'a str,
     options: RenderOptions<'a, TBackend>,
-) -> Result<(), FFramesError> {
+) -> FFramesResult<()> {
     let fps = TVideo::FPS;
     let logger = fframes_logger::make_logger(options.logger);
 
@@ -69,32 +69,32 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
         }),
     };
 
-    let duration_in_frames = match TVideo::DURATION {
-        Duration::FromAudio(audio) => {
-            let main_audio = media_provider
+    let (duration_in_frames, scenes) =
+        fframes::video::resolve_duration_and_scenes_sync(&video, |name| {
+            media_provider
                 .audio
-                .get(audio)
-                .ok_or_else(|| FFramesError::MissingRequiredMedia(audio.to_owned()))?;
-
-            match main_audio {
-                AudioData::Preloaded(data) => {
-                    data.samples.len() / data.sample_rate as usize * fps as usize
-                }
-                _ => 0,
-            }
-        }
-        Duration::Seconds(seconds) => seconds * fps,
-        Duration::Frames(frames) => frames,
-    };
-
-    logger.init_frames_rendering(duration_in_frames);
+                .get(name)
+                .map(|main_audio| match main_audio {
+                    AudioData::Preloaded(data) => {
+                        data.samples.len() / data.sample_rate as usize * fps as usize
+                    }
+                    _ => 0,
+                })
+                .ok_or_else(|| {
+                    fframes::error::FFramesCoreError::CanNotProcessAudioDuration(name.to_owned())
+                })
+        })?;
 
     let ctx = fframes_context::FFramesContext {
         sample_rate: 44100,
         mode: fframes::FFramesMode::Renderer,
         fps,
         media_provider,
+        duration_in_frames,
+        scenes: scenes.as_ref(),
     };
+
+    logger.init_frames_rendering(duration_in_frames);
 
     options.render_backend.render(
         output,

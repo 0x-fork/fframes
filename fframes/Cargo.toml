@@ -14,6 +14,8 @@ webvtt-parser = {path="../webvtt-parser"}
 svgr-macro={path="../svgr-macro"}
 konst="0.2.15"
 roxmltree="0.14.1"
+rangemap="1.0.3"
+futures="0.3.24"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2.74"

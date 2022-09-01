@@ -16,7 +16,7 @@ impl PreloadedAudioData {
         self.samples.get(range)
     }
 
-    pub fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> Option<&[i16]> {
+    pub fn get_frame_data(&self, length: usize, frame: usize, fps: i64) -> Option<&[i16]> {
         let start_index = frame as usize * self.sample_rate as usize / fps as usize;
 
         self.samples.get(start_index..start_index + length)
@@ -44,7 +44,7 @@ impl AudioData {
         }
     }
 
-    pub fn get_frame_data(&self, length: usize, frame: i64, fps: i64) -> &[i16] {
+    pub fn get_frame_data(&self, length: usize, frame: usize, fps: i64) -> &[i16] {
         match self {
             AudioData::Preloaded(data) => data.get_frame_data(length, frame, fps).unwrap_or(&[]),
             AudioData::Lazy => &[],
@@ -86,7 +86,7 @@ pub struct VisualizeFrameInput<'a> {
     pub audio: &'a AudioData,
     pub sample_size: SampleSize,
     pub smooth_level: usize,
-    pub ctx: &'a fframes_context::FFramesContext,
+    pub ctx: &'a fframes_context::FFramesContext<'a>,
     pub window: Option<audio_window_functions::WindowFunction>,
 }
 
@@ -95,7 +95,7 @@ fn apply_fft_to_frame(
     sample_size: &SampleSize,
     window: &Option<audio_window_functions::WindowFunction>,
     audio_data: &AudioData,
-    frame: i64,
+    frame: usize,
     fps: i64,
 ) -> Vec<microfft::Complex32> {
     let apply_window = |size| -> Vec<f32> {
@@ -159,7 +159,7 @@ fn apply_fft_to_frame(
 }
 
 pub fn get_visualization(
-    frame: i64,
+    frame: usize,
     VisualizeFrameInput {
         sample_size,
         ctx,
@@ -179,22 +179,3 @@ pub fn get_visualization(
     res
 }
 
-pub fn visualize_audio_frame(frame: &frame::Frame, input: &VisualizeFrameInput) -> Vec<f32> {
-    let index = frame.index as usize;
-    if index < input.smooth_level * 2 + 1 {
-        return get_visualization(frame.index, input);
-    }
-
-    let frames_to_smooth = ((index - input.smooth_level)..(index + input.smooth_level))
-        .into_iter()
-        .map(|i| get_visualization(i as i64, input))
-        .collect::<Vec<_>>();
-
-    (0..frames_to_smooth[1].len())
-        .into_iter()
-        .map(|frame| {
-            frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
-                / frames_to_smooth.len() as f32
-        })
-        .collect()
-}

@@ -122,9 +122,10 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                             .enumerate()
                             .try_for_each(|(index, fr)| {
                                 let svg = video.render_frame(
-                                    &frame::Frame {
+                                    frame::Frame {
                                         fps: TVideo::FPS,
-                                        index: fr as i64,
+                                        index: fr,
+                                        global_index: fr,
                                     },
                                     &ctx,
                                 );

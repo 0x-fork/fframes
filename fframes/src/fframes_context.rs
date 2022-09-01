@@ -1,4 +1,6 @@
-use crate::{audio_data, media_provider, subtitles, ResolvedAudioMap};
+use crate::{
+    audio_data, media_provider, subtitles, video::ResolvedScenesTimeline, Frame, ResolvedAudioMap,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub enum FFramesMode {
@@ -7,16 +9,17 @@ pub enum FFramesMode {
     Renderer,
 }
 
-#[derive(Clone, Debug)]
-pub struct FFramesContext {
+#[derive(Debug)]
+pub struct FFramesContext<'a> {
     pub fps: usize,
     pub sample_rate: usize,
     pub mode: FFramesMode,
     pub media_provider: media_provider::MediaProvider,
-    // pub resolve_lazy_audio_during_render: Option<Arc<dyn Fn(usize) -> Vec<f32>>>,
+    pub duration_in_frames: usize,
+    pub scenes: Option<&'a ResolvedScenesTimeline>,
 }
 
-impl FFramesContext {
+impl<'a> FFramesContext<'a> {
     pub fn get_audio_data(&self, filename: &str) -> &audio_data::AudioData {
         // crate::log!("{:?}", self.media_provider.audio);
         match self.media_provider.audio.get(filename) {
@@ -50,7 +53,33 @@ impl FFramesContext {
         }
     }
 
-    /// This method takes all the information we
+    pub fn render_scenes(&self, global_frame: &Frame) -> String {
+        if let Some(scenes) = self.scenes.as_ref() {
+            scenes
+                .0
+                .iter()
+                .filter_map(|(range, scene)| {
+                    if range.contains(&global_frame.index) {
+                        Some(scene.render_frame(
+                            Frame {
+                                fps: global_frame.fps,
+                                global_index: global_frame.index,
+                                index: global_frame.index - range.start,
+                            },
+                            self,
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .fold(String::new(), |acc, s| acc + &s)
+        } else {
+            "".to_owned()
+        }
+    }
+
+    /// This is internal method that is used by the renderer which mixes audio data and returns the final as fltp in a vector.
+    #[allow(clippy::option_map_unit_fn)]
     pub fn get_mixed_audio_data_in_fltp(
         &self,
         audio_map: &ResolvedAudioMap,
@@ -85,17 +114,4 @@ impl FFramesContext {
 
         audio_data
     }
-
-    // pub fn get_image_data(&self, filename: &str) -> Vec<u8> {
-    //     match self.media_provider.images.get(filename) {
-    //         Some(data) => match data.to_owned() {
-    //             ImageData::Url(_) => panic!("Received image url instead of blob data. Likely mixed up the rendering and editing media provider."),
-    //             ImageData::ImageData(data) => data
-    //         },
-    //         None => panic!(
-    //             "Image {file} not found! Please make sure that media folder contains {file}",
-    //             file = filename
-    //         ),
-    //     }
-    // }
 }

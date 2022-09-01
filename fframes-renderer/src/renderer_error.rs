@@ -43,6 +43,7 @@ pub enum FFramesError {
     MediaError(std::io::Error),
     SubtitlesParsingError(fframes::SubtitlesError),
     MissingRequiredMedia(String),
+    CoreError(fframes::error::FFramesCoreError),
 }
 
 impl fmt::Debug for FFramesError {
@@ -64,6 +65,7 @@ impl fmt::Debug for FFramesError {
                     required_media.magenta().bold()
                 ),
                 Self::SubtitlesParsingError(err) => format!("{:?}", err),
+                Self::CoreError(err) => format!("{:?}", err),
             }
         )
     }
@@ -86,5 +88,11 @@ impl From<std::io::Error> for FFramesError {
 impl From<fframes::SubtitlesError> for FFramesError {
     fn from(err: fframes::SubtitlesError) -> Self {
         Self::SubtitlesParsingError(err)
+    }
+}
+
+impl From<fframes::error::FFramesCoreError> for FFramesError {
+    fn from(err: fframes::error::FFramesCoreError) -> Self {
+        Self::CoreError(err)
     }
 }

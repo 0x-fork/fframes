@@ -16,42 +16,29 @@ impl Video for PodcastVideo {
         )])
     }
 
-    fn make() -> Self {
-        PodcastVideo {}
-    }
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> String {
+        let goose_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
+            smooth_level: 2,
+            ctx,
+            audio: ctx.get_audio_data("final.mp3"),
+            sample_size: audio_data::SampleSize::S32,
+            window: None,
+        });
 
-    fn render_frame(&self, frame: &frame::Frame, ctx: &fframes_context::FFramesContext) -> String {
-        let goose_vis = audio_data::visualize_audio_frame(
-            frame,
-            &audio_data::VisualizeFrameInput {
-                smooth_level: 2,
-                ctx,
-                audio: ctx.get_audio_data("final.mp3"),
-                sample_size: audio_data::SampleSize::S32,
-                window: None,
-            },
-        );
-
-        let duck_vis = audio_data::visualize_audio_frame(
-            frame,
-            &audio_data::VisualizeFrameInput {
-                smooth_level: 2,
-                ctx,
-                audio: ctx.get_audio_data("final.mp3"),
-                sample_size: audio_data::SampleSize::S32,
-                window: None,
-            },
-        );
-        let guest_vis = audio_data::visualize_audio_frame(
-            frame,
-            &audio_data::VisualizeFrameInput {
-                smooth_level: 2,
-                ctx,
-                audio: ctx.get_audio_data("final.mp3"),
-                sample_size: audio_data::SampleSize::S32,
-                window: None,
-            },
-        );
+        let duck_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
+            smooth_level: 2,
+            ctx,
+            audio: ctx.get_audio_data("final.mp3"),
+            sample_size: audio_data::SampleSize::S32,
+            window: None,
+        });
+        let guest_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
+            smooth_level: 2,
+            ctx,
+            audio: ctx.get_audio_data("final.mp3"),
+            sample_size: audio_data::SampleSize::S32,
+            window: None,
+        });
 
         svgr!(
         <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" fill="none">

@@ -1,17 +1,53 @@
 pub use fframes::{audio_data, fframes_context, frame, video::Video};
-use fframes::{AudioMap, Color};
+use fframes::{AudioMap, Color, Scene};
 use svgr_macro::{self, svgr};
 
-pub struct HelloWorldVideo {}
+pub struct HelloWorldMultisceneVideo {}
 
-impl Video for HelloWorldVideo {
+#[derive(Debug)]
+struct SceneOne {}
+
+impl Scene for SceneOne {
+    fn duration(&self) -> fframes::Duration {
+        fframes::Duration::Seconds(15)
+    }
+
+    fn render_frame(&self, _frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+        svgr!(
+          <text font-family="DM Sans" x="100" y="300" font-size="150"> "Hello Scene 1" </text>
+        )
+    }
+}
+
+#[derive(Debug)]
+struct SceneTwo {}
+
+impl Scene for SceneTwo {
+    fn duration(&self) -> fframes::Duration {
+        fframes::Duration::Seconds(15)
+    }
+
+    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+        svgr!(
+          <text font-family="DM Sans" x="100" y={frame.animate
+            (fframes::timeline!(on 0., val 300. => 320., fframes::Easing::Linear(0.2)))} font-size="150"> "Hello Scene 2" </text>
+        )
+    }
+}
+
+impl Video for HelloWorldMultisceneVideo {
     const FPS: usize = 30;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
-    const DURATION: fframes::Duration = fframes::Duration::Seconds(30);
 
     fn audio(&self) -> AudioMap {
         AudioMap::none()
+    }
+
+    fn define_scenes(&self) -> fframes::Scenes {
+        let vec: Vec<Box<dyn Scene>> = vec![Box::new(SceneTwo {}), Box::new(SceneOne {})];
+
+        fframes::Scenes::from(vec)
     }
 
     fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
@@ -41,9 +77,7 @@ impl Video for HelloWorldVideo {
               }
             />
 
-            <text font-family="DM Sans" x="100" y="300" font-size="150">
-              "Hello World!"
-            </text>
+            {_ctx.render_scenes(&frame)}
 
             <text font-weight="500" font-family="JetBrains Mono" x="100" y="440" font-size="74" fill="#4b5563">
               {format!("This frame index: {}, second: {:.2}", frame.index, frame.get_current_second())}
