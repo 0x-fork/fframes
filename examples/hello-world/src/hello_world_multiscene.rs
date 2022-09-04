@@ -2,7 +2,7 @@ pub use fframes::{audio_data, fframes_context, frame, video::Video};
 use fframes::{AudioMap, Color, Scene};
 use svgr_macro::{self, svgr};
 
-pub struct HelloWorldMultisceneVideo {}
+pub struct HelloWorldMultiSceneVideo {}
 
 #[derive(Debug)]
 struct SceneOne {}
@@ -35,7 +35,7 @@ impl Scene for SceneTwo {
     }
 }
 
-impl Video for HelloWorldMultisceneVideo {
+impl Video for HelloWorldMultiSceneVideo {
     const FPS: usize = 30;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
@@ -45,7 +45,7 @@ impl Video for HelloWorldMultisceneVideo {
     }
 
     fn define_scenes(&self) -> fframes::Scenes {
-        let vec: Vec<Box<dyn Scene>> = vec![Box::new(SceneTwo {}), Box::new(SceneOne {})];
+        let vec: Vec<Box<dyn Scene>> = vec![Box::new(SceneOne {}), Box::new(SceneTwo {})];
 
         fframes::Scenes::from(vec)
     }

@@ -1,8 +1,12 @@
 use crate::{animation, get_visualization, AnimationRuntime, VisualizeFrameInput};
 
+/// The Frame {} struct contains temporal information about the current frame.
 pub struct Frame {
+    /// The frame index of the current frame. If rendering a Scene it is relative to the current frame.
     pub index: usize,
+    /// The frame index of the current frame. If rendering a Scene it is relative to  
     pub global_index: usize,
+    /// FPS of the video. Always equals to the Video::FPS constant.
     pub fps: usize,
 }
 
