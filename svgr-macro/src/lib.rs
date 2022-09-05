@@ -42,6 +42,7 @@ pub fn svgr(tokens: TokenStream) -> TokenStream {
                     #(#animations)*
                 }
 
+                #[allow(unused_braces)]
                 fframes::Svgr {
                     value: format!(#html_string, #(#values),*)
                 }

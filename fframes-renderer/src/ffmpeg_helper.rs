@@ -15,8 +15,8 @@ macro_rules! ffmpeg_loggable_action {
         let res = $x;
 
         if (res < 0) {
-            let error_description = crate::encoder::av_error_to_string(res);
-            return Err(crate::renderer_error::AVError::FFmpegError(
+            let error_description = $crate::encoder::av_error_to_string(res);
+            return Err($crate::renderer_error::AVError::FFmpegError(
                 res,
                 CString::from_raw(error_description)
                     .to_str()

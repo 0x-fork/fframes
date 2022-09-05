@@ -1,6 +1,6 @@
 use fframes::{
     animation::{self, AnimationRuntime},
-    AudioMap, AudioTimestamp,
+    AudioMap, AudioTimestamp, Svgr,
 };
 pub use fframes::{
     audio_data, audio_window_functions, fframes_context, frame::Frame, subtitles, video::Video,
@@ -28,7 +28,7 @@ impl Video for GooseVideo {
         AudioMap::from([("thought.mp3", (Second(0), Eof))])
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data("thought.mp3"),
             sample_size: audio_data::SampleSize::S64,
@@ -96,7 +96,7 @@ impl Video for GooseVideo {
                         />
                     )
                 })
-                .collect::<Vec<String>>().join("\n")
+                .collect::<Vec<_>>()
             }
         </svg>
         )

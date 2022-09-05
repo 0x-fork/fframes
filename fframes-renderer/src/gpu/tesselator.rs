@@ -100,7 +100,7 @@ pub fn tesselate_svg(
 
     for node in rtree.root().descendants() {
         match *node.borrow() {
-            usvgr::NodeKind::Image(ref image) => {
+            usvgr::NodeKind::Image(ref _image) => {
                 todo!()
             }
             usvgr::NodeKind::Path(ref p) => {

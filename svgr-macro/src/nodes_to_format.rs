@@ -2,7 +2,7 @@ use crate::node::{Node, NodeType};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 use syn::{
-    punctuated::Punctuated, token::Token, Expr, ExprPath, ExprReference, Path, PathArguments,
+    punctuated::Punctuated, Expr, ExprPath, ExprReference, Path, PathArguments,
     PathSegment,
 };
 

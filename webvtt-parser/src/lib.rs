@@ -11,7 +11,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 const START_MARKER: &str = "WEBVTT";
 
 /// A start/end time of
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Time(pub u64);
 
 pub fn div_rem<T: std::ops::Div<Output = T> + std::ops::Rem<Output = T> + Copy>(
@@ -46,7 +46,7 @@ impl Display for Time {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Vertical {
     RightToLeft,
     LeftToRight,
@@ -65,7 +65,7 @@ impl Display for Vertical {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumberOrPercentage {
     Number(i32),
     Percentage(u8),
@@ -84,7 +84,7 @@ impl Display for NumberOrPercentage {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Align {
     Start,
     Middle,
@@ -108,7 +108,7 @@ impl Display for Align {
 /// Cue settings are optional components used to position where the cue payload text will be displayed over the video.
 /// This includes whether the text is displayed horizontally or vertically.
 /// There can be zero or more of them, and they can be used in any order so long as each setting is used no more than once.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CueSettings {
     pub vertical: Option<Vertical>,
     /// Specifies where text appears vertically. If vertical is set, line specifies where text appears horizontally.
@@ -160,7 +160,7 @@ impl Display for CueSettings {
 }
 
 /// A subtitle and associated metadata
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cue {
     pub start: Time,
     pub end: Time,
@@ -201,7 +201,7 @@ impl Display for Cue {
 }
 
 /// The subtitle file and metadata
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Vtt {
     pub slugs: HashMap<String, String>,
     pub style: Option<String>,

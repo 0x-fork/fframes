@@ -1,5 +1,5 @@
 pub use fframes::{audio_data, fframes_context, frame, video::Video};
-use fframes::{AudioMap, Color, Scene};
+use fframes::{AudioMap, Color, Scene, Svgr};
 use svgr_macro::{self, svgr};
 
 pub struct HelloWorldMultiSceneVideo {}
@@ -12,7 +12,7 @@ impl Scene for SceneOne {
         fframes::Duration::Seconds(15)
     }
 
-    fn render_frame(&self, _frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, _frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
         svgr!(
           <text font-family="DM Sans" x="100" y="300" font-size="150"> "Hello Scene 1" </text>
         )
@@ -27,7 +27,7 @@ impl Scene for SceneTwo {
         fframes::Duration::Seconds(15)
     }
 
-    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
         svgr!(
           <text font-family="DM Sans" x="100" y={frame.animate
             (fframes::timeline!(on 0., val 300. => 320., fframes::Easing::Linear(0.2)))} font-size="150"> "Hello Scene 2" </text>
@@ -50,7 +50,7 @@ impl Video for HelloWorldMultiSceneVideo {
         fframes::Scenes::from(vec)
     }
 
-    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
         const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.);
 
         svgr!(

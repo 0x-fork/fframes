@@ -3,7 +3,8 @@
   "cSpell.words": [
     "avcodec",
     "avio",
-    "fframes"
+    "fframes",
+    "Svgr"
   ],
   "files.associations": {
     "*.prisma": "graphql",
