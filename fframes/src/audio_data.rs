@@ -1,4 +1,4 @@
-use crate::{audio_window_functions, fframes_context, frame};
+use crate::{audio_window_functions, fframes_context};
 use std::{convert::TryInto, ops::Range};
 
 #[derive(Debug, Clone)]
@@ -178,4 +178,3 @@ pub fn get_visualization(
 
     res
 }
-

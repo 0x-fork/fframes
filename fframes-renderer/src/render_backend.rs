@@ -19,7 +19,7 @@ pub trait FFramesRenderBackend {
         output: &'a str,
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
-        usvg_options: &usvg::OptionsRef,
+        usvg_options: &usvgr::OptionsRef,
         duration_in_frames: usize,
         render_options: EncoderOptions<'a>,
         ctx: fframes::FFramesContext,
@@ -80,7 +80,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         output: &'a str,
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
-        usvg_options: &usvg::OptionsRef,
+        usvg_options: &usvgr::OptionsRef,
         duration_in_frames: usize,
         _encoder_options: EncoderOptions<'a>,
         ctx: fframes::FFramesContext,
@@ -113,9 +113,11 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                     &mut |encoder| {
                         let mut last_svg = "".to_owned();
                         let mut frame = EncoderFrame::make(&encoder.video_stream);
-                        let mut pixmap =
-                            tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
-                                .unwrap();
+                        let mut pixmap = svgr::tiny_skia::Pixmap::new(
+                            TVideo::WIDTH as u32,
+                            TVideo::HEIGHT as u32,
+                        )
+                        .unwrap();
 
                         chunk_range
                             .to_owned()
@@ -132,11 +134,11 @@ impl FFramesRenderBackend for CpuRenderingBackend {
 
                                 logger.log_frame(index, thread_number, &svg);
                                 if svg != last_svg {
-                                    let rtree = usvg::Tree::from_str(&svg, usvg_options).unwrap();
-                                    resvg::render(
+                                    let rtree = usvgr::Tree::from_str(&svg, usvg_options).unwrap();
+                                    svgr::render(
                                         &rtree,
-                                        usvg::FitTo::Original,
-                                        tiny_skia::Transform::default(),
+                                        usvgr::FitTo::Original,
+                                        svgr::tiny_skia::Transform::default(),
                                         pixmap.as_mut(),
                                     )
                                     .unwrap();

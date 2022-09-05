@@ -15,7 +15,7 @@ impl Video for HelloWorldVideo {
     }
 
     fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
-        const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.); 
+        const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.);
 
         svgr!(
            <svg

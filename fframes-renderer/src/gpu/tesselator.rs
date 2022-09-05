@@ -1,5 +1,3 @@
-use std::borrow::Borrow;
-
 use lyon::{
     lyon_tessellation::{
         BuffersBuilder, FillOptions, FillVertexConstructor, StrokeVertexConstructor,
@@ -8,7 +6,7 @@ use lyon::{
     path::PathEvent,
     tessellation::{self, FillTessellator, StrokeOptions, StrokeTessellator, VertexBuffers},
 };
-use usvg::NodeExt;
+use usvgr::NodeExt;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -34,7 +32,7 @@ pub struct GpuPrimitive {
 }
 
 impl GpuPrimitive {
-    pub fn new(transform_idx: u32, color: usvg::Color, alpha: f32) -> Self {
+    pub fn new(transform_idx: u32, color: usvgr::Color, alpha: f32) -> Self {
         GpuPrimitive {
             transform: transform_idx,
             color: ((color.red as u32) << 24)
@@ -78,7 +76,7 @@ impl StrokeVertexConstructor<GpuVertex> for VertexCtor {
 }
 
 pub fn tesselate_svg(
-    rtree: usvg::Tree,
+    rtree: usvgr::Tree,
 ) -> (
     VertexBuffers<GpuVertex, u32>,
     Vec<GpuTransform>,
@@ -91,7 +89,7 @@ pub fn tesselate_svg(
     let mut transforms = Vec::new();
     let mut primitives = Vec::new();
 
-    let mut prev_transform = usvg::Transform {
+    let mut prev_transform = usvgr::Transform {
         a: std::f64::NAN,
         b: std::f64::NAN,
         c: std::f64::NAN,
@@ -102,18 +100,10 @@ pub fn tesselate_svg(
 
     for node in rtree.root().descendants() {
         match *node.borrow() {
-            usvg::NodeKind::Image(ref image) => {
-                println!("image: {:?}", node);
-
-                match image.kind.borrow() {
-                    usvg::ImageKind::JPEG(val) => {
-                        let image = image::load_from_memory(val).unwrap().to_rgba8();
-                    }
-                    usvg::ImageKind::PNG(_) => todo!(),
-                    _ => (),
-                }
+            usvgr::NodeKind::Image(ref image) => {
+                todo!()
             }
-            usvg::NodeKind::Path(ref p) => {
+            usvgr::NodeKind::Path(ref p) => {
                 let t = node.transform();
                 if t != prev_transform {
                     transforms.push(GpuTransform {
@@ -129,14 +119,14 @@ pub fn tesselate_svg(
                     // fall back to always use color fill
                     // no gradients (yet?)
                     let color = match fill.paint {
-                        usvg::Paint::Color(c) => c,
+                        usvgr::Paint::Color(c) => c,
                         _ => FALLBACK_COLOR,
                     };
 
                     primitives.push(GpuPrimitive::new(
                         transform_idx,
                         color,
-                        fill.opacity.value() as f32,
+                        fill.opacity.get() as f32,
                     ));
 
                     fill_tess
@@ -158,7 +148,7 @@ pub fn tesselate_svg(
                     primitives.push(GpuPrimitive::new(
                         transform_idx,
                         stroke_color,
-                        stroke.opacity.value() as f32,
+                        stroke.opacity.get() as f32,
                     ));
 
                     let _ = stroke_tess.tessellate(
@@ -185,7 +175,7 @@ fn point(x: &f64, y: &f64) -> Point {
 }
 
 pub struct PathConvIter<'a> {
-    iter: std::slice::Iter<'a, usvg::PathSegment>,
+    iter: std::slice::Iter<'a, usvgr::PathSegment>,
     prev: Point,
     first: Point,
     needs_end: bool,
@@ -201,7 +191,7 @@ impl<'l> Iterator for PathConvIter<'l> {
 
         let next = self.iter.next();
         match next {
-            Some(usvg::PathSegment::MoveTo { x, y }) => {
+            Some(usvgr::PathSegment::MoveTo { x, y }) => {
                 if self.needs_end {
                     let last = self.prev;
                     let first = self.first;
@@ -220,7 +210,7 @@ impl<'l> Iterator for PathConvIter<'l> {
                     Some(PathEvent::Begin { at: self.first })
                 }
             }
-            Some(usvg::PathSegment::LineTo { x, y }) => {
+            Some(usvgr::PathSegment::LineTo { x, y }) => {
                 self.needs_end = true;
                 let from = self.prev;
                 self.prev = point(x, y);
@@ -229,7 +219,7 @@ impl<'l> Iterator for PathConvIter<'l> {
                     to: self.prev,
                 })
             }
-            Some(usvg::PathSegment::CurveTo {
+            Some(usvgr::PathSegment::CurveTo {
                 x1,
                 y1,
                 x2,
@@ -247,7 +237,7 @@ impl<'l> Iterator for PathConvIter<'l> {
                     to: self.prev,
                 })
             }
-            Some(usvg::PathSegment::ClosePath) => {
+            Some(usvgr::PathSegment::ClosePath) => {
                 self.needs_end = false;
                 self.prev = self.first;
                 Some(PathEvent::End {
@@ -274,7 +264,7 @@ impl<'l> Iterator for PathConvIter<'l> {
     }
 }
 
-pub fn convert_path(p: &usvg::Path) -> PathConvIter {
+pub fn convert_path(p: &usvgr::Path) -> PathConvIter {
     PathConvIter {
         iter: p.data.iter(),
         first: Point::new(0.0, 0.0),
@@ -284,30 +274,30 @@ pub fn convert_path(p: &usvg::Path) -> PathConvIter {
     }
 }
 
-pub const FALLBACK_COLOR: usvg::Color = usvg::Color {
+pub const FALLBACK_COLOR: usvgr::Color = usvgr::Color {
     red: 0,
     green: 0,
     blue: 0,
 };
 
-pub fn convert_stroke(s: &usvg::Stroke) -> (usvg::Color, StrokeOptions) {
+pub fn convert_stroke(s: &usvgr::Stroke) -> (usvgr::Color, StrokeOptions) {
     let color = match s.paint {
-        usvg::Paint::Color(c) => c,
+        usvgr::Paint::Color(c) => c,
         _ => FALLBACK_COLOR,
     };
     let linecap = match s.linecap {
-        usvg::LineCap::Butt => tessellation::LineCap::Butt,
-        usvg::LineCap::Square => tessellation::LineCap::Square,
-        usvg::LineCap::Round => tessellation::LineCap::Round,
+        usvgr::LineCap::Butt => tessellation::LineCap::Butt,
+        usvgr::LineCap::Square => tessellation::LineCap::Square,
+        usvgr::LineCap::Round => tessellation::LineCap::Round,
     };
     let linejoin = match s.linejoin {
-        usvg::LineJoin::Miter => tessellation::LineJoin::Miter,
-        usvg::LineJoin::Bevel => tessellation::LineJoin::Bevel,
-        usvg::LineJoin::Round => tessellation::LineJoin::Round,
+        usvgr::LineJoin::Miter => tessellation::LineJoin::Miter,
+        usvgr::LineJoin::Bevel => tessellation::LineJoin::Bevel,
+        usvgr::LineJoin::Round => tessellation::LineJoin::Round,
     };
 
     let opt = StrokeOptions::tolerance(0.01)
-        .with_line_width(s.width.value() as f32)
+        .with_line_width(s.width.get() as f32)
         .with_line_cap(linecap)
         .with_line_join(linejoin);
 

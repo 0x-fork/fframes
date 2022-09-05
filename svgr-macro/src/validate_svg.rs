@@ -1,4 +1,4 @@
-use crate::node::{NodeName, NodeType};
+use crate::node::NodeName;
 use syn::{parse::ParseBuffer, Result};
 
 const UNSUPPORTED_NODES: [&str; 9] = [

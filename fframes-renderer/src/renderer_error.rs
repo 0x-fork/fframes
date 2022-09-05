@@ -44,6 +44,7 @@ pub enum FFramesError {
     SubtitlesParsingError(fframes::SubtitlesError),
     MissingRequiredMedia(String),
     CoreError(fframes::error::FFramesCoreError),
+    ImageError((String, image::ImageError)),
 }
 
 impl fmt::Debug for FFramesError {
@@ -66,6 +67,8 @@ impl fmt::Debug for FFramesError {
                 ),
                 Self::SubtitlesParsingError(err) => format!("{:?}", err),
                 Self::CoreError(err) => format!("{:?}", err),
+                Self::ImageError((file, err)) =>
+                    format!("Can not decoder image {file}. Error {:?}", err),
             }
         )
     }

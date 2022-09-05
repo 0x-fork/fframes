@@ -39,14 +39,13 @@ impl<'a> FFramesContext<'a> {
     }
 
     pub fn get_image_link(&self, filename: &str) -> String {
-        match self.media_provider.images.get(filename) {
-            Some((link, data)) => match (self.mode, data) {
-                (FFramesMode::EditorTimelinePreview, media_provider::ImageData::Base64(base64)) => {
-                    base64.to_owned()
-                }
-                _ => link.to_owned(),
-            },
-            None => panic!(
+        match (self.mode, self.media_provider.images.get(filename)) {
+            (FFramesMode::EditorTimelinePreview, Some(data)) if data.base64.is_some() => {
+                // safe to unwrap because of leading if
+                data.base64.as_ref().unwrap().to_owned()
+            }
+            (_, Some(data)) => data.link.to_owned(),
+            _ => panic!(
                 "Image {file} not found! Please make sure that media folder contains {file}",
                 file = filename
             ),

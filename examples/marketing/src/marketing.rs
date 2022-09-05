@@ -376,7 +376,7 @@ impl Video for MarketingVideo {
             />
 
             {self.render_ferris(&frame)}
-            
+
             <circle
               cx={960}
               fill="#fff"

@@ -181,9 +181,9 @@ checksum = "72feb31ffc86498dacdbd0fcebb56138e7177a8cc5cea4516031d15ae85a742e"
 
 [[package]]
 name = "bytemuck"
-version = "1.9.1"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
+checksum = "2f5715e491b5a1598fc2bef5a606847b5dc1d48ea625bd3c02c00de8285591da"
 
 [[package]]
 name = "byteorder"
@@ -694,11 +694,10 @@ dependencies = [
  "media-loader",
  "once_cell",
  "rayon",
- "resvg",
+ "svgr",
  "svgr-macro",
  "syn",
- "tiny-skia",
- "usvg",
+ "usvgr",
  "uuid",
  "wgpu",
 ]
@@ -1033,9 +1032,9 @@ checksum = "dfa686283ad6dd069f105e5ab091b04c62850d3e4cf5d67debad1933f55023df"
 
 [[package]]
 name = "image"
-version = "0.24.1"
+version = "0.24.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db207d030ae38f1eb6f240d5a1c1c88ff422aa005d10f8c6c6fc5e75286ab30e"
+checksum = "7e30ca2ecf7666107ff827a8e481de6a132a9b687ed3bb20bb1c144a36c00964"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -1043,7 +1042,6 @@ dependencies = [
  "exr",
  "gif",
  "jpeg-decoder",
- "num-iter",
  "num-rational",
  "num-traits",
  "png",
@@ -1696,9 +1694,9 @@ dependencies = [
 
 [[package]]
 name = "pico-args"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8bcd96cb740d03149cbad5518db9fd87126a10ab519c011893b1754134c468"
+checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
 
 [[package]]
 name = "pin-project"
@@ -1917,24 +1915,6 @@ name = "renderdoc-sys"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1382d1f0a252c4bf97dc20d979a2fdd05b024acd7c2ed0f7595d7817666a157"
-
-[[package]]
-name = "resvg"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e702d1e8e00a3a0717b96244cba840f34f542d8f23097c8903266c4e2975658"
-dependencies = [
- "gif",
- "jpeg-decoder",
- "log",
- "pico-args",
- "png",
- "rgb",
- "svgfilters",
- "svgtypes",
- "tiny-skia",
- "usvg",
-]
 
 [[package]]
 name = "rgb"
@@ -2168,6 +2148,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "strict-num"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9df65f20698aeed245efdde3628a6b559ea1239bbb871af1b6e3b58c413b2bd1"
+dependencies = [
+ "float-cmp",
+]
+
+[[package]]
 name = "svgfilters"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2175,6 +2164,21 @@ checksum = "639abcebc15fdc2df179f37d6f5463d660c1c79cd552c12343a4600827a04bce"
 dependencies = [
  "float-cmp",
  "rgb",
+]
+
+[[package]]
+name = "svgr"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab8892f984d0abef637a99c58efbe6160ada20636345097881f854bd25d3d7e1"
+dependencies = [
+ "log",
+ "pico-args",
+ "rgb",
+ "svgfilters",
+ "svgtypes",
+ "tiny-skia",
+ "usvgr",
 ]
 
 [[package]]
@@ -2391,15 +2395,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
-name = "usvg"
-version = "0.22.0"
+name = "usvgr"
+version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a261d60a7215fa339482047cc3dafd4e22e2bf34396aaebef2b707355bbb39c0"
+checksum = "964f056a12ee44039640a8d31b1f798d73cbac4c3ad0e9a8d6a5989dc20867fa"
 dependencies = [
  "base64",
  "data-url",
  "flate2",
- "float-cmp",
  "fontdb",
  "kurbo",
  "log",
@@ -2409,6 +2412,7 @@ dependencies = [
  "rustybuzz",
  "simplecss",
  "siphasher",
+ "strict-num",
  "svgtypes",
  "ttf-parser",
  "unicode-bidi",

@@ -3,6 +3,7 @@ use std::future::Future;
 use crate::audio_map::AudioMap;
 use crate::{fframes_context, frame, scenes::*};
 
+#[allow(dead_code)]
 pub enum Duration {
     /// Get the duration from the audio file.
     FromAudio(&'static str),
@@ -60,6 +61,7 @@ pub trait Video: Sync + Sized {
 pub struct ResolvedScenesTimeline(pub(crate) Vec<(std::ops::Range<usize>, Box<dyn Scene>)>);
 
 // TODO figure out how to reuse. This function completely duplicates a sync version ot it.
+#[allow(dead_code)]
 pub async fn resolve_duration_and_scenes_async<
     TGetAudioFn: Fn(String) -> TResult,
     TResult: Future<Output = crate::error::Result<usize>>,
@@ -103,6 +105,7 @@ pub async fn resolve_duration_and_scenes_async<
     }
 }
 
+#[allow(dead_code)]
 pub fn resolve_duration_and_scenes_sync<
     TGetAudioFn: Fn(&str) -> crate::error::Result<usize>,
     TVideo: Video,

@@ -22,7 +22,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
         output: &'a str,
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
-        usvg_options: &usvg::OptionsRef,
+        usvg_options: &usvgr::OptionsRef,
         duration_in_frames: usize,
         render_options: EncoderOptions<'a>,
         ctx: fframes::FFramesContext,
@@ -105,7 +105,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                             },
                             &ctx,
                         );
-                        let rtree = usvg::Tree::from_str(&svg, usvg_options).unwrap();
+                        let rtree = usvgr::Tree::from_str(&svg, usvg_options).unwrap();
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);
 
                         let prim_buffer_byte_size =

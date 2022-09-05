@@ -11,7 +11,6 @@ pub mod media_provider;
 mod scenes;
 pub mod subtitles;
 pub mod video;
-mod Video;
 
 pub use animation::*;
 pub use audio_data::*;

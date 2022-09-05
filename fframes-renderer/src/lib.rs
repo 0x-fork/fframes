@@ -1,5 +1,4 @@
 use encoder::EncoderOptions;
-use fframes::media_provider::ImageData;
 use fframes::video::Video;
 use fframes::{fframes_context, AudioData};
 use fframes_logger::FFramesLoggerVariant;
@@ -36,38 +35,21 @@ pub fn render<'a, TVideo: Video + Sync + Sized, TBackend: FFramesRenderBackend>(
     let fps = TVideo::FPS;
     let logger = fframes_logger::make_logger(options.logger);
 
-    let media_provider =
+    let (media_provider, image_data) =
         media_processor::load_media_from_folder(&logger, options.media_dir).unwrap();
 
-    let mut opt = usvg::Options::default();
+    let mut opt = usvgr::Options {
+        image_data,
+        ..Default::default()
+    };
 
     opt.fontdb.load_system_fonts();
+
     media_provider.fonts.values().for_each(|font_path| {
         opt.fontdb
             .load_font_file(font_path)
             .unwrap_or_else(|_| println!("Can not load a font"));
     });
-
-    let cloned_provider = media_provider.clone();
-    opt.image_href_resolver = usvg::ImageHrefResolver {
-        // we forbid passing custom data in base64 format so just skip this
-        resolve_data: Box::new(|_, _, _| None),
-        resolve_string: Box::new(move |href: &str, _| {
-            cloned_provider
-                .images
-                .get(href)
-                .map(|(_, image)| match image {
-                    ImageData::RawJpg(data) => usvg::ImageKind::JPEG(data.to_owned()),
-                    ImageData::RawPng(data) => usvg::ImageKind::PNG(data.to_owned()),
-                    ImageData::Base64(_) => {
-                        panic!("Did not expect base64 image during rendering. Failing.")
-                    }
-                    ImageData::None => {
-                        panic!("Somehow missing image data during rendering phase. Failing.")
-                    }
-                })
-        }),
-    };
 
     let (duration_in_frames, scenes) =
         fframes::video::resolve_duration_and_scenes_sync(&video, |name| {

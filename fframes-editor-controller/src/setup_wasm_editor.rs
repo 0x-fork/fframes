@@ -171,17 +171,13 @@ macro_rules! setup_wasm_editor {
         #[wasm_bindgen]
         pub fn add_image_source(file: String, url: String, base64_data: Option<String>) {
             let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
+
             media_provider.images.insert(
                 file,
-                (
-                    url,
-                    match base64_data {
-                        Some(base64_data) => {
-                            fframes::media_provider::ImageData::Base64(base64_data)
-                        }
-                        None => fframes::media_provider::ImageData::None,
-                    },
-                ),
+                fframes::media_provider::ImageData {
+                    link: url,
+                    base64: base64_data
+                }
             );
         }
 

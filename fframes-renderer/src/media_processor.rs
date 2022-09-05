@@ -11,16 +11,23 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{fframes_logger::FFramesLogger, renderer_error::FFramesResult};
+use crate::{
+    fframes_logger::FFramesLogger,
+    renderer_error::{FFramesError, FFramesResult},
+};
 
-pub fn load_media_from_folder(
+pub(crate) fn load_media_from_folder(
     logger: &Arc<dyn FFramesLogger>,
     folder_path: &str,
-) -> FFramesResult<MediaProvider> {
+) -> FFramesResult<(
+    MediaProvider,
+    HashMap<String, Arc<usvgr::PreloadedImageData>>,
+)> {
     let audio_hash = Arc::new(Mutex::new(HashMap::new()));
     let subtitles_hash = Arc::new(Mutex::new(HashMap::new()));
     let image_hash = Arc::new(Mutex::new(HashMap::new()));
     let fonts_hash = Arc::new(Mutex::new(HashMap::new()));
+    let usvgr_image_data = Arc::new(Mutex::new(HashMap::new()));
 
     let folder_path = Path::new(folder_path);
     if !folder_path.is_dir() {
@@ -49,60 +56,71 @@ pub fn load_media_from_folder(
     media_files
         .into_par_iter()
         .try_for_each(|path| -> FFramesResult<()> {
-            match path.file_name().and_then(|os_str| os_str.to_str()) {
-                Some(filename) => {
-                    logger.log_media_processing_start(filename, &path);
+            if let Some(filename) = path.file_name().and_then(|os_str| os_str.to_str()) {
+                logger.log_media_processing_start(filename, &path);
 
-                    match filename {
-                        filename if filename.ends_with(".mp3") => {
-                            let (sample_rate, samples) = media_loader::decode_mp3(&path);
+                match filename {
+                    filename if filename.ends_with(".mp3") => {
+                        let (sample_rate, samples) = media_loader::decode_mp3(&path);
 
-                            audio_hash.lock().unwrap().insert(
-                                filename.to_owned(),
-                                audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
-                                    sample_rate,
-                                    samples,
-                                }),
-                            );
-                        }
-                        filename if filename.ends_with(".vtt") => {
-                            subtitles_hash
+                        audio_hash.lock().unwrap().insert(
+                            filename.to_owned(),
+                            audio_data::AudioData::Preloaded(audio_data::PreloadedAudioData {
+                                sample_rate,
+                                samples,
+                            }),
+                        );
+                    }
+                    filename if filename.ends_with(".vtt") => {
+                        subtitles_hash
+                            .lock()
+                            .unwrap()
+                            .insert(filename.to_owned(), Subtitles::from_file(&path)?);
+                    }
+                    filename if filename.ends_with(".ttf") || filename.ends_with(".woff") => {
+                        if let Some(font_path) = path.to_str() {
+                            fonts_hash
                                 .lock()
                                 .unwrap()
-                                .insert(filename.to_owned(), Subtitles::from_file(&path)?);
+                                .insert(filename.to_owned(), font_path.to_owned());
                         }
-                        filename if filename.ends_with(".ttf") || filename.ends_with(".woff") => {
-                            path.to_str().map(|font_path| {
-                                fonts_hash
-                                    .lock()
-                                    .unwrap()
-                                    .insert(filename.to_owned(), font_path.to_owned());
-                            });
-                        }
-                        filename if filename.ends_with(".png") => {
-                            image_hash.lock().unwrap().insert(
-                                filename.to_owned(),
-                                (
-                                    filename.to_owned(),
-                                    ImageData::RawPng(Arc::new(fs::read(&path).unwrap())),
-                                ),
-                            );
-                        }
-                        filename if filename.ends_with(".jpg") || filename.ends_with(".jpeg") => {
-                            image_hash.lock().unwrap().insert(
-                                filename.to_owned(),
-                                (
-                                    filename.to_owned(),
-                                    ImageData::RawJpg(Arc::new(fs::read(&path).unwrap())),
-                                ),
-                            );
-                        }
-                        filename => {
-                            logger.log_unprocessed_media_file(filename);
-                        }
-                    };
-                }
-                _ => (),
+                    }
+                    filename
+                        if filename.ends_with(".png")
+                            || filename.ends_with(".jpg")
+                            || filename.ends_with(".jpeg") =>
+                    {
+                        let data = fs::read(&path)?;
+                        let buffer = image::load_from_memory(data.as_slice())
+                            .map_err(|e| FFramesError::ImageError((filename.to_owned(), e)))?;
+
+                        usvgr_image_data.lock().unwrap().insert(
+                            filename.to_owned(),
+                            usvgr::PreloadedImageData::new(
+                                if filename.ends_with(".png") {
+                                    "png".to_owned()
+                                } else {
+                                    "jpeg".to_owned()
+                                },
+                                buffer.width(),
+                                buffer.height(),
+                                buffer.to_rgba8().into_raw(),
+                            ),
+                        );
+
+                        image_hash.lock().unwrap().insert(
+                            filename.to_owned(),
+                            ImageData {
+                                link: filename.to_owned(),
+                                base64: None,
+                            },
+                        );
+                    }
+                    filename if filename == ".DS_Store" => (),
+                    filename => {
+                        logger.log_unprocessed_media_file(filename);
+                    }
+                };
             };
 
             logger.log_processed_media(&path);
@@ -113,11 +131,15 @@ pub fn load_media_from_folder(
     let images = image_hash.lock().unwrap();
     let subtitles = subtitles_hash.lock().unwrap();
     let fonts = fonts_hash.lock().unwrap();
+    let usvgr_image_data = usvgr_image_data.lock().unwrap();
 
-    Ok(MediaProvider {
-        audio: audio.clone(),
-        fonts: fonts.clone(),
-        images: images.clone(),
-        subtitles: subtitles.clone(),
-    })
+    Ok((
+        MediaProvider {
+            audio: audio.clone(),
+            fonts: fonts.clone(),
+            images: images.clone(),
+            subtitles: subtitles.clone(),
+        },
+        usvgr_image_data.clone(),
+    ))
 }

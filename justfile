@@ -26,4 +26,5 @@ render example:
 play example:
   cd examples/{{example}} && ffplay out.mp4
 
- 
+bench example:
+  cd examples/{{example}} && time cargo run --release
