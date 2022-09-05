@@ -10,6 +10,7 @@ mod log;
 pub mod media_provider;
 mod scenes;
 pub mod subtitles;
+mod svgr;
 pub mod video;
 
 pub use animation::*;
@@ -23,6 +24,7 @@ pub use log::log::*;
 pub use scenes::*;
 pub use subtitles::*;
 pub use svgr_macro::*;
+pub use svgr::*;
 pub use video::*;
 
 pub use roxmltree;

@@ -104,7 +104,8 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                                 global_index: fr,
                             },
                             &ctx,
-                        );
+                        ).into_string();
+                        
                         let rtree = usvgr::Tree::from_str(&svg, usvg_options).unwrap();
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);
 

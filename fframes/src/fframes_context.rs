@@ -1,5 +1,8 @@
+use std::iter::FromIterator;
+
 use crate::{
     audio_data, media_provider, subtitles, video::ResolvedScenesTimeline, Frame, ResolvedAudioMap,
+    Svgr,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -52,28 +55,24 @@ impl<'a> FFramesContext<'a> {
         }
     }
 
-    pub fn render_scenes(&self, global_frame: &Frame) -> String {
+    pub fn render_scenes(&self, global_frame: &Frame) -> Svgr {
         if let Some(scenes) = self.scenes.as_ref() {
-            scenes
-                .0
-                .iter()
-                .filter_map(|(range, scene)| {
-                    if range.contains(&global_frame.index) {
-                        Some(scene.render_frame(
-                            Frame {
-                                fps: global_frame.fps,
-                                global_index: global_frame.index,
-                                index: global_frame.index - range.start,
-                            },
-                            self,
-                        ))
-                    } else {
-                        None
-                    }
-                })
-                .fold(String::new(), |acc, s| acc + &s)
+            Svgr::from_iter(scenes.0.iter().filter_map(|(range, scene)| {
+                if range.contains(&global_frame.index) {
+                    Some(scene.render_frame(
+                        Frame {
+                            fps: global_frame.fps,
+                            global_index: global_frame.index,
+                            index: global_frame.index - range.start,
+                        },
+                        self,
+                    ))
+                } else {
+                    None
+                }
+            }))
         } else {
-            "".to_owned()
+            Svgr::default()
         }
     }
 

@@ -1,5 +1,7 @@
 use std::fmt::Debug;
 
+use crate::Svgr;
+
 pub enum Overlap {
     Previous(f64),
     Next(f64),
@@ -25,9 +27,8 @@ impl Overlap {
 }
 
 pub trait Scene: Debug + Sync + Send {
-    // const DURATION: Duration;
     fn duration(&self) -> crate::video::Duration;
-    fn render_frame(&self, frame: crate::frame::Frame, ctx: &crate::FFramesContext) -> String;
+    fn render_frame(&self, frame: crate::frame::Frame, ctx: &crate::FFramesContext) -> Svgr;
 
     fn overlap(&self) -> Overlap {
         Overlap::None

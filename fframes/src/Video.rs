@@ -54,7 +54,7 @@ pub trait Video: Sync + Sized {
         Scenes(None)
     }
 
-    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> String;
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> crate::Svgr;
 }
 
 #[derive(Debug)]

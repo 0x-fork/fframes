@@ -1,3 +1,4 @@
+use fframes::Svgr;
 pub use fframes::{
     animation::{self, AnimationRuntime},
     audio_data, audio_window_functions, fframes_context,
@@ -26,9 +27,9 @@ struct SpectrumValue<'a> {
 pub struct MarketingVideo {}
 
 impl MarketingVideo {
-    fn render_ferris(&self, frame: &Frame) -> String {
+    fn render_ferris(&self, frame: &Frame) -> Svgr {
         if !(2.3f32..5.0f32).contains(&frame.get_current_second()) {
-            return "".to_owned();
+             return Svgr::default()
         }
 
         svgr!(
@@ -226,7 +227,7 @@ impl Video for MarketingVideo {
         ])
     }
 
-    fn render_frame(&self, frame: fframes::Frame, ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: fframes::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         let subtitles = ctx.get_subtitles("subtitles.vtt");
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data("marketing.mp3"),
@@ -334,8 +335,8 @@ impl Video for MarketingVideo {
                   />
                )
                })
-              .collect::<Vec<_>>().join("\n")
-            }
+              .collect::<Vec<_>>()
+          }
 
             <svg
               x="200"
@@ -437,7 +438,7 @@ impl Video for MarketingVideo {
                 </g>
               )
             } else {
-              "".to_owned()
+              Svgr::default()
             }}
           </svg>
         )

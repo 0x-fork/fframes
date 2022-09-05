@@ -123,14 +123,16 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                             .to_owned()
                             .enumerate()
                             .try_for_each(|(index, fr)| {
-                                let svg = video.render_frame(
-                                    frame::Frame {
-                                        fps: TVideo::FPS,
-                                        index: fr,
-                                        global_index: fr,
-                                    },
-                                    &ctx,
-                                );
+                                let svg = video
+                                    .render_frame(
+                                        frame::Frame {
+                                            fps: TVideo::FPS,
+                                            index: fr,
+                                            global_index: fr,
+                                        },
+                                        &ctx,
+                                    )
+                                    .into_string();
 
                                 logger.log_frame(index, thread_number, &svg);
                                 if svg != last_svg {

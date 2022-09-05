@@ -37,13 +37,14 @@ pub fn svgr(tokens: TokenStream) -> TokenStream {
             let (html_string, values, animations) = prepare_svg_nodes_for_format_statement(nodes);
 
             quote! {
-                {
+            {
                 lazy_static::lazy_static! {
-                    // static ref COUNT: usize = 12;
                     #(#animations)*
                 }
 
-                format!(#html_string, #(#values),*)
+                fframes::Svgr {
+                    value: format!(#html_string, #(#values),*)
+                }
             }
             }
         }

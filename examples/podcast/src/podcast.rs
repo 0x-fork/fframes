@@ -1,4 +1,4 @@
-use fframes::{audio_data, fframes_context, frame, video::Video, AudioMap, AudioTimestamp};
+use fframes::{audio_data, fframes_context, frame, video::Video, AudioMap, AudioTimestamp, Svgr};
 use svgr_macro::{self, svgr};
 
 pub struct PodcastVideo {}
@@ -16,7 +16,7 @@ impl Video for PodcastVideo {
         )])
     }
 
-    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         let goose_vis = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             smooth_level: 2,
             ctx,
@@ -127,8 +127,7 @@ impl Video for PodcastVideo {
                      ry="4"
                    />
                 )})
-               .collect::<Vec<String>>().join("\n")
-
+                .collect::<Vec<_>>()
              }
 
              <circle r="180" cx="960" stroke="black" stroke-width="16" cy="680" fill="url(#guest)" />
@@ -161,7 +160,7 @@ impl Video for PodcastVideo {
                      ry="4"
                    />
                 )})
-               .collect::<Vec<String>>().join("\n")
+               .collect::<Vec<_>>()
              }
 
              <circle r="180" cx="1520" stroke="black" stroke-width="16" cy="680" fill="url(#duck)" />
@@ -184,7 +183,7 @@ impl Video for PodcastVideo {
                      ry="4"
                    />
                 )})
-               .collect::<Vec<String>>().join("\n")
+               .collect::<Vec<_>>()
              }
            </svg>
          )

@@ -197,7 +197,7 @@ macro_rules! setup_wasm_editor {
                     scenes:  SCENES.lock().unwrap().as_ref(),
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
-            )
+            ).into_string()
         }
 
         #[wasm_bindgen]
@@ -216,7 +216,7 @@ macro_rules! setup_wasm_editor {
                     scenes:  SCENES.lock().unwrap().as_ref(),
                     media_provider: MEDIA_PROVIDER.lock().unwrap().clone(),
                 },
-            )
+            ).into_string()
         }
 
         fn parse_family_name(raw_face: &ttf_parser::RawFace) -> Option<Vec<u8>> {

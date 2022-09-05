@@ -1,15 +1,16 @@
 use crate::node::{Node, NodeType};
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
-    punctuated::Punctuated, Expr, ExprPath, ExprReference, Path, PathArguments, PathSegment,
+    punctuated::Punctuated, token::Token, Expr, ExprPath, ExprReference, Path, PathArguments,
+    PathSegment,
 };
 
 pub(crate) fn prepare_svg_nodes_for_format_statement(
     nodes: Vec<Node>,
-) -> (String, Vec<Expr>, Vec<TokenStream>) {
+) -> (String, Vec<TokenStream>, Vec<TokenStream>) {
     let mut out = String::new();
-    let mut values = vec![];
+    let mut values: Vec<TokenStream> = vec![];
     let mut animations = vec![];
 
     for node in nodes {
@@ -40,12 +41,21 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                 out.push_str(&format!(" {}", node.name_as_string().unwrap()));
                 if node.value.is_some() {
                     out.push_str(r#"="{}""#);
-                    values.push(node.value.unwrap());
+                    values.push(node.value.unwrap().into_token_stream());
                 }
             }
-            NodeType::Text | NodeType::Block => {
+            NodeType::Text => {
                 out.push_str("{}");
-                values.push(node.value.unwrap());
+                values.push(node.value.unwrap().into_token_stream());
+            }
+            NodeType::Block => {
+                out.push_str("{}");
+                let value = node.value.unwrap();
+                let quote = quote! {
+                    fframes::Svgr::from(#value)
+                };
+
+                values.push(quote)
             }
             NodeType::LazyTimelineBlock => {
                 out.push_str(&format!(" {}", node.name_as_string().unwrap()));
@@ -135,7 +145,7 @@ pub(crate) fn prepare_svg_nodes_for_format_statement(
                     });
                 }
 
-                values.push(block);
+                values.push(block.into_token_stream());
             }
         }
     }

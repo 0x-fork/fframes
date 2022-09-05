@@ -14,7 +14,7 @@ impl Video for HelloWorldVideo {
         AudioMap::none()
     }
 
-    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> String {
+    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> fframes::Svgr {
         const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.);
 
         svgr!(
