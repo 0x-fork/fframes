@@ -12,3 +12,51 @@ git checkout tags/n4.4.2
 make # build ffmpeg v4
 make install # install c libraries globally
 ```
+
+## Beta testing
+
+Once everything is installed please install the just command runner and init the repo.
+
+```bash
+  npm install yarn # the package manager for nodejs based editor
+  cargo install just
+  just init-repo
+```
+
+## Usage
+
+For the beta usage we provide a couple of examples you can use as a reference:
+
+- hello-world - a simple hello world video example
+- podcast – an audio visualization for a podcast placeholder video
+- marketing – our marketing video example
+- tiktok – displaying tiktok like vertical video
+
+To display the video editor for example you can use the following command:
+
+```bash
+just run {{example}} # just run podcast
+```
+
+In order to render the example to file run
+
+```bash
+just render {{example}} # just render podcast
+```
+
+In order to create your custom video just copy an example. It is not recommended though to use this framework in the production, as it may panic. The project is still under hard development.
+
+Please provide any of your feedback and ideas as issues, and feel free to contribute, but ideally, start from the issue.
+
+## Contributing
+
+To change something in the editor please run this command in the separate terminal:
+
+```bash
+just watch-editor
+```
+
+## License
+
+Please make sure that this project is under GPLv3 license while in beta. So you are not permitted to modify and redistribute it. 
+This will likely be changed once the project will be released.
