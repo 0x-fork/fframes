@@ -88,15 +88,14 @@ function frame(onFrame, _timestamp) {
 function connectAudioFiles(ctx, videoMeta) {
   var match = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var mediaList = match.mediaList;
-  var map = videoMeta.audioMap;
-  return Belt_Array.map(Belt_Array.keepMap((map == null) ? [] : Object.keys(map), (function (audioName) {
-                    var media = Belt_MapString.getExn(mediaList, audioName);
+  return Belt_Array.map(Belt_Array.keepMap(Utils.$$Option.unwrapOr(Caml_option.nullable_to_opt(videoMeta.audioMap), []), (function (track) {
+                    var media = Belt_MapString.getExn(mediaList, track.name);
                     switch (media.TAG | 0) {
                       case /* Media */1 :
                           var media$1 = media._0;
                           if (media$1.TAG === /* Audio */3) {
                             return [
-                                    audioName,
+                                    track,
                                     media$1._0
                                   ];
                           } else {
@@ -122,20 +121,18 @@ function startAnimation(onFrame, currentFrame, videoMeta) {
   playingSources.contents = connectAudioFiles(ctx, videoMeta);
   gain.connect(ctx.destination);
   startTime.contents = ctx.currentTime;
-  Belt_Option.forEach(Caml_option.nullable_to_opt(videoMeta.audioMap), (function (audioMap) {
-          return Belt_Array.forEach(playingSources.contents, (function (param) {
-                        var source = param[1];
-                        var match = Utils.$$Option.unwrap(audioMap[param[0]]);
-                        var offset = (currentFrame - match[0] | 0) / videoMeta.fps;
-                        var duration = Math.max((match[1] - currentFrame | 0) / videoMeta.fps, 0);
-                        source.connect(gain);
-                        if (offset < 0) {
-                          source.start(startTime.contents + Math.abs(offset), 0, duration);
-                        } else {
-                          source.start(startTime.contents, offset, duration);
-                        }
-                        
-                      }));
+  Belt_Array.forEach(playingSources.contents, (function (param) {
+          var source = param[1];
+          var track = param[0];
+          var offset = (currentFrame - track.start | 0) / videoMeta.fps;
+          var duration = Math.max((track.end - currentFrame | 0) / videoMeta.fps, 0);
+          source.connect(gain);
+          if (offset < 0) {
+            source.start(startTime.contents + Math.abs(offset), 0, duration);
+          } else {
+            source.start(startTime.contents, offset, duration);
+          }
+          
         }));
   requestAnimationFrame(function (param) {
         return frame(onFrame, param);

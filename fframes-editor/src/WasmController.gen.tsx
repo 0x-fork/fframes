@@ -4,8 +4,6 @@
 
 import type {Js_BigInt_t as ReScriptJs_Js_BigInt_t} from './shims/Js.shim';
 
-import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
-
 import type {Js_Int16Array_t as ReScriptJs_Js_Int16Array_t} from './shims/Js.shim';
 
 import type {Js_Nullable_t as ReScriptJs_Js_Nullable_t} from './shims/Js.shim';
@@ -15,13 +13,20 @@ import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
 import type {Js_Uint8Array_t as ReScriptJs_Js_Uint8Array_t} from './shims/Js.shim';
 
 // tslint:disable-next-line:interface-over-type-literal
+export type audioTrack = {
+  readonly name: string; 
+  readonly start: number; 
+  readonly end: number
+};
+
+// tslint:disable-next-line:interface-over-type-literal
 export type videoMeta = {
   readonly name: string; 
   readonly width: number; 
   readonly height: number; 
   readonly fps: number; 
   readonly durationInFrames: number; 
-  readonly audioMap: ReScriptJs_Js_Nullable_t<ReScriptJs_Js_Dict_t<[number, number]>>
+  readonly audioMap: ReScriptJs_Js_Nullable_t<audioTrack[]>
 };
 export type VideoMeta = videoMeta;
 

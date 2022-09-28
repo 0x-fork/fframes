@@ -99,7 +99,9 @@ let renderAudioWaveForm = (
   }
 
   let positionStart = 0
-  let positionEnd = (endFrame - startFrame) / editorContext.videoMeta.fps * audioInfo.sampleRate
+  let positionEnd = Js.Int.fromFloat(
+    (endFrame - startFrame)->Float.fromInt /. editorContext.videoMeta.fps->Float.fromInt *. audioInfo.sampleRate->Float.fromInt
+  );
   let length = positionEnd - positionStart
 
   let step = 1.
@@ -129,18 +131,16 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
   editorContext.videoMeta.audioMap
   ->Js.Nullable.toOption
   ->Option.forEach(audioMap =>
-    audioMap->Js.Dict.keysToArray->Js.Array.reduce((startY, audioName) => {
-      let (startFrame, endFrame) = audioMap->Js.Dict.get(audioName)->Utils.Option.unwrap
-
+    audioMap->Js.Array.reduceWithIndex((startY, track, i) => {
       let y = Float.fromInt(timeline_margin_y + scene_height_size + startY)
       let x =
-        Float.fromInt(startFrame) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Float.fromInt
-      let width = Float.fromInt(endFrame - startFrame) *. size.frameToPxRatio
+        Float.fromInt(track.start) *. size.frameToPxRatio +. (timeline_margin_x / 2)->Float.fromInt
+      let width = Float.fromInt(track.end - track.start) *. size.frameToPxRatio
 
       ctx->Canvas2d.save
 
       ctx->Canvas2d.setFillStyle(String, "#e2e8f0")
-      audioName->Canvas2d.fillText(ctx, ~x=x +. 2., ~y=y -. 8.)
+      track.name->Canvas2d.fillText(ctx, ~x=x +. 2., ~y=y -. 8.)
       ctx->Canvas2d.beginPath
 
       ctx->renderRoundedRect(
@@ -155,23 +155,27 @@ let renderAudioMap = (ctx, size, editorContext: EditorContext.editorContext) => 
 
       ctx->Canvas2d.setFillStyle(String, "#059669")
       ctx->Canvas2d.fillRect(~x, ~y, ~w=width, ~h=Float.fromInt(scene_height_size / 2))
-
+      
       ctx
       ->renderAudioWaveForm(
         ~x0=x,
         ~y0=y,
-        ~audioName,
+        ~audioName = track.name,
         ~audioSpaceWidth=width,
         ~editorContext,
-        ~startFrame,
-        ~endFrame,
+        ~startFrame = track.start,
+        ~endFrame = track.end,
       )
       ->ignore
 
       ctx->Canvas2d.closePath
       ctx->Canvas2d.restore
 
+      if audioMap[i + 1]->Option.map(previousTrack => previousTrack.name === track.name)->Utils.Option.unwrapOr(false) {
+        startY
+      } else {
       startY + audio_height + audio_height / 2
+     }
     }, 32)->ignore
   )
 }

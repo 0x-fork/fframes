@@ -1,3 +1,9 @@
+type audioTrack = {
+  name: string, 
+  start: int,
+  end: int,
+}
+
 @genType.as("VideoMeta")
 type videoMeta = {
   name: string,
@@ -5,7 +11,7 @@ type videoMeta = {
   height: int,
   fps: int,
   durationInFrames: int,
-  audioMap: Js.Nullable.t<Js.Dict.t<(int, int)>>,
+  audioMap: Js.Nullable.t<array<audioTrack>>
 }
 
 @genType.as("WasmController")

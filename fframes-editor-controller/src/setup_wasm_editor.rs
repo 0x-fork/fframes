@@ -9,19 +9,32 @@ macro_rules! setup_wasm_editor {
 
         static VIDEO: $x = $x $params;
 
+        #[derive(Clone, fframes_editor_controller::prelude::serde::Serialize)]
+        #[serde(crate = "fframes_editor_controller::prelude::serde")] // https://github.com/serde-rs/serde/issues/1465
+        pub struct AudioTrack {
+            pub name: &'static str,
+            pub start: usize,
+            pub end: usize
+        }
+
         lazy_static! {
             static ref SCENES: Mutex<Option<fframes::ResolvedScenesTimeline>> = Mutex::new(None);
-            static ref AUDIO_MAP: Mutex<Option<HashMap<&'static str, (usize, usize)>>> = {
+            static ref AUDIO_MAP: Mutex<Option<Vec<AudioTrack>>> = {
                 Mutex::new($x::audio(&VIDEO).0.map(|audio_map| {
                     audio_map
                         .into_iter()
                         .map(|(name, (start_ts, end_ts))| {
                             let start = audio_ts_to_frame(start_ts, name);
                             let end = audio_ts_to_frame(end_ts, name);
+                            // panic!("start: {}, end: {}", start, end);
 
-                            (name, (start, start + end))
+                            AudioTrack {
+                                name,
+                                start,
+                                end: start + end
+                            }
                         })
-                        .collect::<HashMap<_, _>>()
+                        .collect::<Vec<_>>()
                 }))
             };
             static ref AUDIO_DURATIONS: Mutex<HashMap<String, i32>> = Mutex::new(HashMap::new());
@@ -39,6 +52,8 @@ macro_rules! setup_wasm_editor {
             duration: i32,
         }
 
+        /// Hey you this function can be a reason of race condition. If you see it panics on unwrap 
+        /// it means that somewhere you tried to access audioMap before it all the media was correctly
         fn audio_ts_to_frame(audio_ts: AudioTimestamp, name: &str) -> usize {
             match audio_ts {
                 AudioTimestamp::Frame(frame) => frame,
@@ -47,7 +62,7 @@ macro_rules! setup_wasm_editor {
                     .unwrap()
                     .get(&name.to_owned())
                     .map(ToOwned::to_owned)
-                    .unwrap_or_default() as usize,
+                    .unwrap() as usize,
                 AudioTimestamp::Second(second) => second * $x::FPS,
             }
         }
@@ -127,6 +142,7 @@ macro_rules! setup_wasm_editor {
 
             duration as i32
         }
+        
         #[wasm_bindgen]
         pub async fn prepare() -> Result<VideoMetadata, JsValue> {
             console_error_panic_hook::set_once();

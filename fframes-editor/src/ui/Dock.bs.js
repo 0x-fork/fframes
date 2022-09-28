@@ -124,13 +124,13 @@ function Dock(Props) {
   var handleSeekLeft = Hooks.useEvent(function (param) {
         return Curry._1(dispatch, {
                     TAG: /* Seek */0,
-                    _0: player.frame - Math.imul(5, context.videoMeta.fps) | 0
+                    _0: player.frame - (context.videoMeta.fps << 1) | 0
                   });
       });
   var handleSeekRight = Hooks.useEvent(function (param) {
         return Curry._1(dispatch, {
                     TAG: /* Seek */0,
-                    _0: player.frame + Math.imul(5, context.videoMeta.fps) | 0
+                    _0: player.frame + (context.videoMeta.fps << 1) | 0
                   });
       });
   React.useEffect((function () {

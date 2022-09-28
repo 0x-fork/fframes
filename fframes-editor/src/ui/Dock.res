@@ -82,11 +82,11 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
   })
 
   let handleSeekLeft = Hooks.useEvent(() => {
-    dispatch(Seek(player.frame - 5 * context.videoMeta.fps))
+    dispatch(Seek(player.frame - 2 * context.videoMeta.fps))
   })
 
   let handleSeekRight = Hooks.useEvent(() => {
-    dispatch(Seek(player.frame + 5 * context.videoMeta.fps))
+    dispatch(Seek(player.frame + 2 * context.videoMeta.fps))
   })
 
   let toggleDock = () => {

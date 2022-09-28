@@ -1,6 +1,7 @@
 use crate::FFramesContext;
-use std::{collections::HashMap, ops::Range};
+use std::ops::Range;
 
+#[derive(Debug, Clone)]
 pub enum AudioTimestamp {
     Frame(usize),
     Second(usize),
@@ -31,9 +32,10 @@ impl AudioTimestamp {
 
 type AudioDuration = (AudioTimestamp, AudioTimestamp);
 
-pub struct AudioMap(pub Option<HashMap<&'static str, AudioDuration>>);
+pub struct AudioMap(pub Option<Vec<(&'static str, AudioDuration)>>);
+
 /// The resolved audio_map contain each audio file position and duration in {1/{ctx.sample_rate}} units
-pub struct ResolvedAudioMap(pub HashMap<&'static str, Range<usize>>);
+pub struct ResolvedAudioMap(pub Vec<(&'static str, Range<usize>)>);
 
 impl ResolvedAudioMap {
     pub fn calc_stream_duration_in_samples(&self) -> usize {
@@ -58,7 +60,7 @@ impl AudioMap {
 
                         (*f, start_sample..end_sample)
                     })
-                    .collect::<HashMap<_, _>>()
+                    .collect::<Vec<_>>()
             })
             .map(ResolvedAudioMap)
     }
@@ -70,6 +72,6 @@ impl AudioMap {
 
 impl<const N: usize> From<[(&'static str, AudioDuration); N]> for AudioMap {
     fn from(arr: [(&'static str, AudioDuration); N]) -> Self {
-        AudioMap(Some(IntoIterator::into_iter(arr).collect()))
+        AudioMap(Some(arr.to_vec()))
     }
 }

@@ -3,6 +3,7 @@
 import * as Curry from "rescript/lib/es6/curry.js";
 import * as Utils from "../../Utils.bs.js";
 import * as React from "react";
+import * as Belt_Array from "rescript/lib/es6/belt_Array.js";
 import * as Belt_Range from "rescript/lib/es6/belt_Range.js";
 import * as Caml_int32 from "rescript/lib/es6/caml_int32.js";
 import * as CanvasSize from "./canvasSize.bs.js";
@@ -85,7 +86,7 @@ function renderAudioWaveForm(ctx, endFrame, startFrame, x0, y0, audioSpaceWidth,
   if (exit === 1) {
     audioInfo = Pervasives.failwith("Unknown audio file " + audioName + ". Did you forget to add it to your media folder?");
   }
-  var positionEnd = Math.imul(Caml_int32.div(endFrame - startFrame | 0, editorContext.videoMeta.fps), audioInfo.sampleRate);
+  var positionEnd = (endFrame - startFrame | 0) / editorContext.videoMeta.fps * audioInfo.sampleRate | 0;
   var length = positionEnd - 0 | 0;
   var sector = length / audioSpaceWidth * 1;
   var position = 0;
@@ -106,25 +107,28 @@ function renderAudioWaveForm(ctx, endFrame, startFrame, x0, y0, audioSpaceWidth,
 
 function renderAudioMap(ctx, size, editorContext) {
   return Belt_Option.forEach(Caml_option.nullable_to_opt(editorContext.videoMeta.audioMap), (function (audioMap) {
-                Object.keys(audioMap).reduce((function (startY, audioName) {
-                        var match = Utils.$$Option.unwrap(audioMap[audioName]);
-                        var endFrame = match[1];
-                        var startFrame = match[0];
+                audioMap.reduce((function (startY, track, i) {
                         var y = 184 + startY | 0;
-                        var x = startFrame * size.frameToPxRatio + 32;
-                        var width = (endFrame - startFrame | 0) * size.frameToPxRatio;
+                        var x = track.start * size.frameToPxRatio + 32;
+                        var width = (track.end - track.start | 0) * size.frameToPxRatio;
                         ctx.save();
                         Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#e2e8f0");
-                        ctx.fillText(audioName, x + 2, y - 8, undefined);
+                        ctx.fillText(track.name, x + 2, y - 8, undefined);
                         ctx.beginPath();
                         renderRoundedRect(ctx, x, y, width, 60, 4.0, undefined);
                         ctx.clip();
                         Webapi__Canvas__Canvas2d.setFillStyle(ctx, /* String */0, "#059669");
                         ctx.fillRect(x, y, width, 60);
-                        renderAudioWaveForm(ctx, endFrame, startFrame, x, y, width, audioName, editorContext);
+                        renderAudioWaveForm(ctx, track.end, track.start, x, y, width, track.name, editorContext);
                         ctx.closePath();
                         ctx.restore();
-                        return (startY + CanvasSize.audio_height | 0) + (CanvasSize.audio_height / 2 | 0) | 0;
+                        if (Utils.$$Option.unwrapOr(Belt_Option.map(Belt_Array.get(audioMap, i + 1 | 0), (function (previousTrack) {
+                                      return previousTrack.name === track.name;
+                                    })), false)) {
+                          return startY;
+                        } else {
+                          return (startY + CanvasSize.audio_height | 0) + (CanvasSize.audio_height / 2 | 0) | 0;
+                        }
                       }), 32);
                 
               }));

@@ -24,7 +24,6 @@ pub struct FFramesContext<'a> {
 
 impl<'a> FFramesContext<'a> {
     pub fn get_audio_data(&self, filename: &str) -> &audio_data::AudioData {
-        // crate::log!("{:?}", self.media_provider.audio);
         match self.media_provider.audio.get(filename) {
             Some(data) => data,
             None => panic!("Audio data not found for {file}, please make sure that media folder contains {file}", file=filename)
