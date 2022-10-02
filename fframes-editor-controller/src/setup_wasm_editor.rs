@@ -52,7 +52,7 @@ macro_rules! setup_wasm_editor {
             duration: i32,
         }
 
-        /// Hey you this function can be a reason of race condition. If you see it panics on unwrap 
+        /// Hey you this function can be a reason of race condition. If you see it panics on unwrap
         /// it means that somewhere you tried to access audioMap before it all the media was correctly
         fn audio_ts_to_frame(audio_ts: AudioTimestamp, name: &str) -> usize {
             match audio_ts {
@@ -83,13 +83,13 @@ macro_rules! setup_wasm_editor {
             pub fn width(&self) -> f64 {
                 $x::WIDTH as f64
             }
-            
+
             #[wasm_bindgen(getter = name)]
             pub fn name(&self) -> String {
                 std::any::type_name::<$x>().to_owned()
             }
 
-            #[wasm_bindgen(getter)]
+            #[wasm_bindgen(getter, js_name=hasAudio)]
             pub fn has_audio(&self) -> bool {
                 $x::audio(&VIDEO).0.is_some()
             }
@@ -147,7 +147,7 @@ macro_rules! setup_wasm_editor {
 
             duration as i32
         }
-        
+
         #[wasm_bindgen]
         pub async fn prepare() -> Result<VideoMetadata, JsValue> {
             console_error_panic_hook::set_once();
