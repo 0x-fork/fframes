@@ -83,10 +83,15 @@ macro_rules! setup_wasm_editor {
             pub fn width(&self) -> f64 {
                 $x::WIDTH as f64
             }
-
+            
             #[wasm_bindgen(getter = name)]
             pub fn name(&self) -> String {
                 std::any::type_name::<$x>().to_owned()
+            }
+
+            #[wasm_bindgen(getter)]
+            pub fn has_audio(&self) -> bool {
+                $x::audio(&VIDEO).0.is_some()
             }
 
             #[wasm_bindgen(getter, js_name = audioMap)]

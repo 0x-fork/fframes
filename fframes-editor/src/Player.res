@@ -43,12 +43,10 @@ module MakePlayer = (Wasm: WasmController.WasmBridge) => {
       ->Utils.Option.unwrapOr(0)
 
     let volume = switch (
-      // Wasm.videoMeta.audioMap->Js.Nullable.toOption,
-      None,
-      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage),
+      Dom.Storage.getItem(volume_key, Dom.Storage.localStorage)
     ) {
-    | (Some(_), Some(savedValue)) => Some(savedValue->Js.Float.fromString)
-    | (Some(_), None) => Some(0.6)
+    | Some(savedValue) if Wasm.videoMeta.hasAudio => Some(savedValue->Js.Float.fromString)
+    | None if Wasm.videoMeta.hasAudio => Some(0.6)
     | _ => None
     }
 
