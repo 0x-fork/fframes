@@ -26,6 +26,7 @@ export type videoMeta = {
   readonly height: number; 
   readonly fps: number; 
   readonly durationInFrames: number; 
+  readonly hasAudio: boolean; 
   readonly audioMap: ReScriptJs_Js_Nullable_t<audioTrack[]>
 };
 export type VideoMeta = videoMeta;

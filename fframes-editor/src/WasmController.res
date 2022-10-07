@@ -11,6 +11,7 @@ type videoMeta = {
   height: int,
   fps: int,
   durationInFrames: int,
+  hasAudio: bool,
   audioMap: Js.Nullable.t<array<audioTrack>>
 }
 

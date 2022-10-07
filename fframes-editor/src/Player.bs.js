@@ -16,8 +16,12 @@ var currentFps = {
 
 function MakePlayer(Wasm) {
   var previousSavedFrame = Utils.$$Option.unwrapOr(Utils.$$Option.flatten(Belt_Option.map(Dom_storage.getItem("fframe", localStorage), Js__Int.fromString)), 0);
-  Dom_storage.getItem("ffvolume", localStorage);
-  var volume;
+  var savedValue = Dom_storage.getItem("ffvolume", localStorage);
+  var volume = savedValue !== undefined ? (
+      Wasm.videoMeta.hasAudio ? Number(savedValue) : undefined
+    ) : (
+      Wasm.videoMeta.hasAudio ? 0.6 : undefined
+    );
   var state = Curry._1(MediaLoader.MediaLoaderObserver.get, undefined);
   var initial = state.allMediaLoaded ? ({
         frame: previousSavedFrame,
