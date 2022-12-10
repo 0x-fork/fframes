@@ -20,6 +20,12 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - uses: Iamshankhadeep/setup-ffmpeg@v1.2
+        with:
+          # Not strictly necessary, but it may prevent rate limit
+          # errors especially on GitHub-hosted macos machines.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "4.4"
       - run: sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libavdevice-dev
 
       - name: Build
@@ -30,4 +36,15 @@ jobs:
 
       # We have to use the Release mode, otherwise it would take forever.
       - name: Test
-        run: cargo test --release
+        run: cargo test
+
+      - name: Upload visual regression results and diff 
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: results
+          if-no-files-found: error
+          path: |
+            e2e/frames/results
+            e2e/frames/diff
+            e2e/out.mp4
