@@ -1,7 +1,7 @@
-use std::{fs, process::Command};
 use e2e_test_video::test_video::TestVideo;
 pub use fframes_renderer::{fframes_logger, render, render_backend, RenderOptions};
 use rayon::prelude::*;
+use std::{fs, process::Command};
 
 #[test]
 fn e2e_rendering() {
@@ -19,7 +19,10 @@ fn e2e_rendering() {
         "out.mp4",
         RenderOptions {
             logger: fframes_logger::FFramesLoggerVariant::Compact,
-            render_backend: render_backend::CpuRenderingBackend { cache_capacity: 5 },
+            render_backend: render_backend::CpuRenderingBackend {
+                cache_capacity: 5,
+                concurrency: 1,
+            },
             preferred_codec: "libx264",
             media_dir: std::env::current_dir()
                 .unwrap()
@@ -58,7 +61,7 @@ fn e2e_rendering() {
         .output()
         .expect("failed to extract images from video with ffmpeg");
 
-    let frames_entries = fs::read_dir(&frames_results_dir)
+    let frames_entries = fs::read_dir(&frames_base_dir)
         .unwrap()
         .filter_map(|path_buf| {
             path_buf.ok().and_then(|path_buf| {
@@ -86,6 +89,8 @@ fn e2e_rendering() {
                     base_frame.to_str().unwrap(),
                     result_frame.to_str().unwrap(),
                     diff_path.to_str().unwrap(),
+                    "-t",
+                    "0.7",
                 ])
                 .output()
                 .expect("failed to get a diff");
