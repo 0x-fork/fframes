@@ -1,16 +1,12 @@
 use e2e_test_video::test_video::TestVideo;
 pub use fframes_renderer::{fframes_logger, render, render_backend, RenderOptions};
 use rayon::prelude::*;
+use std::env::consts::{ARCH, OS};
 use std::{fs, process::Command};
 
 #[test]
 fn e2e_rendering() {
-    let odiff_path = std::fs::canonicalize(
-        std::env::current_dir()
-            .unwrap()
-            .join("../node_modules/odiff-bin/bin/odiff"),
-    )
-    .unwrap();
+    println!("Running e2e rendering tests for {OS}-{ARCH}");
 
     render(
         TestVideo {
@@ -36,7 +32,7 @@ fn e2e_rendering() {
 
     let base_frames_path = std::env::current_dir().unwrap().join("frames");
 
-    let frames_base_dir = base_frames_path.join("base");
+    let frames_base_dir = base_frames_path.join("base").join(format!("{OS}-{ARCH}"));
     let frames_results_dir = base_frames_path.join("results");
     let frames_diff_dir = base_frames_path.join("diff");
 
@@ -74,6 +70,13 @@ fn e2e_rendering() {
             })
         })
         .collect::<Vec<_>>();
+
+    let odiff_path = std::fs::canonicalize(
+        std::env::current_dir()
+            .unwrap()
+            .join("../node_modules/odiff-bin/bin/odiff"),
+    )
+    .unwrap();
 
     let failed_count = frames_entries
         .into_par_iter()

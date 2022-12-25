@@ -7,13 +7,15 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - uses: actions/checkout@v2
       - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
@@ -22,11 +24,10 @@ jobs:
 
       - uses: Iamshankhadeep/setup-ffmpeg@v1.2
         with:
-          # Not strictly necessary, but it may prevent rate limit
-          # errors especially on GitHub-hosted macos machines.
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: "4.4"
-      - run: sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libavdevice-dev
+
+      # - run: sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libavdevice-dev
+      - run: brew install ffmpeg
 
       - name: Build
         run: just build
@@ -38,7 +39,7 @@ jobs:
       - name: Test
         run: cargo test
 
-      - name: Upload visual regression results and diff 
+      - name: Upload visual regression results and diff
         uses: actions/upload-artifact@v3
         if: failure()
         with:

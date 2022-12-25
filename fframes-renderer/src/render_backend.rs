@@ -147,6 +147,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                         TVideo::FPS as i32,
                         file.as_str(),
                         "libx264",
+                        &logger,
                         false,
                         &mut |encoder| {
                             let mut last_svg = "".to_owned();
