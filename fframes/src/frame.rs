@@ -1,7 +1,18 @@
-use crate::{animation, get_visualization, AnimationRuntime, VisualizeFrameInput};
+use std::{
+    collections::hash_map::DefaultHasher,
+    fmt::Debug,
+    hash::{Hash, Hasher},
+    ops::DerefMut,
+};
+
+use crate::{
+    animation, get_visualization,
+    text_wrap::{text_wrap_impl, BreakLinesOpts},
+    AnimationRuntime, BreaksLruCache, VisualizeFrameInput,
+};
 
 /// The Frame {} struct contains temporal information about the current frame.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Default)]
 pub struct Frame {
     /// The frame index of the current scene. If rendering a Scene it is relative to the current frame.
     pub index: usize,
@@ -10,6 +21,7 @@ pub struct Frame {
     pub global_index: usize,
     /// FPS of the video. Always equals to the Video::FPS constant.
     pub fps: usize,
+    pub breaks_lru_cache: Option<BreaksLruCache>,
 }
 
 pub struct AnimateRuntimeInput<'a> {
@@ -44,11 +56,10 @@ impl Frame {
     /// ```rust
     /// use fframes::{animation, AnimationRuntime, AnimateRuntimeInput, Frame};
     ///
-    /// let frame = Frame { index: 0, global_index: 0, fps: 60 };
+    /// let frame = Frame { index: 0, global_index: 0, fps: 60, ..Default::default() };
     /// let runtime = AnimationRuntime::from_easing(&animation::Easing::Linear(2.0));
     ///
-    /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000., to: 2000., animation_runtime: &runtime });
-    /// assert_eq!(value, 1000.);
+    /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000., to: 2000., animation_runtime: &runtime }); assert_eq!(value, 1000.);
     /// ```
     pub fn animate_runtime(
         &self,
@@ -88,7 +99,7 @@ impl Frame {
     ///
     /// ```rust
     /// use fframes::{ Frame, svgr, animation::Easing};
-    /// let frame = fframes::Frame { index: 0, global_index: 0, fps: 60 };
+    /// let frame = fframes::Frame { index: 0, global_index: 0, fps: 60, ..Default::default() };
     ///
     /// fframes::svgr!(
     ///   <rect
@@ -125,13 +136,13 @@ impl Frame {
 
     pub fn visualize_audio_frame(&self, input: VisualizeFrameInput) -> Vec<f32> {
         if self.index < input.smooth_level * 2 + 1 {
-            return get_visualization(self.index, &input);
+            return get_visualization(self.index, self.fps, &input);
         }
 
         let frames_to_smooth = ((self.index - input.smooth_level)
             ..(self.index + input.smooth_level))
             .into_iter()
-            .map(|i| get_visualization(i, &input))
+            .map(|i| get_visualization(i, self.fps, &input))
             .collect::<Vec<_>>();
 
         (0..frames_to_smooth[1].len())
@@ -141,5 +152,65 @@ impl Frame {
                     / frames_to_smooth.len() as f32
             })
             .collect()
+    }
+
+    /// Wraps the text string into the lines according to the provided content area width.
+    /// This function is executed in runtime and create idiomatic svg <text> <tspan> text </tspan> </text> structure
+    /// which wraps the text string into the lines.
+    ///
+    /// It resolves individual character widths from provided font files automatically. **Important:
+    /// it won't work with system fonts in the editor, but would work with them in the renderer**.
+    ///
+    /// Line wrap rules is the same as css have for standard (no break-word support) wrapping. If font can not be resolved returns `None`.
+    ///
+    /// @example
+    /// ```no_run
+    /// let frame = fframes::Frame {
+    ///   ..Default::default()
+    /// };
+    ///
+    /// let ctx: fframes::FFramesContext = todo!();
+    ///
+    /// let wrapped_text = frame.text_break_lines(&ctx, "Hello world", &fframes::BreakLinesOpts {
+    ///     // max width of the text content. Once line become wider it wraps.
+    ///     width: 500,
+    ///     // font family name resolved. Can be checked in the editor for resolved font file.
+    ///     font_family: "Roboto",
+    ///     // the x position of the text element 
+    ///     x: "100",
+    ///     // the y position of the text element 
+    ///     y: "100",
+    ///     align: fframes::TextAlign::Center,
+    ///     ..Default::default()
+    /// });
+    ///
+    /// ```  
+    pub fn text_break_lines<'a>(
+        &mut self,
+        ctx: &crate::FFramesContext<'a>,
+        value: &'a str,
+        opts: &BreakLinesOpts,
+    ) -> Option<crate::Svgr> {
+        let mut s = DefaultHasher::new();
+        value.hash(&mut s);
+        opts.hash(&mut s);
+        let hash = s.finish();
+
+        if let Some(cache_mutex) = self.breaks_lru_cache.as_ref() {
+            let mut cache_guard = cache_mutex.0.lock().ok()?;
+            let cache = cache_guard.deref_mut();
+
+            if let Some(cached_value) = cache.get(&hash).as_ref() {
+                let a = cached_value.to_owned();
+                Some(a.to_owned())
+            } else {
+                let svgr = text_wrap_impl(value, hash, ctx.font_source?, *opts)?;
+                cache.put(hash, svgr.clone());
+
+                Some(svgr)
+            }
+        } else {
+            text_wrap_impl(value, hash, ctx.font_source?, *opts)
+        }
     }
 }

@@ -55,7 +55,7 @@ impl Video for HelloWorldMultiSceneVideo {
         fframes::Scenes::from(vec)
     }
 
-    fn render_frame(&self, frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
+    fn render_frame(&self, frame: frame::Frame, ctx: &fframes_context::FFramesContext) -> Svgr {
         const BACKGROUND_EASING: fframes::Easing = fframes::Easing::Linear(5.);
 
         fframes::svgr!(
@@ -82,10 +82,14 @@ impl Video for HelloWorldMultiSceneVideo {
               }
             />
 
-            {_ctx.render_scenes(&frame)}
+            {ctx.render_scenes(&frame)}
 
             <text font-weight="500" font-family="JetBrains Mono" x="100" y="440" font-size="74" fill="#4b5563">
-              {format!("This frame index: {}, second: {:.2}", frame.index, frame.get_current_second())}
+              {format!(
+                  "This frame index: {}, second: {:.2}",
+                  frame.index,
+                  frame.get_current_second()
+              )}
             </text>
           </svg>
         )
