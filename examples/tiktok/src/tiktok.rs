@@ -1,12 +1,10 @@
+use fframes::lazy_static::lazy_static;
 use fframes::{
-    animation::{self, AnimationRuntime},
-    prettify_spectrum, AudioMap, AudioTimestamp, Svgr,
+    animation, prettify_spectrum, svgr, AnimationRuntime, AudioMap, AudioTimestamp, Svgr,
 };
 pub use fframes::{
     audio_data, audio_window_functions, fframes_context, frame::Frame, subtitles, video::Video,
 };
-use lazy_static::lazy_static;
-use svgr_macro::{self, svgr};
 
 const SPRING: animation::Easing = animation::Easing::Spring2(1.85, 130., 16.);
 const BAR_SIZE: usize = 30;
@@ -46,7 +44,7 @@ impl Video for GooseVideo {
         let audio_visualization = prettify_spectrum(audio_visualization.as_slice());
 
         svgr!(
-            <svg width="1080" height="1920" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <svg width="1080" height="1920" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g clip-path="url(#a)">
                     <path fill="#000" d="M0 0h1080v1920H0z"/>
                     <g style="mix-blend-mode:hard-light" filter="url(#b)">
@@ -74,8 +72,7 @@ impl Video for GooseVideo {
                  }
 
                 {frame.text_break_lines(
-                    ctx,
-                    subtitles.get_phrase_for_frame(&frame).unwrap_or_default(),
+                    ctx, subtitles.get_phrase_for_frame(&frame).unwrap_or_default(),
                     &fframes::BreakLinesOpts {
                       width: 1000,
                       line_height: 1.2,
@@ -93,7 +90,7 @@ impl Video for GooseVideo {
                 <image
                   width="950"
                   height="950"
-                  xlink:href={ctx.get_image_link("goose2.png")}
+                  href={ctx.get_image_link("goose2.png")}
                   y={1920 - 950}
                   x={1080 / 2 - 400}
                 />

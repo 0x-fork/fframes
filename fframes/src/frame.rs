@@ -176,9 +176,9 @@ impl Frame {
     ///     width: 500,
     ///     // font family name resolved. Can be checked in the editor for resolved font file.
     ///     font_family: "Roboto",
-    ///     // the x position of the text element 
+    ///     // the x position of the text element
     ///     x: "100",
-    ///     // the y position of the text element 
+    ///     // the y position of the text element
     ///     y: "100",
     ///     align: fframes::TextAlign::Center,
     ///     ..Default::default()
@@ -191,24 +191,20 @@ impl Frame {
         value: &'a str,
         opts: &BreakLinesOpts,
     ) -> Option<crate::Svgr> {
+        let font_source = ctx.font_source?;
         let mut s = DefaultHasher::new();
         value.hash(&mut s);
         opts.hash(&mut s);
         let hash = s.finish();
 
         if let Some(cache_mutex) = self.breaks_lru_cache.as_ref() {
-            let mut cache_guard = cache_mutex.0.lock().ok()?;
-            let cache = cache_guard.deref_mut();
-
-            if let Some(cached_value) = cache.get(&hash).as_ref() {
-                let a = cached_value.to_owned();
-                Some(a.to_owned())
-            } else {
-                let svgr = text_wrap_impl(value, hash, ctx.font_source?, *opts)?;
-                cache.put(hash, svgr.clone());
-
-                Some(svgr)
-            }
+            cache_mutex
+                .0
+                .lock()
+                .ok()?
+                .deref_mut()
+                .get_or_insert(hash, || text_wrap_impl(value, hash, font_source, *opts))
+                .clone()
         } else {
             text_wrap_impl(value, hash, ctx.font_source?, *opts)
         }

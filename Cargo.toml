@@ -1,5 +1,5 @@
 [workspace]
-
+resolver="2"
 members = [
     "e2e",
     "svgr-macro",
@@ -7,23 +7,20 @@ members = [
     "webvtt-parser",
     "fframes-renderer",
     "fframes-editor-controller",
+    "fframes-test-utils",
     "examples/marketing",
-    "examples/marketing/editor/editor-bridge",
     "examples/podcast",
-    "examples/podcast/editor/editor-bridge",
     "examples/hello-world",
-    "examples/hello-world/editor/editor-bridge",
     "examples/tiktok",
-    "examples/tiktok/editor/editor-bridge",
     "examples/low-poly-art",
-    "examples/low-poly-art/editor/editor-bridge",
     "examples/beta",
-    "examples/beta/editor/editor-bridge",
 ]
 
-exclude = [
-    
-]
 
-resolver="2"
-
+[workspace.dependencies]  
+# svgr = { path = "../resvg"}
+# usvgr = { path = "../resvg/usvgr"}
+# usvgr-text-layout = { path = "../resvg/usvgr-text-layout"}
+svgr = "0.28.3"
+usvgr = "0.28.3"
+usvgr-text-layout = "0.28.3"

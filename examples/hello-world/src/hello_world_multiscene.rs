@@ -13,14 +13,14 @@ impl Scene for SceneOne {
 
     fn render_frame(&self, _frame: frame::Frame, _ctx: &fframes_context::FFramesContext) -> Svgr {
         fframes::svgr!(
-                  // <text font-family="DM Sans" x="100" y="300" font-size="150"> "Hello Scene 1" </text>
-            //           <g id="g1" transform="scale(1)">
-            //     <rect id="rect1" x="0" y="0" width="120" height="120" fill="green" />
-            // </g>
-                <g id="g1" transform="rotate(45)" transform-origin="top left">
-            <rect id="rect1" x="0" y="0" width="120" height="120" fill="green" />
-        </g>
-                )
+            <text font-family="Dm Sans" x="100" y="300" font-size="150"> "hello scene 1" </text>
+            <g id="g1" transform="scale(1)">
+                <rect id="rect1" x="0" y="0" width="120" height="120" fill="green" />
+            </g>
+            <g id="g1" transform="rotate(45)" transform-origin="top left">
+                <rect id="rect1" x="0" y="0" width="120" height="120" fill="green" />
+            </g>
+        )
     }
 }
 
@@ -61,7 +61,6 @@ impl Video for HelloWorldMultiSceneVideo {
         fframes::svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
             width={Self::WIDTH}
             height={Self::HEIGHT}
           >

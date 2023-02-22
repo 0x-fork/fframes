@@ -1,18 +1,15 @@
-use fframes::Svgr;
 pub use fframes::{
     animation::{self, AnimationRuntime},
     audio_data, audio_window_functions, fframes_context,
     frame::Frame,
     subtitles,
     video::Video,
-    AnimateRuntimeInput, AudioMap,
+    AnimateRuntimeInput, AudioMap, Svgr,
 };
-use lazy_static::lazy_static;
-use svgr_macro::{self, svgr};
 
 const SPRING: animation::Easing = animation::Easing::Spring2(1.85, 130., 16.);
 
-lazy_static! {
+fframes::lazy_static::lazy_static! {
     static ref SPRING_RUNTIME: AnimationRuntime = AnimationRuntime::from_easing(&SPRING);
 }
 
@@ -35,7 +32,7 @@ impl MarketingVideo {
             return Svgr::default();
         }
 
-        svgr!(
+        fframes::svgr!(
           <svg
             viewBox="0 0 1200 800"
             width="400"
@@ -45,17 +42,13 @@ impl MarketingVideo {
                 on 2.3, val 1400. => 770., animation::Easing::Spring2(1.85, 130.0, 16.0),
                 on 4.8, val 770. => 1400., animation::Easing::Spring2(1.85, 130.0, 16.0)
             ))}
-            version="1.1"
             xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
-            xml:space="preserve"
-            xmlns:serif="http://www.serif.com/"
             fill-rule="evenodd"
             clip-rule="evenodd"
             stroke-linejoin="round"
             stroke-miterlimit="1.41421"
-          >
-            <g id="Layer-1" serif:id="Layer 1">
+         >
+            <g id="Layer-1">
                 <g transform="matrix(1,0,0,1,597.344,637.02)">
                     <path
                         d="M0,-279.559C-121.238,-279.559 -231.39,-264.983 -312.939,-241.23L-312.939,-38.329C-231.39,-14.575 -121.238,0 0,0C138.76,0 262.987,-19.092 346.431,-49.186L346.431,-230.37C262.987,-260.465 138.76,-279.559 0,-279.559"
@@ -234,15 +227,14 @@ impl Video for MarketingVideo {
         let subtitles = ctx.get_subtitles("subtitles.vtt");
         let audio_visualization = frame.visualize_audio_frame(audio_data::VisualizeFrameInput {
             audio: ctx.get_audio_data(self.audio_track),
-            sample_size: audio_data::SampleSize::S16,
+            sample_size: fframes::SampleSize::S16,
             smooth_level: 3,
             window: Some(fframes::WindowFunction::Hamming),
         });
 
-        svgr!(
+        fframes::svgr!(
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
             width="1920"
             height="1080"
           >
@@ -256,20 +248,20 @@ impl Video for MarketingVideo {
                 <stop stop-color="#ffa69e"/>
                 <stop offset="1" stop-color="#7351d8"/>
               </linearGradient>
-            <linearGradient id="anim">
-              <stop stop-color="#ec77ab"/>
-              <stop offset="1" stop-color="#4F46E5"/>
-            </linearGradient>
-            <linearGradient id="g1" x1="1" y1="1" x2="0">
-              <stop stop-color="#2d3436"/>
-              <stop offset=".74" stop-color="#000000"/>
-            </linearGradient>
+              <linearGradient id="anim">
+                <stop stop-color="#ec77ab"/>
+                <stop offset="1" stop-color="#4F46E5"/>
+              </linearGradient>
+              <linearGradient id="g1" x1="1" y1="1" x2="0">
+                <stop stop-color="#2d3436"/>
+                <stop offset=".74" stop-color="#000000"/>
+              </linearGradient>
             </defs>
+
 
             <rect x="0" y="0" width="100%" height="100%" fill="#111827" />
 
-
-           {
+            {
               PRETTY_SPECTRUM
               .iter()
               .map(|SpectrumValue { spectrum_index, from_color, to_color, position }|  {
@@ -282,7 +274,7 @@ impl Video for MarketingVideo {
                   height => height.to_owned()
                 };
 
-                 svgr_macro::svgr!(
+                 fframes::svgr!(
                   <filter id={format!("{position}-shadow")} x="-100%" y="-100%" width="300%" height="300%">
                     <feGaussianBlur in="SourceAlpha" stdDeviation="10.4"/>
                     <feOffset dx="0" dy="3" result="offsetblur"/>
@@ -343,7 +335,6 @@ impl Video for MarketingVideo {
             <svg
               x="200"
               y="290"
-              version="1.1"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 598.3520004127504 417.989493060112"
               width="298"
@@ -370,7 +361,7 @@ impl Video for MarketingVideo {
             <image
               width="900"
               height="900"
-              xlink:href={ctx.get_image_link("code.png")}
+              href={ctx.get_image_link("code.png")}
               x={frame.animate(fframes::timeline!(
                   on 5.8, val -1000. => 40., &animation::Easing::Spring2(0.85, 80., 16.),
                   on 9.0, val 40. => -1200., &animation::Easing::Spring2(0.85, 80., 16.)
@@ -390,7 +381,7 @@ impl Video for MarketingVideo {
             />
 
             {if frame.get_current_second() > 16.25  {
-              svgr!(
+              fframes::svgr!(
                 <g>
                   <text x="960" y="570" font-family="Bubble Bobble" font-size="154" text-anchor="middle">
                     <tspan fill={if frame.get_current_second() > 18.8 { "#7351d8" } else { "#000" }}>"ff"</tspan>"rames"
@@ -415,7 +406,6 @@ impl Video for MarketingVideo {
                     />
 
                     <path
-                      class="splash-lines"
                       fill="none"
                       stroke="#4F46E5"
                       stroke-width="6"

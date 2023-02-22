@@ -1,41 +1,54 @@
 use std::{fmt, iter::FromIterator};
 
-/// This struct should represent the svg AST. WIP.
 #[derive(Default, Clone)]
 pub struct Svgr {
+    #[cfg(not(feature = "compile-time-svgtree"))]
     pub value: String,
+    #[cfg(feature = "compile-time-svgtree")]
+    pub svg_tree: usvgr::svgtree::NestedSvgDocument<usvgr::svgtree::NestedNodeData>,
 }
 
 impl Svgr {
-    pub fn into_string(self) -> String {
-        self.value
+    // pub fn into_string(self) -> String {
+    //     self.value
+    // }
+
+    #[cfg(feature = "compile-time-svgtree")]
+    pub fn into_svg_tree(self, opt: &usvgr::Options) -> Result<usvgr::Tree, usvgr::Error> {
+        usvgr::Tree::from_nested_svgtree(self.svg_tree, opt)
+    }
+
+    #[cfg(not(feature = "compile-time-svgtree"))]
+    pub fn into_svg_tree(self, opt: &usvgr::Options) -> Result<usvgr::Tree, usvgr::Error> {
+        usvgr::Tree::from_str(self.value.as_str(), opt)
     }
 }
 
-pub trait IntoSvgr {
-    fn into_svgr(self) -> Svgr;
+#[cfg(not(feature = "compile-time-svgtree"))]
+impl From<String> for Svgr {
+    fn from(value: String) -> Self {
+        Svgr { value }
+    }
 }
 
+#[cfg(feature = "compile-time-svgtree")]
 impl From<String> for Svgr {
     fn from(val: String) -> Self {
-        Svgr { value: val }
-    }
-}
+        use usvgr::svgtree::{NestedNodeData, NestedSvgDocument};
 
-impl<'a> From<&'a str> for Svgr {
-    fn from(val: &'a str) -> Self {
         Svgr {
-            value: val.to_owned(),
+            svg_tree: NestedSvgDocument {
+                nodes: vec![Some(NestedNodeData {
+                    kind: usvgr::svgtree::NestedNodeKind::Text(val),
+                    attrs: vec![],
+                    children: vec![],
+                })],
+            },
         }
     }
 }
 
-impl From<Vec<Svgr>> for Svgr {
-    fn from(val: Vec<Svgr>) -> Svgr {
-        FromIterator::from_iter(val)
-    }
-}
-
+#[cfg(not(feature = "compile-time-svgtree"))]
 impl FromIterator<Svgr> for Svgr {
     fn from_iter<T: IntoIterator<Item = Svgr>>(iter: T) -> Self {
         Svgr {
@@ -46,6 +59,43 @@ impl FromIterator<Svgr> for Svgr {
     }
 }
 
+#[cfg(feature = "compile-time-svgtree")]
+impl FromIterator<Svgr> for Svgr {
+    fn from_iter<T: IntoIterator<Item = Svgr>>(iter: T) -> Self {
+        let mut child_nodes = usvgr::svgtree::NestedSvgDocument { nodes: vec![] };
+
+        for sub_tree in iter {
+            let mut nested_tree = sub_tree.svg_tree;
+
+            child_nodes.nodes.append(&mut nested_tree.nodes);
+        }
+
+        Svgr {
+            svg_tree: child_nodes,
+        }
+    }
+}
+
+impl<'a> From<&'a str> for Svgr {
+    fn from(val: &'a str) -> Self {
+        Svgr::from(String::from(val))
+    }
+}
+
+impl From<Vec<Svgr>> for Svgr {
+    fn from(val: Vec<Svgr>) -> Svgr {
+        FromIterator::from_iter(val)
+    }
+}
+
+#[cfg(feature = "compile-time-svgtree")]
+impl fmt::Display for Svgr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.svg_tree)
+    }
+}
+
+#[cfg(not(feature = "compile-time-svgtree"))]
 impl fmt::Display for Svgr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)

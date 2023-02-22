@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-svgr = "0.27.0"
-usvgr = "0.27.0"
-usvgr-text-layout = "0.27.0"
+svgr ={ workspace = true}
+usvgr-text-layout = { workspace = true }
 rayon = "1.5.1"
 colored = "2"
 indicatif = "0.16.2"
@@ -23,7 +22,7 @@ syn = { version = "1", features = ["full", "parsing", "extra-traits"] }
 uuid = { version = "0.8", features = ["v4"] }
 
 svgr-macro = { path="../svgr-macro" }
-fframes = {path="../fframes"}
+fframes = { path="../fframes" }
 media-loader = {path="../media-loader"}
 
 [build-dependencies]

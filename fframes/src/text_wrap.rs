@@ -1,8 +1,6 @@
-use std::sync::{Arc, Mutex};
-
-use lru::LruCache;
-
 use crate::{FontSource, FontStretch, FontStyle, Svgr};
+use lru::LruCache;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum TextAlign {
@@ -59,7 +57,7 @@ impl Default for BreakLinesOpts<'_> {
 }
 
 #[derive(Debug, Clone)]
-pub struct BreaksLruCache(pub(crate) Arc<Mutex<LruCache<u64, Svgr>>>);
+pub struct BreaksLruCache(pub(crate) Arc<Mutex<LruCache<u64, Option<Svgr>>>>);
 
 impl BreaksLruCache {
     pub fn new(size: usize) -> Option<Self> {
@@ -131,7 +129,7 @@ pub(crate) fn text_wrap_impl<'a, 'b>(
     }
 
     Some(svgr_macro::svgr!(
-     <text id={hash} x={x} y={y} fill={fill} font-size={font_size} font-family={font_family} font_weight={font_weight}>
+     <text id={hash} x={x} y={y} fill={fill} font-size={font_size} font-family={font_family} font-weight={font_weight}>
        {
            structure
             .into_iter()

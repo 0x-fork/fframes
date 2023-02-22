@@ -1,5 +1,5 @@
-clippy:
-  cargo clippy -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
+clippy *ARGS:
+  cargo clippy {{ARGS}} -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
 
 clippy-fix:
   cargo clippy --fix -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
@@ -24,8 +24,8 @@ watch-editor:
 run example:
   cd examples/{{example}}/editor && yarn dev
 
-render example:
-  cd examples/{{example}} && cargo run --release && just play {{example}}
+render example *ARGS:
+  cd examples/{{example}} && cargo run --release {{ARGS}} && just play {{example}}
 
 play example:
   cd examples/{{example}} && ffplay out.mp4
@@ -41,3 +41,7 @@ install-ffmpeg version:
   cd ffmpeg && ./configure --enable-shared --disable-x86asm
   cd ffmpeg && make 
   cd ffmpeg && sudo make install
+
+test-release *ARGS: 
+  cargo test --release
+  cargo test -p fframes_test_utils --no-default-features
