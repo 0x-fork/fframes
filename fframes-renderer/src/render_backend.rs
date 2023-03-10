@@ -1,4 +1,4 @@
-use fframes::{frame, usvgr, video::Video, BreaksLruCache, ResolvedAudioMap};
+use fframes::{frame, usvgr, video::Video, AudioTimelineSamples, BreaksLruCache, ResolvedAudioMap};
 use rayon::prelude::*;
 use std::{ops::Range, sync::Arc};
 use svgr::SvgrCache;
@@ -32,7 +32,6 @@ pub trait FFramesRenderBackend {
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
-        duration_in_frames: usize,
         encoder_options: EncoderOptions<'a>,
         font_db: &usvgr_text_layout::fontdb::Database,
         ctx: fframes::FFramesContext,
@@ -41,9 +40,10 @@ pub trait FFramesRenderBackend {
         Self: Sized;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum RenderBackendVariant {
     Gpu,
+    #[default]
     Cpu,
 }
 
@@ -57,12 +57,6 @@ impl RenderBackendVariant {
                 ..Default::default()
             },
         }
-    }
-}
-
-impl Default for RenderBackendVariant {
-    fn default() -> Self {
-        RenderBackendVariant::Cpu
     }
 }
 
@@ -127,7 +121,6 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
-        duration_in_frames: usize,
         _encoder_options: EncoderOptions<'a>,
         font_db: &usvgr_text_layout::fontdb::Database,
         ctx: fframes::FFramesContext,
@@ -140,8 +133,9 @@ impl FFramesRenderBackend for CpuRenderingBackend {
             std::fs::create_dir(&directory)?;
         }
 
-        let concurrent_chunks = self.split_video_chunks(duration_in_frames);
-        let resolved_audio_map: Option<ResolvedAudioMap> = video.audio().resolve(&ctx);
+        let concurrent_chunks = self.split_video_chunks(ctx.duration_in_frames);
+        let resolved_audio_map: Option<ResolvedAudioMap<AudioTimelineSamples>> =
+            video.audio().resolve(&ctx);
 
         let files = concurrent_chunks
             .par_iter()

@@ -1,14 +1,9 @@
-use std::{
-    collections::hash_map::DefaultHasher,
-    fmt::Debug,
-    hash::{Hash, Hasher},
-    ops::DerefMut,
-};
+use std::{fmt::Debug, ops::DerefMut};
 
 use crate::{
     animation, get_visualization,
     text_wrap::{text_wrap_impl, BreakLinesOpts},
-    AnimationRuntime, BreaksLruCache, VisualizeFrameInput,
+    Animatable, AnimationRuntime, BreaksLruCache, VisualizeFrameInput, WrappedTextLine,
 };
 
 /// The Frame {} struct contains temporal information about the current frame.
@@ -24,10 +19,17 @@ pub struct Frame {
     pub breaks_lru_cache: Option<BreaksLruCache>,
 }
 
-pub struct AnimateRuntimeInput<'a> {
-    pub on: f32,
-    pub from: f32,
-    pub to: f32,
+pub struct AnimateRuntimeInput<'a, TValue: Animatable> {
+    /// The second when animation should start.
+    /// If you want to animate based on frames then use `frame.animate_runtime(AnimateRuntimeInput { on_second: frame.frame_to_second(10), .. })`
+    ///
+    /// If current frame is before this second then `from` value will be returned.
+    pub on_second: f32,
+    /// The value to animate from.
+    pub from: TValue,
+    /// The value to animate to.
+    pub to: TValue,
+    /// The easing function to use.
     pub animation_runtime: &'a AnimationRuntime,
 }
 
@@ -41,8 +43,19 @@ impl Frame {
         }
     }
 
+    /// Returns current frame timestamp in seconds.
     pub fn get_current_second(&self) -> f32 {
-        self.index as f32 / self.fps as f32
+        self.frame_to_second(self.index)
+    }
+
+    /// Converts frame index to second.
+    pub fn frame_to_second(&self, frame: usize) -> f32 {
+        frame as f32 / self.fps as f32
+    }
+
+    /// Converts a second value to a frame index within current scene.
+    pub fn second_to_frame(&self, second: f32) -> usize {
+        (second * self.fps as f32) as usize
     }
 
     /// Calculates animation in runtime.
@@ -61,25 +74,24 @@ impl Frame {
     ///
     /// let value = frame.animate_runtime(AnimateRuntimeInput {  on: 3.2, from: 1000., to: 2000., animation_runtime: &runtime }); assert_eq!(value, 1000.);
     /// ```
-    pub fn animate_runtime(
+    pub fn animate_runtime<TValue: Animatable>(
         &self,
         AnimateRuntimeInput {
-            on,
+            on_second,
             from,
             to,
             animation_runtime,
-        }: AnimateRuntimeInput,
-    ) -> f32 {
+        }: AnimateRuntimeInput<TValue>,
+    ) -> TValue {
         let duration = animation_runtime.get_duration();
 
         match &self.get_current_second() {
-            second if second < &on => from,
-            second if second > &(on + duration) => to,
+            second if second < &on_second => from,
+            second if second > &(on_second + duration) => to,
             second => {
-                let progress = animation_runtime.solve(&(second - on));
+                let progress = animation_runtime.solve(&(second - on_second));
 
-                let animation_range = to - from;
-                from + animation_range * progress
+                from.apply_progress(&to, progress)
             }
         }
     }
@@ -112,7 +124,7 @@ impl Frame {
     /// ```
     pub fn animate<T: crate::Animatable + Copy + Default>(
         &self,
-        animation: &animation::SteppedAnimation<T>,
+        animation: &animation::KeyFramesAnimation<T>,
     ) -> T {
         let current_second = &self.get_current_second();
 
@@ -141,12 +153,10 @@ impl Frame {
 
         let frames_to_smooth = ((self.index - input.smooth_level)
             ..(self.index + input.smooth_level))
-            .into_iter()
             .map(|i| get_visualization(i, self.fps, &input))
             .collect::<Vec<_>>();
 
         (0..frames_to_smooth[1].len())
-            .into_iter()
             .map(|frame| {
                 frames_to_smooth.iter().map(|arr| arr[frame]).sum::<f32>()
                     / frames_to_smooth.len() as f32
@@ -185,17 +195,14 @@ impl Frame {
     /// });
     ///
     /// ```  
-    pub fn text_break_lines<'a>(
+    pub fn text_break_lines<'a: 'b, 'b>(
         &mut self,
         ctx: &crate::FFramesContext<'a>,
-        value: &'a str,
+        value: &'b str,
         opts: &BreakLinesOpts,
     ) -> Option<crate::Svgr> {
         let font_source = ctx.font_source?;
-        let mut s = DefaultHasher::new();
-        value.hash(&mut s);
-        opts.hash(&mut s);
-        let hash = s.finish();
+        let hash = opts.hash_with_value(value);
 
         if let Some(cache_mutex) = self.breaks_lru_cache.as_ref() {
             cache_mutex
@@ -203,10 +210,37 @@ impl Frame {
                 .lock()
                 .ok()?
                 .deref_mut()
-                .get_or_insert(hash, || text_wrap_impl(value, hash, font_source, *opts))
+                .get_or_insert(hash, || text_wrap_impl(value, font_source, *opts))
+                .as_ref()
+                .map(|res| WrappedTextLine::as_svgr(res, hash, opts))
+        } else {
+            text_wrap_impl(value, ctx.font_source?, *opts)
+                .map(|res| WrappedTextLine::as_svgr(&res, hash, opts))
+        }
+    }
+
+    /// Same as `text_break_lines` but returns inner lines structure instead of ready-to-render svgr.
+    /// It may be used to customize renderer of wrapped text lines. Every line contains `dx` and `dy` fields which must
+    /// be passed to `dx={line.dx} dy={line.dy}` attribute of the every line <tspan> element.
+    pub fn text_break_lines_strcuture<'a: 'b, 'b>(
+        &mut self,
+        ctx: &crate::FFramesContext<'a>,
+        value: &'b str,
+        opts: &BreakLinesOpts,
+    ) -> Option<Vec<WrappedTextLine>> {
+        let font_source = ctx.font_source?;
+        let hash = opts.hash_with_value(value);
+
+        if let Some(cache_mutex) = self.breaks_lru_cache.as_ref() {
+            cache_mutex
+                .0
+                .lock()
+                .ok()?
+                .deref_mut()
+                .get_or_insert(hash, || text_wrap_impl(value, font_source, *opts))
                 .clone()
         } else {
-            text_wrap_impl(value, hash, ctx.font_source?, *opts)
+            text_wrap_impl(value, font_source, *opts)
         }
     }
 }
