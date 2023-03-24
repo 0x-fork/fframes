@@ -12,10 +12,15 @@ pub enum FFramesMode {
     Renderer,
 }
 
-#[derive(Debug, Clone)]
-pub struct FFramesContext<'a> {
+#[derive(Debug, Clone, Copy)]
+pub struct TimeBase {
     pub fps: usize,
     pub sample_rate: usize,
+}
+
+#[derive(Debug)]
+pub struct FFramesContext<'a> {
+    pub time_base: TimeBase,
     pub mode: FFramesMode,
     pub media_provider: &'a media_provider::MediaProvider,
     pub duration_in_frames: usize,
@@ -31,7 +36,8 @@ impl<'a: 'b, 'b> FFramesContext<'a> {
         }
     }
 
-    pub fn get_subtitles(&self, filename: &str) -> &'b subtitles::Subtitles {
+    pub fn get_subtitles(&self, filename: impl AsRef<str>) -> &'b subtitles::Subtitles {
+        let filename = filename.as_ref();
         match self.media_provider.subtitles.get(filename) {
             Some(data) => data,
             None => panic!(

@@ -15,7 +15,13 @@ module AudioRuntime = {
   let gain = ctx->AudioContext.createGain
 
   let setVolume = value => {
-    gain["gain"]["value"] = value
+    gain["gain"]["value"] = if value < 0. {
+      // this is a very dumb protection from https://0.30000000000000004.com/ problem. We do some math
+      // on the value and here check that value after bumping is not less then 0.
+      0.
+    } else {
+      value
+    }
   }
 
   let stop = () => {
@@ -54,27 +60,27 @@ module AudioRuntime = {
     videoMeta.audioMap
     ->Js.Nullable.toOption
     ->Utils.Option.unwrapOr([])
-        ->Array.keepMap(track => {
-          mediaList
-          ->Map.String.getExn(track.name)
-          ->(
-            (media: MediaLoader.loadableMedia) =>
-              switch media {
-              | Media(media) =>
-                switch media {
-                | Audio(info) => Some((track, info))
-                | _ => None
-                }
-              | _ => None
-              }
-          )
-        })
-        ->Array.map(((track, info)) => {
-          let source = ctx->AudioContext.createBufferSource
-          source->AudioNode.setBuffer(info.audioData)
+    ->Array.keepMap(track => {
+      mediaList
+      ->Map.String.getExn(track.name)
+      ->(
+        (media: MediaLoader.loadableMedia) =>
+          switch media {
+          | Media(media) =>
+            switch media {
+            | Audio(info) => Some((track, info))
+            | _ => None
+            }
+          | _ => None
+          }
+      )
+    })
+    ->Array.map(((track, info)) => {
+      let source = ctx->AudioContext.createBufferSource
+      source->AudioNode.setBuffer(info.audioData)
 
-          (track, source)
-        })
+      (track, source)
+    })
   }
 
   let startAnimation = (~onFrame, ~currentFrame, ~videoMeta) => {
@@ -88,21 +94,21 @@ module AudioRuntime = {
     @inline
     let framesToSeconds = frames => frames->Float.fromInt /. videoMeta.fps->Float.fromInt
 
-      playingSources.contents->Array.forEach(((track, source)) => {
-        let offset = (currentFrame - track.start)->framesToSeconds
-        let duration = (track.end - currentFrame)->framesToSeconds->Js.Math.max(0.)
+    playingSources.contents->Array.forEach(((track, source)) => {
+      let offset = (currentFrame - track.start)->framesToSeconds
+      let duration = (track.end - currentFrame)->framesToSeconds->Js.Math.max(0.)
 
-        source->AudioNode.connect(gain)
+      source->AudioNode.connect(gain)
 
-        if offset < 0. {
-          source->AudioNode.startWithOffset(
-            ~startTime=startTime.contents +. Js.Math.abs(offset),
-            ~offset=0.,
-            ~duration,
-          )
-        } else {
-          source->AudioNode.startWithOffset(~startTime=startTime.contents, ~offset, ~duration)
-        }
+      if offset < 0. {
+        source->AudioNode.startWithOffset(
+          ~startTime=startTime.contents +. Js.Math.abs(offset),
+          ~offset=0.,
+          ~duration,
+        )
+      } else {
+        source->AudioNode.startWithOffset(~startTime=startTime.contents, ~offset, ~duration)
+      }
     })
 
     Webapi.requestAnimationFrame(frame(~onFrame))

@@ -211,15 +211,18 @@ impl Video for MarketingVideo {
     const FPS: usize = 60;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
-    const DURATION: fframes::Duration<'static> = fframes::Duration::FromAudio("marketing.mp3");
+
+    fn duration(&self) -> fframes::Duration {
+        fframes::Duration::Auto
+    }
 
     fn audio(&self) -> AudioMap {
         use fframes::AudioTimestamp::{Eof, Second};
 
         AudioMap::from([
-            ("marketing.mp3", (Second(0), Eof)),
-            ("woosh.mp3", (Second(6), Eof)),
-            ("end.mp3", (Second(16), Eof)),
+            ("marketing.mp3", Second(0.)..Eof),
+            ("woosh.mp3", Second(6.)..Eof),
+            ("end.mp3", Second(16.)..Eof),
         ])
     }
 

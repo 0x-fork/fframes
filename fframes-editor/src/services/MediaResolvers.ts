@@ -2,7 +2,6 @@ import { MediaResolver, resolveMedia } from "./mediaLoader.gen";
 import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
 // @ts-expect-error no  types
 import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
-import { WasmController } from "src/WasmController.gen";
 
 const audioContext = new AudioContext();
 
@@ -114,7 +113,7 @@ export const resolveImage: MediaResolver = async (
 ) => {
   const image = await loadImage(url);
   const base64 =
-    image.naturalHeight * image.naturalWidth > 250000
+    image.naturalHeight * image.naturalWidth > 2073600 // full-hd
       ? null
       : imageToBase64(image);
 
