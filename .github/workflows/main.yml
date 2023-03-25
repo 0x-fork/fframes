@@ -8,6 +8,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: jrottenberg/ffmpeg:5.1.2-ubuntu2004
+    env:
+      DEBIAN_FRONTEND: noninteractive
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -16,6 +19,14 @@ jobs:
       - uses: extractions/setup-just@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: apt install -y build-essential lsb-release wget software-properties-common gnupg
+      - run: apt-get install -y curl pkg-config
+      - run: bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+      - run: curl -fsSL https://deb.nodesource.com/setup_19.x | bash -
+      - run: apt-get install -y nodejs
+      - run: npm install -g yarn
+
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -40,10 +51,6 @@ jobs:
       # - run: brew install ffmpeg
       # - run: brew link --force ffmpeg
       # - run: ffmpeg -version
-
-      - run: sudo add-apt-repository ppa:savoury1/ffmpeg4 -y
-      - run: sudo add-apt-repository ppa:savoury1/ffmpeg5 -y
-      - run: sudo apt-get install ffmpeg libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libavdevice-dev
 
       - name: Build
         run: just build
