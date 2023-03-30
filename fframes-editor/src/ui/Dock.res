@@ -20,21 +20,26 @@ module DockSpace = {
   })
 }
 
+@send external focus: Dom.Element.t => unit = "focus"
+
 module DockButton = {
   @react.component
-  let make = React.memo((~children, ~label, ~onClick: 'a => unit, ~highlight=false) => {
-    <button
-      onClick={_ => onClick()}
-      className={cx([
-        DockSpace.baseClass,
-        "hover:scale-110",
-        highlight
-          ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 hover:to-pink-300/80"
-          : "bg-slate-700 hover:bg-slate-500",
-      ])}>
-      <span className="sr-only"> {React.string(label)} </span> {children}
-    </button>
-  })
+  let make = React.memo(
+    React.forwardRef((~children, ~label, ~onClick: 'a => unit, ~highlight=false) => {
+      <button
+        onClick={_ => onClick()}
+        className={cx([
+          DockSpace.baseClass,
+          "group hover:scale-110",
+          highlight
+            ? "bg-gradient-to-tr from-indigo-400/80 to-pink-400/80 hover:from-indigo-300/80 hover:to-pink-300/80"
+            : "bg-slate-700 hover:bg-slate-500",
+        ])}>
+        <span className="sr-only"> {React.string(label)} </span>
+        <span className="group-active:scale-90 transition-transform"> {children} </span>
+      </button>
+    }),
+  )
 }
 
 type fpsMarker = Green | Yellow | Red | White
@@ -50,10 +55,13 @@ let getFpsMarker = (fps, desiredFps) => {
   }
 }
 
+type dir = Back | Forth
+
 @react.component
 let make = (~fullScreenToggler: Hooks.toggle) => {
   let context = EditorContext.useEditorContext()
   let (player, dispatch) = context.usePlayer()
+  let (isCollapsed, collapsedToggle) = Hooks.useToggle(context.options.hideDock)
 
   let (debouncedFps, _) = UseDebounce.useThrottle(
     AnimationRuntime.AudioRuntime.runtimeFps.contents,
@@ -74,11 +82,15 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
   })
 
   let increaseVolume = Hooks.useEvent(() => {
-    player.volume->Option.forEach(volume => dispatch(SetVolume(volume +. 0.2)))
+    player.volume->Option.forEach(volume =>
+      (volume + context.options.volumeStepFrom0To100)->Player.validateVolume->SetVolume->dispatch
+    )
   })
 
   let decreaseVolume = Hooks.useEvent(() => {
-    player.volume->Option.forEach(volume => dispatch(SetVolume(volume -. 0.2)))
+    player.volume->Option.forEach(volume =>
+      (volume - context.options.volumeStepFrom0To100)->Player.validateVolume->SetVolume->dispatch
+    )
   })
 
   let handleSeekLeft = Hooks.useEvent(() => {
@@ -89,39 +101,62 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
     dispatch(Seek(player.frame + 2 * context.videoMeta.fps))
   })
 
-  let toggleDock = () => {
-    ()
-  }
+  let toggleMute = Hooks.useEvent(() => {
+    dispatch(SetVolume(0))
+  })
 
-  let toggleMute = () => {
-    ()
-  }
+  let setMagnet = Hooks.useEvent(() => {
+    dispatch(SetMagnet)
+  })
 
-  let setMagnet = () => {
-    ()
-  }
+  let seekToStart = Hooks.useEvent(() => {
+    dispatch(Seek(player.magnet->Utils.Option.unwrapOr(0)))
+  })
+
+  let switchScene = Hooks.useEvent(dir => {
+    context.videoMeta.scenesTimeline
+    ->Js.Nullable.toOption
+    ->Option.flatMap(timeline => {
+      let nextSceneIndex = switch dir {
+      | Back => timeline->Js.Array.findIndex(scene => scene.end >= player.frame)
+      | Forth => timeline->Js.Array.findIndex(scene => scene.start > player.frame)
+      }
+
+      timeline[nextSceneIndex]
+    })
+    ->Option.forEach(scene => dispatch(Seek(scene.start)))
+  })
+
+  let toggleDock = Hooks.useEvent(() => {
+    collapsedToggle.toggle()
+    Js.Console.log("Press t to show/hide dock controls")
+  })
 
   React.useEffect1(() => {
     let handleKeydown = e => {
+      open! Dom
+
       if (
         e
-        ->Dom.KeyboardEvent.target
-        ->Dom.EventTarget.unsafeAsElement
+        ->KeyboardEvent.target
+        ->EventTarget.unsafeAsElement
         ->Web.Element.isFocusable
         ->Utils.Bool.invert
       ) {
-        switch e->Dom.KeyboardEvent.key {
+        switch e->KeyboardEvent.key {
         | " " => handlePlayOrPause()
-        | "0" => dispatch(Seek(0))
-        | "ArrowLeft" | "h" | "H" if e->Dom.KeyboardEvent.altKey => dispatch(Seek(0))
-        | "ArrowLeft" | "h" | "H" => handleSeekLeft()
-        | "ArrowRight" | "l" | "L" => handleSeekRight()
-        | "ArrowUp" | "k" | "K" => increaseVolume()
-        | "ArrowDown" | "j" | "J" => decreaseVolume()
-        | "m" | "M" if e->Dom.KeyboardEvent.metaKey => setMagnet()
-        | "m" => toggleMute()
-        | "t" | "T" => toggleDock()
+        | "0" | "H" => seekToStart()
+        | "ArrowLeft" if e->KeyboardEvent.shiftKey => seekToStart()
+        | "ArrowDown" | "h" if e->KeyboardEvent.ctrlKey => toggleMute()
+        | "ArrowLeft" | "j" => handleSeekLeft()
+        | "ArrowRight" | "k" => handleSeekRight()
+        | "ArrowUp" | "l" => increaseVolume()
+        | "ArrowDown" | "h" => decreaseVolume()
+        | "m" | "M" => setMagnet()
+        | "t" | "T" => collapsedToggle.toggle()
         | "f" | "F" => fullScreenToggler.toggle()
+        | "s" | "w" => switchScene(Forth)
+        | "S" | "b" => switchScene(Back)
         | _ => ()
         }
       }
@@ -140,7 +175,10 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
   }, [])
 
   <div
-    className="absolute bottom-0 w-auto left-1/2 px-4 pt-1 space-x-2 bg-[#2a3441]/75 border-t border-x border-gray-100/5 shadow-xl rounded-t-lg backdrop-blur flex transform -translate-x-1/2">
+    className={Cx.cx([
+      "absolute bottom-0 w-auto transition-transform transform-gpu left-1/2 px-4 pt-1 space-x-2 bg-slate-900/50 border-t border-x border-gray-100/20 shadow-xl rounded-t-lg backdrop-blur flex -translate-x-1/2",
+      isCollapsed ? "translate-y-16 duration-300" : "",
+    ])}>
     <DockSpace className="tabular-nums space-x-1">
       <span> {player.frame->Utils.Duration.formatFrame(context.videoMeta.fps)->React.string} </span>
       <span className="normal-nums relative bottom-px"> {React.string(" / ")} </span>
@@ -154,7 +192,7 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
       <span className="mr-2 ml-2"> {React.string("FPS")} </span>
       <span
         className={cx([
-          "tabular-nums w-[3ch] font-medium transition-colors duration-[400ms]",
+          "inline-flex tabular-nums w-[3ch] font-medium transition-colors duration-[400ms]",
           switch getFpsMarker(debouncedFps, context.videoMeta.fps) {
           | Green => "text-green-500"
           | Yellow => "text-yellow-500"
@@ -170,11 +208,32 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
           ->React.string
         | None => context.videoMeta.fps->Js.Int.toString->React.string
         }}
+        {switch context.videoMeta.originalFps {
+        | Some(originalFps) =>
+          <Tooltip
+            asChild=false
+            content={<>
+              {React.string(
+                `FPS was locked on ${context.videoMeta.fps->Int.toString} for editor performance.`,
+              )}
+              <br />
+              {React.string(`Final video will be rendered at ${originalFps->Int.toString} FPS.`)}
+            </>}>
+            <LockIcon className="ml-px mr-0.5 h-3.5 w-3.5 mt-px" />
+          </Tooltip>
+        | None => React.null
+        }}
       </span>
     </DockSpace>
     <DockDivider />
     <DockButton onClick=handleSeekLeft label="Play forward 5 seconds">
-      <PlayBackIcon className="h-6 w-6" />
+      <PlayBackIcon
+        text={context.options.rewindStepInSeconds
+        ->Js.Int.toString
+        ->Js.String.substr(~start=0, ~length=2)}
+        backward=true
+        className="h-6 w-6"
+      />
     </DockButton>
     <DockButton onClick=handlePlayOrPause highlight=true label="Play">
       {switch player.playState {
@@ -186,32 +245,38 @@ let make = (~fullScreenToggler: Hooks.toggle) => {
       }}
     </DockButton>
     <DockButton onClick=handleSeekRight label="Play back 5 seconds">
-      <PlayBackIcon className="h-6 w-6 rotate-180" />
+      <PlayBackIcon
+        text={context.options.rewindStepInSeconds
+        ->Js.Int.toString
+        ->Js.String.substr(~start=0, ~length=2)}
+        className="h-6 w-6"
+      />
     </DockButton>
     <DockSpace>
       {switch player.volume {
-      | Some(volume) if volume > 0. => <VolumeIcon className="h-6 w-6" />
-      | Some(_) => <VolumeMuteIcon className="h-6 w-6" />
+      | Some(volume) => <VolumeIcon high={volume > 50} mute={volume === 0} className="h-6 w-6" />
       | _ => <VolumeMuteIcon className="h-6 w-6 text-gray-500" />
       }}
       <Slider
         disabled={player.volume->Option.isNone}
         min=Player.min_volume
         max=Player.max_volume
-        step=0.1
-        value={player.volume->Utils.Option.unwrapOr(0.0)}
+        step=1
+        value={player.volume->Utils.Option.unwrapOr(0)}
         onValueChange={handleSetVolume}
       />
     </DockSpace>
     <DockDivider />
-    <DockButton onClick=Js.Console.log label="Magnet to this position">
+    <DockButton onClick=setMagnet label="Magnet to this position">
       <MagnetIcon className="h-6 w-6" />
     </DockButton>
-    <DockButton onClick=fullScreenToggler.toggle label="Full screen">
+    <DockButton onClick=fullScreenToggler.toggle label="Turn on/off full-screen mode">
       <FullScreenIcon className="h-6 w-6" />
     </DockButton>
-    <DockButton onClick=Js.Console.log label="Collapse control bar">
-      <CollapseIcon className="h-6 w-6" />
+    <DockButton onClick=toggleDock label="Show/Hide dock controls">
+      <CollapseIcon
+        className={Cx.cx(["h-6 w-6 transition-transform", isCollapsed ? "rotate-180" : ""])}
+      />
     </DockButton>
   </div>
 }

@@ -1,6 +1,6 @@
 use fframes::error::FFramesCoreError;
 use fframes::{
-    AudioTimelineFrames, AudioTimelineUnit, Duration, ResolvedRenderingTimeline,
+    AudioTimelineFrames, Duration, ResolvedAudioMap, ResolvedRenderingTimeline,
     ResolvedScenesTimeline, ScenesWithAudio, TimeBase, Video,
 };
 use futures::future::join_all;
@@ -14,6 +14,7 @@ extern "C" {
 }
 
 async fn resolve_used_audio_durations<'a, TVideo: Video>(
+    tb: &'a TimeBase,
     duration: &'a Duration<'a>,
     scene_audios: &'a ScenesWithAudio<'a>,
     global_audio_map: &'a fframes::AudioMap<'a>,
@@ -47,7 +48,7 @@ async fn resolve_used_audio_durations<'a, TVideo: Video>(
         Ok(val) => val
             .as_f64()
             .map(|val| {
-                let frames = val * TVideo::FPS as f64;
+                let frames = val * tb.fps as f64;
                 (file, frames as usize)
             })
             .ok_or_else(|| FFramesCoreError::CanNotProcessAudioDuration(file.to_string())),
@@ -58,21 +59,13 @@ async fn resolve_used_audio_durations<'a, TVideo: Video>(
     .collect::<fframes::error::Result<HashMap<_, _>>>()
 }
 
-#[derive(Clone, fframes::serde::Serialize)]
-#[serde(crate = "fframes::serde")] // https://github.com/serde-rs/serde/issues/1465
-pub struct AudioTrack {
-    pub name: String,
-    pub start: usize,
-    pub end: usize,
-}
-
 pub async fn prepare_video_with_audio<TVideo: Video>(
     video: &TVideo,
     tb: &TimeBase,
 ) -> (
     usize,
     Option<ResolvedScenesTimeline>,
-    Option<Vec<AudioTrack>>,
+    Option<ResolvedAudioMap<AudioTimelineFrames>>,
 ) {
     let video_duration = video.duration();
 
@@ -81,7 +74,7 @@ pub async fn prepare_video_with_audio<TVideo: Video>(
     let scene_audios = ScenesWithAudio::from(&scenes);
 
     let audio_durations =
-        resolve_used_audio_durations::<TVideo>(&video_duration, &scene_audios, &audio_map)
+        resolve_used_audio_durations::<TVideo>(tb, &video_duration, &scene_audios, &audio_map)
             .await
             .unwrap();
 
@@ -104,19 +97,6 @@ pub async fn prepare_video_with_audio<TVideo: Video>(
         resolve_audio_duration_in_frames,
     )
     .unwrap();
-
-
-    let audio_map = audio_map.map(|resolved_map| {
-        resolved_map
-            .0
-            .into_iter()
-            .map(|(name, range)| AudioTrack {
-                name,
-                start: range.start.as_usize(),
-                end: range.end.as_usize(),
-            })
-            .collect::<Vec<_>>()
-    });
 
     (duration, scenes, audio_map)
 }

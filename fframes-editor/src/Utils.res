@@ -24,8 +24,15 @@ module Math = {
   @scope("Math") @val
   external maxI: (int, int) => int = "max"
 
+  @scope("Math") @val
+  external minI: (int, int) => int = "min"
+
   let divideWithReminder = (x, y) => {
     (Js.Math.floor(x /. y), Js.Float.mod(x, y))
+  }
+
+  let minMax = (val, ~min, ~max) => {
+    val < min ? min : val > max ? max : val
   }
 }
 
@@ -42,6 +49,7 @@ module Option = {
     | _ => None
     }
 
+  @inline
   let unwrapOr = (option, default) =>
     switch option {
     | Some(val) => val
@@ -49,6 +57,13 @@ module Option = {
     }
 
   let some = val => Some(val)
+
+  let zip = (a, b) => {
+    switch (a, b) {
+    | (Some(a), Some(b)) => Some((a, b))
+    | _ => None
+    }
+  }
 }
 
 module Log = {
@@ -66,6 +81,7 @@ module Path = {
 
 module Bool = {
   let invert = a => !a
+  let then = a => a ? Some() : None
 }
 
 module Duration = {
