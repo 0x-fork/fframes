@@ -9,7 +9,8 @@ use uuid::Uuid;
 
 use crate::{
     concatenator,
-    encoder::{Encoder, EncoderFrame, EncoderOptions},
+    encoder::{Encoder, EncoderOptions},
+    encoder_frame::EncoderFrame,
     fframes_logger::FFramesLogger,
     renderer_error::{FFramesError, FFramesResult},
 };
@@ -34,7 +35,7 @@ pub trait FFramesRenderBackend {
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
-        encoder_options: EncoderOptions<'a>,
+        encoder_options: &EncoderOptions<'a>,
         font_db: &usvgr_text_layout::fontdb::Database,
         timeline: &ResolvedRenderingTimeline<AudioTimelineSamples>,
         ctx: fframes::FFramesContext,
@@ -124,17 +125,22 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         video: TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
-        _encoder_options: EncoderOptions<'a>,
+        encoder_options: &EncoderOptions<'a>,
         font_db: &usvgr_text_layout::fontdb::Database,
         timeline: &ResolvedRenderingTimeline<AudioTimelineSamples>,
         ctx: fframes::FFramesContext,
     ) -> FFramesResult<()> {
+        let extension = output
+            .split('.')
+            .last()
+            .ok_or(FFramesError::InvalidOutput)?;
+
         let session = Uuid::new_v4();
-        let directory = std::env::temp_dir().join(format!("fframes-{session}"));
-        // let directory = std::path::Path::new("test_render");
+        let tmp_path = std::env::temp_dir().join(format!("fframes-{session}"));
+        let directory = encoder_options.tmp_files_directory.unwrap_or(&tmp_path);
 
         if !directory.exists() {
-            std::fs::create_dir(&directory)?;
+            std::fs::create_dir(directory)?;
         }
 
         let concurrent_chunks = self.split_video_chunks(ctx.duration_in_frames);
@@ -144,7 +150,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
             .enumerate()
             .map(|(thread_number, chunk_range)| {
                 let file = directory
-                    .join(format!("{thread_number}.mp4"))
+                    .join(format!("{thread_number}.{extension}"))
                     .into_os_string()
                     .into_string()
                     .unwrap();
@@ -155,11 +161,10 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                         TVideo::HEIGHT as i32,
                         TVideo::FPS as i32,
                         file.as_str(),
-                        "libx264",
+                        encoder_options,
                         &logger,
-                        false,
                         &mut |encoder| {
-                            let mut frame = EncoderFrame::make(&encoder.video_stream);
+                            let mut frame = EncoderFrame::make(&encoder.video_stream)?;
 
                             let mut svgr_cache = SvgrCache::new(self.cache_capacity);
                             let break_lines_cache = BreaksLruCache::new(self.text_cache_capacity);
@@ -208,7 +213,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                     frame.fill_from_rgba_pixmap(index as i64, pixmap.data());
 
                                     let video_stream = encoder.video_stream;
-                                    encoder.send_frame(&video_stream, frame)
+                                    encoder.send_frame(&video_stream, &frame)
                                 })?;
 
                             let frames_to_generate = chunk_range.end - chunk_range.start;
@@ -220,11 +225,10 @@ impl FFramesRenderBackend for CpuRenderingBackend {
 
                                 for _ in chunk_range.end..chunk_range.end + intra_frames_to_add {
                                     let video_stream = encoder.video_stream;
-                                    encoder.send_frame(&video_stream, frame)?;
+                                    encoder.send_frame(&video_stream, &frame)?;
                                 }
                             }
 
-                            frame.free();
                             Ok(())
                         },
                     )
@@ -241,6 +245,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                 files.as_slice(),
                 output,
                 timeline.audio_map.as_ref(),
+                encoder_options,
                 &ctx,
             )?;
         }

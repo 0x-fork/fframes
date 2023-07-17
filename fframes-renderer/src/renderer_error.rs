@@ -1,14 +1,18 @@
 use colored::Colorize;
+use ffmpeg_next::ffi::AVPixelFormat;
 use std::{fmt, sync::PoisonError};
 
 pub enum AVError {
     MissingVideoStreamInFile(String),
     CantOpenFile(String),
-    CantAllocateCtx,
+    CantAllocate(String),
     CantWriteFrame(String),
     UnknownExtension(String),
     FFmpegError(i32, String),
+    InvalidPixFmt(AVPixelFormat),
     Internal(String),
+    CannotLocateCodec,
+    InvalidArgument(String),
 }
 
 impl fmt::Display for AVError {
@@ -20,7 +24,7 @@ impl fmt::Display for AVError {
                 Self::MissingVideoStreamInFile(file) =>
                     format!("Missing video stream in file {file}"),
                 Self::CantOpenFile(file) => format!("Missing video stream in file {}", file.cyan()),
-                Self::CantAllocateCtx => "Can not allocate encoding context".to_owned(),
+                Self::CantAllocate(what) => format!("Can not allocate {what}"),
                 Self::FFmpegError(code, description) =>
                     format!("libav error {code}: {description}"),
                 Self::CantWriteFrame(file) =>
@@ -30,6 +34,9 @@ impl fmt::Display for AVError {
                     file.cyan().bold()
                 ),
                 Self::Internal(message) => message.to_owned(),
+                Self::CannotLocateCodec => "Couldn't locate audio or video codec neither from render_options nor from the output file extension. Make sure that extension is a valid video file and you have installed appropriate codecs for this specific container. E.g. in order to output the .webm extension you should have vp9 and opus codecs installed".to_owned(),
+                Self::InvalidArgument(argument) => format!("Argument {argument} that was provided is not valid or not supported for the current codec."),
+                Self::InvalidPixFmt(pix_fmt) => format!("Pixel format `{pix_fmt:?}` is not supported for current codec"),
             }
         )
     }
@@ -48,6 +55,7 @@ pub enum FFramesError {
     ParserError(fframes::usvgr::Error),
     ConcurrencyError,
     CustomError(String),
+    InvalidOutput,
 }
 
 impl fmt::Debug for FFramesError {
@@ -74,6 +82,7 @@ impl fmt::Debug for FFramesError {
                 Self::ConcurrencyError => "Something not correct happened while trying concurrently access one of the resources".to_owned(),
                 Self::ParserError(err) => format!("SVG parsing error: {err:?}"),
                 Self::CustomError(err) => err.to_owned(),
+                Self::InvalidOutput => "Invalid output file. Path does not exist or does not the valid file".to_owned(),
             }
         )
     }

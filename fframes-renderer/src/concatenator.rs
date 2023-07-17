@@ -3,11 +3,13 @@ use fframes::{AudioTimelineSamples, AudioTimelineUnit, FFramesContext, ResolvedA
 use std::ffi::CString;
 
 use crate::{
-    encoder::{Encoder, EncoderFrame},
+    encoder::Encoder,
+    encoder_frame::EncoderFrame,
     ffmpeg_action,
     renderer_error::{AVError, AVResult},
     stream::Stream,
     stream::StreamVariant,
+    EncoderOptions,
 };
 
 unsafe fn open_file_stream(
@@ -54,7 +56,11 @@ unsafe fn open_file_stream(
     }
 }
 
-unsafe fn create_encoder_copy_from_file(file: &str, output: &str) -> Result<Encoder, AVError> {
+unsafe fn create_encoder_copy_from_file(
+    file: &str,
+    output: &str,
+    encoder_options: &EncoderOptions,
+) -> Result<Encoder, AVError> {
     let mut input_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
     let mut output_format_ctx: *mut AVFormatContext = std::ptr::null_mut();
 
@@ -70,15 +76,13 @@ unsafe fn create_encoder_copy_from_file(file: &str, output: &str) -> Result<Enco
     );
 
     let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
-
     let audio_stream = Stream::make_audio(
-        44100,
+        encoder_options.sample_rate.unwrap_or(44100),
         output_format_ctx,
-        "aac",
-        (*output_format_ctx).audio_codec_id,
+        encoder_options,
     )?;
 
-    let mut encoder = Encoder {
+    let encoder = Encoder {
         video_stream: Stream {
             st: output_video_stream,
             enc: std::ptr::null_mut(),
@@ -113,7 +117,7 @@ unsafe fn fill_video_stream_from_files(
     files: &[String],
 ) -> Result<(), AVError> {
     let mut start_time = 0;
-    let mut packet = av_packet_alloc();
+    let packet = av_packet_alloc();
 
     for file in files.iter() {
         let mut input_format_ctx = std::ptr::null_mut();
@@ -167,7 +171,7 @@ pub unsafe fn fill_audio_stream(
             &encoder
                 .audio_stream
                 .ok_or_else(|| AVError::Internal("Missing audio_stream".to_owned()))?,
-        );
+        )?;
 
         let mut audio_frame_pts = 0usize;
         let frame_size = (*audio_stream.enc).frame_size as usize;
@@ -180,7 +184,7 @@ pub unsafe fn fill_audio_stream(
             );
 
             audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
-            encoder.send_frame(&audio_stream, audio_frame)?;
+            encoder.send_frame(&audio_stream, &audio_frame)?;
 
             audio_frame_pts += frame_size;
         }
@@ -196,9 +200,10 @@ pub unsafe fn concat_video_files_with_audio(
     files: &[String],
     output: &str,
     audio_map: Option<&ResolvedAudioMap<AudioTimelineSamples>>,
+    encoder_options: &EncoderOptions,
     ctx: &FFramesContext,
 ) -> Result<(), AVError> {
-    let mut encoder = create_encoder_copy_from_file(files[0].as_str(), output)?;
+    let mut encoder = create_encoder_copy_from_file(files[0].as_str(), output, encoder_options)?;
 
     fill_video_stream_from_files(&mut encoder, files)?;
     fill_audio_stream(&mut encoder, audio_map, ctx)?;
