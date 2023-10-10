@@ -1,14 +1,25 @@
 use fframes;
+use fframes::include_media_dir;
 use fframes::svgr;
-use fframes::Scene;
 use fframes::Svgr;
+use fframes::{AudioMap, Scene};
+
+include_media_dir!(pub struct OwlMedia, "examples/low-poly-art/media/owl");
 
 #[derive(Debug)]
-pub(crate) struct Owl {}
+pub struct Owl<'a> {
+    pub media: &'a OwlMedia,
+}
 
-impl Scene for Owl {
+impl Scene for Owl<'_> {
     fn duration(&self) -> fframes::Duration {
         fframes::Duration::Seconds(10.)
+    }
+
+    fn audio_map(&self) -> AudioMap {
+        use fframes::AudioTimestamp::*;
+
+        AudioMap::from([("owl.mp3", (Frame(0)..Second(10.)))])
     }
 
     fn render_frame(&self, frame: fframes::Frame, ctx: &fframes::FFramesContext) -> Svgr {
@@ -16,7 +27,7 @@ impl Scene for Owl {
         let noise_y = (rand::random::<f64>() * 60.) as i32 - 30;
 
         let visualization = frame.visualize_audio_frame(fframes::VisualizeFrameInput {
-            audio: ctx.get_audio_data("owl.mp3"),
+            audio: ctx.get_audio("owl.mp3").expect("owl.mp3 must be present"),
             sample_size: fframes::SampleSize::S64,
             smooth_level: 4,
             window: Some(fframes::WindowFunction::Hamming),
@@ -40,7 +51,7 @@ impl Scene for Owl {
         > "BUBO BUBO" </text>
 
          {
-               fframes::prettify_spectrum(visualization.as_slice())
+               fframes::center_spectrum_low_frequences(visualization.as_slice())
                .iter()
                .skip(2)
                .enumerate()

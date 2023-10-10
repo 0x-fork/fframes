@@ -1,4 +1,4 @@
-use crate::render_backend::FFramesRenderBackend;
+use crate::{render_backend::FFramesRenderBackend, renderer_error::RenderEncodingError};
 use fframes::{
     usvgr, AudioTimelineSamples, BreaksLruCache, Frame, ResolvedRenderingTimeline, Video,
 };
@@ -13,24 +13,25 @@ use crate::{
     encoder::{Encoder, EncoderOptions},
     encoder_frame::EncoderFrame,
     fframes_logger::FFramesLogger,
-    renderer_error::{FFramesError, FFramesResult},
+    renderer_error::{FFramesRendererError, FFramesRendererResult},
 };
 
 pub struct CpuRenderingBackend {
-    /// The number of **individual svg elements or groups** to cache. It is important to understand that CPU
-    /// rendering is very slow for mostly all the filters, shadows and gradients so this is important to reuse unchanged elements.
-    /// But from the flip side do not set this to the unreasonably large values as it will consume a lot of memory for no reason.
+    /// The number of **individual svg elements or groups** to cache. Pure CPU rendering is very slow
+    /// for mostly any filter, shadows, or gradients so it is important to cache unchanged elements.
+    /// At the same time do not set this to the unreasonably large values as it will consume a lot
+    /// of memory and will decrease cache efficientcy.
     ///
     /// The optimal size = general number of static (not animating) elements in your video.
     ///
-    /// @default 20
+    /// @default `20`
     pub cache_capacity: usize,
     /// The number of threads to use for rendering. By default it will use the number of logical cores on your machine.
     /// There is no reason to set this to a value greater than the number of logical cores because each thread will render its own video which after will be concatenated.
     ///
-    /// @default rayon::current_num_threads()
+    /// @default `rayon::current_num_threads()`
     pub concurrency: usize,
-    /// The number of frame.text_break_lines results to be cached.
+    /// The number of `frame.text_break_lines` results to be cached.
     /// Text rendering and wrapping is very expensive especially on CPU as it involves a lot of text shaping and layout along with font resolution.
     pub text_cache_capacity: usize,
 }
@@ -74,18 +75,18 @@ impl FFramesRenderBackend for CpuRenderingBackend {
     fn render<'a, TVideo: Video + Sync + Sized>(
         &self,
         output: &'a str,
-        video: TVideo,
+        video: &'a TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
         encoder_options: &EncoderOptions<'a>,
         font_db: &usvgr_text_layout::fontdb::Database,
         timeline: &ResolvedRenderingTimeline<AudioTimelineSamples>,
         ctx: fframes::FFramesContext,
-    ) -> FFramesResult<()> {
+    ) -> FFramesRendererResult<()> {
         let extension = output
             .split('.')
             .last()
-            .ok_or(FFramesError::InvalidOutput)?;
+            .ok_or(FFramesRendererError::InvalidOutput)?;
 
         let session = Uuid::new_v4();
         let tmp_path = std::env::temp_dir().join(format!("fframes-{session}"));
@@ -105,7 +106,9 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                     .join(format!("{thread_number}.{extension}"))
                     .into_os_string()
                     .into_string()
-                    .unwrap();
+                    .map_err(|_| {
+                        FFramesRendererError::Internal("Can not convert path to string".to_owned())
+                    })?;
 
                 unsafe {
                     Encoder::with_output(
@@ -128,7 +131,9 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                 TVideo::WIDTH as u32,
                                 TVideo::HEIGHT as u32,
                             )
-                            .unwrap();
+                            .ok_or_else(|| {
+                                RenderEncodingError::CantAllocate("pixmap".to_owned())
+                            })?;
 
                             chunk_range
                                 .to_owned()
@@ -144,7 +149,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                         &ctx,
                                     );
 
-                                    let mut rtree = svg.into_svg_tree(usvg_options).unwrap();
+                                    let mut rtree = svg.into_svg_tree(usvg_options)?;
                                     rtree.convert_text_with_cache(
                                         font_db,
                                         &mut text_layout_cache,
@@ -159,7 +164,8 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                         pixmap.as_mut(),
                                         &mut svgr_cache,
                                     )
-                                    .unwrap();
+                                    .ok_or(RenderEncodingError::RenderError)?;
+
                                     logger.log_frame(index, thread_number);
 
                                     frame.fill_from_rgba_pixmap(index as i64, pixmap.data());
@@ -185,12 +191,11 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                         },
                     )
                 }
-                .and_then(std::convert::identity)
-                .map_err(|av_err| FFramesError::RenderChunkError(thread_number, av_err))?;
+                .map_err(|av_err| FFramesRendererError::RenderChunkError(thread_number, av_err))?;
 
                 Ok(file)
             })
-            .collect::<FFramesResult<Vec<_>>>()?;
+            .collect::<FFramesRendererResult<Vec<_>>>()?;
 
         unsafe {
             concatenator::concat_video_files_with_audio(
@@ -199,24 +204,26 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                 timeline.audio_map.as_ref(),
                 encoder_options,
                 &ctx,
-            )?;
+            )
+            .map_err(FFramesRendererError::ConcatChunkError)?;
         }
 
         logger.success(output, directory.to_str());
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn debug_frame<'a, TVideo: Video + Sync + Sized>(
         &self,
         frame: fframes::Frame,
         out: &str,
-        video: TVideo,
+        video: &TVideo,
         usvg_options: &usvgr::Options,
         font_db: &usvgr_text_layout::fontdb::Database,
         ctx: fframes::FFramesContext,
-    ) -> FFramesResult<()> {
+    ) -> FFramesRendererResult<()> {
         let mut pixmap = svgr::tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
-            .ok_or_else(|| FFramesError::CustomError("Failed to allocate pixmap for rendering. This may indicate that this machine is out of memory.".to_owned()))?;
+            .ok_or_else(|| FFramesRendererError::Internal("Failed to allocate pixmap for rendering. This may indicate that this machine is out of memory.".to_owned()))?;
 
         let mut rtree = video
             .render_frame(frame, &ctx)
@@ -230,7 +237,7 @@ impl FFramesRenderBackend for CpuRenderingBackend {
             pixmap.as_mut(),
             &mut SvgrCache::none(),
         )
-        .ok_or_else(|| FFramesError::CustomError("Failed to render frame".to_owned()))?;
+        .ok_or_else(|| FFramesRendererError::Internal("Failed to render frame".to_owned()))?;
 
         let buffer = pixmap.encode_png().unwrap();
         std::fs::write(out, buffer)?;

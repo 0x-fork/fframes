@@ -1,6 +1,7 @@
+use crate::media::{ImageData, Subtitles};
 use crate::{
-    subtitles, AudioData, AudioTimelineSamples, AudioTimelineUnit, FontSource, Frame,
-    MediaProvider, ResolvedAudioMap, ResolvedScenesTimeline, Svgr,
+    AudioData, AudioTimelineSamples, AudioTimelineUnit, FontSource, Frame, MediaProvider,
+    ResolvedAudioMap, ResolvedScenesTimeline, Svgr,
 };
 use std::iter::FromIterator;
 
@@ -18,53 +19,33 @@ pub struct TimeBase {
 }
 
 #[derive(Debug)]
-pub struct FFramesContext<'a> {
+pub struct FFramesContext<'a, 'media: 'a> {
     pub time_base: TimeBase,
-    pub mode: FFramesMode,
-    pub media_provider: &'a MediaProvider,
     pub duration_in_frames: usize,
+    pub mode: FFramesMode,
+    pub media_source: Option<&'media (dyn MediaProvider<'media>)>,
     pub font_source: Option<&'a (dyn FontSource<'a> + 'a)>,
-    pub scenes: Option<&'a ResolvedScenesTimeline>,
+    pub scenes: Option<&'a ResolvedScenesTimeline<'a>>,
 }
 
-impl<'a: 'b, 'b> FFramesContext<'a> {
-    pub fn get_audio_data(&self, filename: &str) -> &AudioData {
-        match self.media_provider.audio.get(filename) {
-            Some(data) => data,
-            None => panic!("Audio data not found for {file}, please make sure that media folder contains {file}", file=filename)
-        }
+impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
+    pub fn get_audio(&self, filename: impl AsRef<str>) -> Option<&'media AudioData<'media>> {
+        self.media_source?.resolve_audio(filename.as_ref())
     }
 
-    pub fn get_subtitles(&self, filename: impl AsRef<str>) -> &'b subtitles::Subtitles {
-        let filename = filename.as_ref();
-        match self.media_provider.subtitles.get(filename) {
-            Some(data) => data,
-            None => panic!(
-                "Subtitles {file} not found! Please make sure that media folder contains {file}",
-                file = filename
-            ),
-        }
+    pub fn get_subtitles(&'a self, filename: impl AsRef<str>) -> Option<&'media Subtitles<'media>> {
+        self.media_source?.resolve_subtitles(filename.as_ref())
     }
 
-    pub fn get_image_link(&self, filename: &str) -> String {
-        match (&self.mode, self.media_provider.images.get(filename)) {
-            (FFramesMode::EditorTimelinePreview, Some(data)) if data.base64.is_some() => {
-                // safe to unwrap because of leading if
-                data.base64.to_owned().unwrap()
-            }
-            (_, Some(data)) => data.link.to_owned(),
-            _ => panic!(
-                "Image {file} not found! Please make sure that media folder contains {file}",
-                file = filename
-            ),
-        }
+    pub fn get_image_href(&self, filename: impl AsRef<str>) -> Option<&'media str> {
+        self.media_source?
+            .resolve_image(filename.as_ref())
+            .map(ImageData::href)
     }
 
     pub fn render_scenes(&self, global_frame: &Frame) -> Svgr {
         if let Some(scenes) = self.scenes.as_ref() {
-            Svgr::from_iter(scenes.0.iter().filter_map(|(range, _, scene)| {
-                range.contains(&global_frame.index).then(|| {
-                    scene.render_frame(
+            Svgr::from_iter(scenes.0.iter().filter(|&(range, _, _scene)| range.contains(&global_frame.index)).map(|(range, _, scene)| scene.render_frame(
                         Frame {
                             fps: global_frame.fps,
                             global_index: global_frame.index,
@@ -72,9 +53,7 @@ impl<'a: 'b, 'b> FFramesContext<'a> {
                             breaks_lru_cache: global_frame.breaks_lru_cache.clone(),
                         },
                         self,
-                    )
-                })
-            }))
+                    )))
         } else {
             Svgr::default()
         }
@@ -85,8 +64,8 @@ impl<'a: 'b, 'b> FFramesContext<'a> {
         if let Some(scenes) = self.scenes.as_ref() {
             scenes.0.iter().find_map(|(_, info, boxed_scene)| {
                 #[allow(clippy::ptr_eq)]
-                let pointers_equal = boxed_scene.as_ref() as *const dyn crate::Scene as *const T
-                    == scene as *const T;
+                let pointers_equal =
+                    *boxed_scene as *const dyn crate::Scene as *const T == scene as *const T;
 
                 pointers_equal.then_some(info)
             })
@@ -105,28 +84,36 @@ impl<'a: 'b, 'b> FFramesContext<'a> {
     ) -> Vec<f32> {
         let mut audio_data = vec![0.0; frame_size];
 
+        let media_source = if let Some(media_source) = self.media_source {
+            media_source
+        } else {
+            return vec![];
+        };
+
         audio_map.0.iter().for_each(|(f, sample_range)| {
             if sample_range.contains(&start_sample) {
                 let start_of_this_frame_in_file =
                     start_sample.as_usize() - sample_range.start.as_usize();
 
-                self.get_audio_data(f)
-                    .get_range(
+                let range = media_source.resolve_audio(f).and_then(|a| {
+                    a.get_range(
                         start_of_this_frame_in_file..start_of_this_frame_in_file + frame_size,
                     )
-                    .map(|data| {
-                        data.iter().enumerate().for_each(|(i, sample)| {
-                            let fltp_sample = *sample as f32 / i16::MAX as f32;
-                            let filled_sample = audio_data[i];
+                });
 
-                            if filled_sample == 0. {
-                                audio_data[i] = fltp_sample
-                            } else {
-                                audio_data[i] =
-                                    filled_sample + fltp_sample - (filled_sample * fltp_sample)
-                            }
-                        });
+                if let Some(range) = range {
+                    range.iter().enumerate().for_each(|(i, sample)| {
+                        let fltp_sample = *sample as f32 / i16::MAX as f32;
+                        let filled_sample = audio_data[i];
+
+                        if filled_sample == 0. {
+                            audio_data[i] = fltp_sample
+                        } else {
+                            audio_data[i] =
+                                filled_sample + fltp_sample - (filled_sample * fltp_sample)
+                        }
                     });
+                }
             }
         });
 

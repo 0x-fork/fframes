@@ -1,8 +1,9 @@
 use fframes::lazy_static::lazy_static;
 use fframes::{
-    animation, prettify_spectrum, svgr, AudioMap, AudioTimestamp, FFramesContext, Frame,
-    SampleSize, Svgr, Video, VisualizeFrameInput,
+    animation, center_spectrum_low_frequences, svgr, AudioMap, FFramesContext, Frame, SampleSize,
+    Svgr, Video, VisualizeFrameInput,
 };
+pub use tiktok_media::GooseMedia;
 
 const SPRING: animation::Easing = animation::Easing::Spring2(1.85, 130., 16.);
 const BAR_SIZE: usize = 30;
@@ -15,11 +16,11 @@ lazy_static! {
 }
 
 #[derive(Debug)]
-pub struct GooseVideo {
-    pub audio_track: &'static str,
+pub struct GooseVideo<'a> {
+    pub media: &'a GooseMedia,
 }
 
-impl Video for GooseVideo {
+impl Video for GooseVideo<'_> {
     const FPS: usize = 60;
     const WIDTH: usize = 1080;
     const HEIGHT: usize = 1920;
@@ -29,21 +30,20 @@ impl Video for GooseVideo {
     }
 
     fn audio(&self) -> AudioMap {
-        use AudioTimestamp::*;
+        use fframes::AudioTimestamp::*;
 
         AudioMap::from([("thought.mp3", (Frame(0)..Eof))])
     }
 
     fn render_frame(&self, mut frame: Frame, ctx: &FFramesContext) -> Svgr {
-        let subtitles = ctx.get_subtitles("thought.vtt");
         let audio_visualization = frame.visualize_audio_frame(VisualizeFrameInput {
-            audio: ctx.get_audio_data(self.audio_track),
+            audio: &self.media.thought_mp3,
             sample_size: SampleSize::S32,
             smooth_level: 4,
             window: None,
         });
 
-        let audio_visualization = prettify_spectrum(audio_visualization.as_slice());
+        let audio_visualization = center_spectrum_low_frequences(audio_visualization.as_slice());
 
         svgr!(
             <svg width="1080" height="1920" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -54,7 +54,7 @@ impl Video for GooseVideo {
                     </g>
                  <g filter="url(#c)"><ellipse rx="208.812" ry="211.997" transform="matrix(.00844 .99996 -.99984 .01802 686.793 1443.34)" fill="#B310FF"/></g><g style="mix-blend-mode:lighten" opacity=".5" filter="url(#d)"><ellipse rx="176.773" ry="179.55" transform="matrix(.00844 .99996 -.99984 .01802 406.049 927.243)" fill="#F90"/></g><g style="mix-blend-mode:hard-light" filter="url(#e)"><ellipse cx="565.155" cy="1157.97" rx="379.483" ry="380.775" transform="rotate(70 565.155 1157.97)" fill="#454ACF"/></g></g>
                  <defs>
-                   <filter id="b" x="-66.271" y="140.76" width="1031.86" height="1023.68" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><filter id="c" x="194.823" y="954.499" width="983.941" height="977.681" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="140" result="effect1_foregroundBlur_3_2"/></filter><filter id="d" x="26.522" y="550.447" width="759.054" height="753.593" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><filter id="e" x="-15.573" y="578.228" width="1161.46" height="1159.48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><clipPath id="a"><path fill="#fff" d="M0 0h1080v1920H0z"/></clipPath>
+                   <filter id="b" x="-66.271" y="140.76" width="1031.86" height="1023.68" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><filter id="c" x="194.823" y="954.499" width="983.941" height="977.681" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="140" result="effect1_foregroundBlur_3_2"/></filter><filter id="d" x="26.522" y="550.447" width="759.054" height="753" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><filter id="e" x="-15.573" y="578.228" width="1161.46" height="1159.48" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur stdDeviation="100" result="effect1_foregroundBlur_3_2"/></filter><clipPath id="a"><path fill="#fff" d="M0 0h1080v1920H0z"/></clipPath>
                  </defs>
                  {
                      audio_visualization.iter().enumerate().map(|(i, value)| {
@@ -74,7 +74,7 @@ impl Video for GooseVideo {
                  }
 
                 {frame.text_break_lines(
-                    ctx, subtitles.get_phrase_for_frame(&frame).unwrap_or_default(),
+                    ctx, frame.get_subtitle_phrase(&self.media.thought_vtt).unwrap_or(""),
                     &fframes::BreakLinesOpts {
                       width: 1000,
                       line_height: 1.2,
@@ -92,11 +92,10 @@ impl Video for GooseVideo {
                 <image
                   width="950"
                   height="950"
-                  href={ctx.get_image_link("goose2.png")}
+                  href={self.media.goose2_png.href()}
                   y={1920 - 950}
                   x={1080 / 2 - 400}
                 />
-
         </svg>
         )
     }

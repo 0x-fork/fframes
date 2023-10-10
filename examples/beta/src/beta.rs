@@ -1,10 +1,10 @@
+use crate::{BetaExamples, IphoneScene};
 use fframes::{animation, AudioMap, AudioTimestamp, FFramesContext, Frame, Scene, Svgr, Video};
-use std::sync::Arc;
 use svgr_macro::{self, svgr};
 
-pub struct BetaVideo {
-    pub minutes: u32,
-    pub hours: u32,
+pub struct BetaVideo<'a> {
+    pub iphone_scene: IphoneScene,
+    pub beta_examples: BetaExamples<'a>,
 }
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl Scene for HeadingScene {
     }
 }
 
-impl Video for BetaVideo {
+impl Video for BetaVideo<'_> {
     const FPS: usize = 60;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
@@ -71,32 +71,14 @@ impl Video for BetaVideo {
     }
 
     fn define_scenes(&self) -> fframes::Scenes {
-        let vec: Vec<Arc<dyn Scene>> = vec![
-            Arc::new(HeadingScene {}),
-            Arc::new(crate::code_demo::CodeDemoScene {}),
-            Arc::new(crate::rendering::RenderingScene {}),
-            Arc::new(crate::iphone::IphoneScene {
-                hours: self.hours,
-                minutes: self.minutes,
-            }),
-            Arc::new(crate::github::GithubScene {}),
-            Arc::new(crate::examples::ExamplesScene {
-                hello_world_video: hello_world_example::HelloWorldVideo {
-                    slug: "Hello World!",
-                },
-                podcast_video: podcast_example::PodcastVideo {
-                    goose_audio: "beta.mp3",
-                    duck_audio: "beta.mp3",
-                    guest_audio: "beta.mp3",
-                },
-                marketing_video: marketing_example::MarketingVideo {
-                    audio_track: "beta.mp3",
-                },
-                tiktok_video: tiktok_example::GooseVideo {
-                    audio_track: "beta.mp3",
-                },
-            }),
-            Arc::new(crate::end::EndScene {}),
+        let vec: Vec<&dyn Scene> = vec![
+            &HeadingScene {},
+            &crate::code_demo::CodeDemoScene {},
+            &crate::rendering::RenderingScene {},
+            &self.iphone_scene,
+            &crate::github::GithubScene {},
+            &self.beta_examples,
+            &crate::end::EndScene {},
         ];
 
         fframes::Scenes::from(vec)
@@ -114,7 +96,7 @@ impl Video for BetaVideo {
               height={Self::HEIGHT}
               x="0"
               y="0"
-              href={ctx.get_image_link("background.png")}
+              href={ctx.get_image_href("background.png").expect("Do not use .expect() om media in the real code")}
               fill="#fff"
             />
 

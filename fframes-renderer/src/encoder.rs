@@ -1,11 +1,11 @@
-use crate::encoder_frame::EncoderFrame;
+use crate::{encoder_frame::EncoderFrame, renderer_error::RenderEncodingResult};
 use ffmpeg_next::sys::*;
 pub use ffmpeg_next::sys::{AVPixelFormat, AVSampleFormat};
 use std::{ffi::CString, os::raw::c_char, path::PathBuf, sync::Arc};
 
 use crate::{
     ffmpeg_action,
-    renderer_error::{self, AVError, AVResult},
+    renderer_error::{self, RenderEncodingError},
     stream, FFramesLogger,
 };
 
@@ -25,9 +25,11 @@ extern "C" {
 
 #[derive(Debug, Clone)]
 pub struct EncoderOptions<'a> {
-    /// If several codecs available for specified format output here you can specify the ffmpeg compatible name of the video codec that should be used to encode.
+    /// If several codecs available for specified format output here you can specify the libav (ffmpeg) compatible name of the video codec that should be used to encode.
     pub preferred_video_codec: Option<&'a str>,
-    /// If several codecs available for specified format output here you can specify the ffmpeg compatible name of the audio codec that should be used to encode.
+    /// If several codecs available for specified format output here you can specify the libav (ffmpeg) compatible name of the audio codec that should be used to encode.
+    /// If not provided or the name is invalid or the codec is not compatible with the output
+    /// container format fallback to the first available codec for the specified output format.
     pub preferred_audio_codec: Option<&'a str>,
     /// Pixel format used to store encoded frame. By default equals to AVPixelFormat::AV_PIX_FMT_YUV420P
     /// @default AV_PIX_FMT_YUV420P
@@ -58,7 +60,7 @@ pub struct EncoderOptions<'a> {
     pub gop_size: i32,
     /// Output sample rate of the final video file
     /// @default 44100
-    pub sample_rate: Option<i32>,
+    pub sample_rate: usize,
     /// Directory used to store temporary files and artifacts generated for rendering and encoding.
     pub tmp_files_directory: Option<&'a PathBuf>,
     /// Dynamic set of options specific to encoder. Every encoder accepts its own purely dynamic set of options, e.g.
@@ -98,7 +100,7 @@ impl<'a> Default for EncoderOptions<'a> {
             qmax: 51,
             qmin: 10,
             sample_format: AVSampleFormat::AV_SAMPLE_FMT_FLTP,
-            sample_rate: None,
+            sample_rate: 44100,
             tmp_files_directory: None,
             video_bitrate: None,
         }
@@ -114,7 +116,7 @@ pub struct Encoder {
 
 impl Encoder {
     #[allow(clippy::too_many_arguments)]
-    pub unsafe fn with_output<T, F: FnMut(&mut Encoder) -> T>(
+    pub unsafe fn with_output<T, F: FnMut(&mut Encoder) -> RenderEncodingResult<T>>(
         width: i32,
         height: i32,
         fps: i32,
@@ -122,10 +124,10 @@ impl Encoder {
         encoder_options: &EncoderOptions,
         logger: &Arc<dyn FFramesLogger>,
         inner_fn: &mut F,
-    ) -> AVResult<T> {
+    ) -> RenderEncodingResult<T> {
         av_log_set_level(logger.get_libav_log_level());
 
-        let c_filename = CString::new(filename).unwrap();
+        let c_filename = CString::new(filename).map_err(RenderEncodingError::CStringError)?;
         let mut oc: *mut AVFormatContext = std::ptr::null_mut();
 
         ffmpeg_action!(
@@ -135,7 +137,7 @@ impl Encoder {
                 std::ptr::null_mut(),
                 c_filename.as_ptr(),
             ),
-            AVError::UnknownExtension(filename.to_owned())
+            RenderEncodingError::UnknownExtension(filename.to_owned())
         );
 
         let video_stream = stream::Stream::make_video(width, height, fps, oc, encoder_options)?;
@@ -153,7 +155,7 @@ impl Encoder {
 
         ffmpeg_action!(
             avio_open(&mut (*oc).pb, c_filename.as_ptr(), 2),
-            AVError::CantOpenFile(filename.to_owned())
+            RenderEncodingError::CantOpenFile(filename.to_owned())
         );
 
         avformat_write_header(oc, std::ptr::null_mut());
@@ -176,7 +178,7 @@ impl Encoder {
         avio_closep(&mut (*oc).pb);
         avformat_free_context(oc);
 
-        Ok(res)
+        res
     }
 
     pub unsafe fn send_customizeable_frame_packet<F: Fn(*mut AVPacket) -> i32>(
@@ -184,14 +186,14 @@ impl Encoder {
         stream: &stream::Stream,
         EncoderFrame { frame, .. }: &EncoderFrame,
         customize_frame: F,
-    ) -> AVResult<()> {
+    ) -> RenderEncodingResult<()> {
         let avcodec_send_frame = avcodec_send_frame(stream.enc, *frame);
         let mut status = avcodec_send_frame;
 
         if status < 0 {
             let error_description = av_error_to_string(status);
 
-            return Err(renderer_error::AVError::CantWriteFrame(
+            return Err(renderer_error::RenderEncodingError::CantWriteFrame(
                 CString::from_raw(error_description)
                     .to_str()
                     .unwrap_or("Unknown libav error.")
@@ -220,7 +222,7 @@ impl Encoder {
         &mut self,
         stream: &stream::Stream,
         frame: &EncoderFrame,
-    ) -> AVResult<()> {
+    ) -> RenderEncodingResult<()> {
         let oc = self.oc;
 
         self.send_customizeable_frame_packet(stream, frame, |packet| {

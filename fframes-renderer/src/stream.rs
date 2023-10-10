@@ -1,13 +1,11 @@
 use crate::encoder::validate_sample_rate_fits_codec;
 use crate::ffmpeg_action;
 use crate::ffmpeg_loggable_action;
-use crate::renderer_error::AVError;
-use crate::renderer_error::AVResult;
+use crate::renderer_error::{RenderEncodingError, RenderEncodingResult};
 use crate::EncoderOptions;
 use ffmpeg_next::sys::*;
 use std::ffi::CStr;
 use std::ffi::CString;
-
 #[derive(Clone, Copy)]
 pub enum StreamVariant {
     Video,
@@ -53,14 +51,16 @@ impl Stream {
         preferred_codec_name: Option<&str>,
         default_codec_id: AVCodecID,
         oc: *mut AVFormatContext,
-    ) -> AVResult<(
+    ) -> RenderEncodingResult<(
         *const AVCodec,
         AVCodecID,
         *mut AVStream,
         *mut AVCodecContext,
     )> {
         let mut codec = if let Some(preferred_codec_name) = preferred_codec_name {
-            let codec_name = CString::new(preferred_codec_name).unwrap();
+            let codec_name =
+                CString::new(preferred_codec_name).map_err(RenderEncodingError::CStringError)?;
+
             avcodec_find_encoder_by_name(codec_name.as_ptr())
         } else {
             std::ptr::null_mut()
@@ -80,7 +80,7 @@ impl Stream {
         }
 
         if codec.is_null() {
-            return Err(AVError::CannotLocateCodec);
+            return Err(RenderEncodingError::CannotLocateCodec);
         }
 
         let codec_id = (*codec).id;
@@ -89,7 +89,9 @@ impl Stream {
         (*st).id = ((*oc).nb_streams - 1) as i32;
         let c = avcodec_alloc_context3(codec);
         if c.is_null() {
-            return Err(AVError::CantAllocate("encoding context".to_owned()));
+            return Err(RenderEncodingError::CantAllocate(
+                "encoding context".to_owned(),
+            ));
         }
 
         Ok((codec, codec_id, st, c))
@@ -101,7 +103,7 @@ impl Stream {
         fps: i32,
         oc: *mut AVFormatContext,
         encoder_options: &EncoderOptions,
-    ) -> AVResult<Self> {
+    ) -> RenderEncodingResult<Self> {
         let (codec, codec_id, st, c) = Self::prepare_stream_codec(
             encoder_options.preferred_video_codec,
             (*(*oc).oformat).video_codec,
@@ -115,7 +117,9 @@ impl Stream {
         (*c).time_base = (*st).time_base;
 
         if !is_pixel_format_supported(encoder_options.pixel_format, (*codec).pix_fmts) {
-            return Err(AVError::InvalidPixFmt(encoder_options.pixel_format));
+            return Err(RenderEncodingError::InvalidPixFmt(
+                encoder_options.pixel_format,
+            ));
         }
 
         (*c).pix_fmt = encoder_options.pixel_format;
@@ -134,8 +138,8 @@ impl Stream {
 
         if let Some(codec_params) = encoder_options.codec_params {
             for (param, value) in codec_params {
-                let c_param = CString::new(*param).unwrap();
-                let c_value = CString::new(*value).unwrap();
+                let c_param = CString::new(*param).map_err(RenderEncodingError::CStringError)?;
+                let c_value = CString::new(*value).map_err(RenderEncodingError::CStringError)?;
 
                 av_dict_set(opts, c_param.as_ptr(), c_value.as_ptr(), 0);
             }
@@ -155,7 +159,7 @@ impl Stream {
         sample_rate: i32,
         oc: *mut AVFormatContext,
         encoder_options: &EncoderOptions,
-    ) -> AVResult<Self> {
+    ) -> RenderEncodingResult<Self> {
         let (codec, _codec_id, st, c) = Self::prepare_stream_codec(
             encoder_options.preferred_audio_codec,
             (*(*oc).oformat).audio_codec,
@@ -187,7 +191,9 @@ impl Stream {
 
         let swr_ctx = swr_alloc();
         if swr_ctx.is_null() {
-            return Err(AVError::Internal("Can not allocate swr".to_owned()));
+            return Err(RenderEncodingError::Internal(
+                "Can not allocate swr".to_owned(),
+            ));
         }
 
         Self::set_swr_option(swr_ctx, "in_sample_rate", (*c).sample_rate);
@@ -201,7 +207,7 @@ impl Stream {
 
         ffmpeg_action!(
             swr_init(swr_ctx),
-            AVError::Internal("Can not init swr".to_owned())
+            RenderEncodingError::Internal("Can not init swr".to_owned())
         );
 
         Ok(Stream {
@@ -212,13 +218,14 @@ impl Stream {
     }
 
     pub(crate) unsafe fn set_swr_option(swr_ctx: *mut SwrContext, name: &str, val: i32) {
-        let name = CString::new(name).unwrap();
-        av_opt_set_int(
-            swr_ctx as *mut std::ffi::c_void,
-            name.as_ptr(),
-            val.into(),
-            0,
-        );
+        if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
+            av_opt_set_int(
+                swr_ctx as *mut std::ffi::c_void,
+                name.as_ptr(),
+                val.into(),
+                0,
+            );
+        }
     }
 
     pub(crate) unsafe fn set_swr_chlayout(
@@ -226,17 +233,19 @@ impl Stream {
         name: &str,
         val: &AVChannelLayout,
     ) {
-        let name = CString::new(name).unwrap();
-        av_opt_set_chlayout(
-            swr_ctx as *mut std::ffi::c_void,
-            name.as_ptr(),
-            val as *const AVChannelLayout,
-            0,
-        );
+        if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
+            av_opt_set_chlayout(
+                swr_ctx as *mut std::ffi::c_void,
+                name.as_ptr(),
+                val as *const AVChannelLayout,
+                0,
+            );
+        }
     }
 
     pub(crate) unsafe fn set_swr_fmt(swr_ctx: *mut SwrContext, name: &str, val: AVSampleFormat) {
-        let name = CString::new(name).unwrap();
-        av_opt_set_sample_fmt(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val, 0);
+        if let Ok(name) = CString::new(name).map_err(RenderEncodingError::CStringError) {
+            av_opt_set_sample_fmt(swr_ctx as *mut std::ffi::c_void, name.as_ptr(), val, 0);
+        }
     }
 }

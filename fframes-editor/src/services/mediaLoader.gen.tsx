@@ -12,13 +12,11 @@ const mediaLoaderBS: any = mediaLoaderBS__Es6Import;
 
 import type {AudioBuffer_t as WebAudio_AudioBuffer_t} from '../../src/bindings/WebAudio.gen';
 
-import type {Js_ArrayBuffer_t as ReScriptJs_Js_ArrayBuffer_t} from './shims/Js.shim';
-
-import type {Js_Dict_t as ReScriptJs_Js_Dict_t} from './shims/Js.shim';
-
 import type {Js_Int16Array_t as ReScriptJs_Js_Int16Array_t} from './shims/Js.shim';
 
 import type {Js_Promise_t as ReScriptJs_Js_Promise_t} from './shims/Js.shim';
+
+import type {mediaFolder as WasmController_mediaFolder} from '../../src/WasmController.gen';
 
 import type {options as WasmController_options} from '../../src/WasmController.gen';
 
@@ -28,7 +26,6 @@ import type {t as WasmController_t} from '../../src/WasmController.gen';
 export type audioInfo = {
   readonly duration: number; 
   readonly sampleRate: number; 
-  readonly arrayBuffer: ReScriptJs_Js_ArrayBuffer_t; 
   readonly audioData: WebAudio_AudioBuffer_t; 
   readonly monoPcmData: ReScriptJs_Js_Int16Array_t
 };
@@ -56,18 +53,26 @@ export type processedMedia =
   | { tag: "Audio"; value: audioInfo };
 
 // tslint:disable-next-line:interface-over-type-literal
-export type mediaImport = string;
-
-// tslint:disable-next-line:interface-over-type-literal
 export type forceTsReturnResolveMedia = "MediaResolved";
 
 // tslint:disable-next-line:interface-over-type-literal
-export type mediaResolveFn = (_1:string, _2:string, _3:WasmController_t) => ReScriptJs_Js_Promise_t<forceTsReturnResolveMedia>;
-export type MediaResolver = mediaResolveFn;
+export type mediaResolverOptions = {
+  readonly name: string; 
+  readonly url: string; 
+  readonly wasmController: WasmController_t; 
+  readonly wasmControllerOptions: WasmController_options
+};
 
 // tslint:disable-next-line:interface-over-type-literal
-export type mediaResolveFnWithOptions = (_1:WasmController_options, _2:string, _3:string, _4:WasmController_t) => ReScriptJs_Js_Promise_t<forceTsReturnResolveMedia>;
-export type MediaResolverWithOptions = mediaResolveFnWithOptions;
+export type staticMediaResolverOptions = { readonly wasmController: WasmController_t; readonly wasmControllerOptions: WasmController_options };
+
+// tslint:disable-next-line:interface-over-type-literal
+export type staticMediaResolver = (_1:staticMediaResolverOptions) => ReScriptJs_Js_Promise_t<void>;
+export type StaticMediaResolver = staticMediaResolver;
+
+// tslint:disable-next-line:interface-over-type-literal
+export type mediaResolveFnWithOptions = (_1:mediaResolverOptions) => ReScriptJs_Js_Promise_t<forceTsReturnResolveMedia>;
+export type MediaResolver = mediaResolveFnWithOptions;
 
 export const resolveMedia: (name:string, media:processedMedia) => forceTsReturnResolveMedia = function (Arg1: any, Arg2: any) {
   const result = Curry._2(mediaLoaderBS.resolveMedia, Arg1, Arg2.tag==="Font"
@@ -80,11 +85,25 @@ export const resolveMedia: (name:string, media:processedMedia) => forceTsReturnR
   return "MediaResolved"
 };
 
-export const processImports: (_1:{
-  readonly imports: ReScriptJs_Js_Dict_t<mediaImport>; 
+export const populateInlinedMedia: (_1:{ readonly wasmController: WasmController_t; readonly options: WasmController_options }) => ReScriptJs_Js_Promise_t<void[]> = function (Arg1: any) {
+  const result = Curry._2(mediaLoaderBS.populateInlinedMedia, Arg1.wasmController, Arg1.options);
+  return result
+};
+
+export const processDynamicMedia: (_1:{
+  readonly imports: WasmController_mediaFolder; 
+  readonly wasmController: WasmController_t; 
+  readonly options: WasmController_options
+}) => ReScriptJs_Js_Promise_t<forceTsReturnResolveMedia[]> = function (Arg1: any) {
+  const result = Curry._3(mediaLoaderBS.processDynamicMedia, Arg1.imports, Arg1.wasmController, Arg1.options);
+  return result
+};
+
+export const processMedia: (_1:{
+  readonly dynamicImports: (null | undefined | WasmController_mediaFolder); 
   readonly wasmController: WasmController_t; 
   readonly options: WasmController_options
 }) => ReScriptJs_Js_Promise_t<void> = function (Arg1: any) {
-  const result = Curry._3(mediaLoaderBS.processImports, Arg1.imports, Arg1.wasmController, Arg1.options);
+  const result = Curry._3(mediaLoaderBS.processMedia, (Arg1.dynamicImports == null ? undefined : Arg1.dynamicImports), Arg1.wasmController, Arg1.options);
   return result
 };

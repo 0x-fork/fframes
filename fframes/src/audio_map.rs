@@ -156,7 +156,9 @@ impl AudioTimestamp<'_> {
 type AudioDuration<'a> = Range<AudioTimestamp<'a>>;
 
 #[derive(Debug, Clone)]
-/// Audio map represents when and how long each audio file should be played within video or scene.
+/// Audio map represents when and how long each audio file should be played within a video or a scene.
+/// In case of scene audio map is always relative to the scene timestamp (which is resolved based on
+/// the `Video::define_scenes()`).
 ///
 /// @example
 /// ```rust
@@ -228,7 +230,7 @@ impl<'a> AudioMap<'a> {
         Self(Some(map))
     }
 
-    pub fn used_audio_files(&'a self) -> Option<Vec<&'a str>> {
+    pub fn used_audio_files<T: FromIterator<&'a str>>(&'a self) -> Option<T> {
         self.0.as_ref().map(|map| {
             map.iter()
                 .filter_map(|(filename, range)| {
@@ -251,7 +253,7 @@ impl<'a> AudioMap<'a> {
                     }
                 })
                 .flatten()
-                .collect()
+                .collect::<T>()
         })
     }
 
@@ -303,7 +305,7 @@ impl<'a> AudioMap<'a> {
             self.resolve(TUnit::from_usize(0), tb, &resolve_audio_duration_in_frames)?;
 
         let scenes_resolved_map = scenes
-            .map(|scenes| {
+            .map(|scenes| -> crate::error::Result<_> {
                 Ok(scenes
                     .0
                     .iter()
@@ -333,12 +335,15 @@ impl<'a> AudioMap<'a> {
         })
     }
 
-    pub fn resolve_with_ctx<TUnit: AudioTimelineUnit + std::fmt::Debug>(
+    pub fn resolve_with_ctx<'media: 'a, TUnit: AudioTimelineUnit + std::fmt::Debug>(
         &'a self,
-        tb: &FFramesContext,
+        ctx: &'a FFramesContext<'a, 'media>,
     ) -> error::Result<Option<ResolvedAudioMap<TUnit>>> {
-        self.resolve_with_scenes(tb.scenes, &tb.time_base, |filename| {
-            Ok(tb.get_audio_data(filename).duration_in_frames(tb))
+        self.resolve_with_scenes(ctx.scenes, &ctx.time_base, |filename| {
+            let audio_data = ctx.get_audio(filename).ok_or_else(|| {
+                crate::error::FFramesError::RequiredAudioNotFound(filename.to_string())
+            })?;
+            Ok(audio_data.duration_in_frames(&ctx.time_base))
         })
     }
 }

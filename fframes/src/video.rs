@@ -1,54 +1,91 @@
 use crate::audio_map::AudioMap;
 use crate::{
     scenes::*, AudioTimelineUnit, Duration, FFramesContext, Frame, ResolvedAudioMap, SceneInfo,
-    TimeBase,
+    Svgr, TimeBase,
 };
-use std::sync::Arc;
 
+/// The base fframes video trait. It represents how to render a video for a struct which becomes an
+/// input of the video.
 pub trait Video: Sync + Sized {
     const FPS: usize;
     const WIDTH: usize;
     const HEIGHT: usize;
 
-    fn audio(&self) -> AudioMap;
     fn duration(&self) -> Duration;
+    fn audio(&self) -> AudioMap;
 
+    /// Defines the scenes timeline of the video.
+    /// Each scene is an object which implements the `Scene` trait.
+    ///
+    /// Every scene must be either bound to the `&self` lifetime or be a zero sized type.
+    ///
+    ///
+    /// # Example
+    /// ```
+    ///
+    /// use fframes::{Video, Scenes, Scene, Frame, Svgr, FFramesContext};
+    ///
+    /// struct SceneZeroSize;
+    /// struct SceneWithInput {
+    ///    value: String;
+    /// }
+    ///
+    /// impl Scene For SceneZeroSize { }
+    /// impl Scene For SceneWithInput { }
+    ///
+    /// struct MyVideo {
+    ///     scenes_with_input: SceneWithInput,
+    /// };
+    ///
+    /// impl Video for MyVideo {
+    ///     fn define_scenes(&self) -> Scenes {
+    ///         let scenes: Vec<&dyn Scene> = vec![
+    ///             // notice this is a zero sized type so we can create ref right here
+    ///             &SceneZeroSize { },
+    ///             // And here we passing a ref bound to the &self
+    ///             &self.scenes_with_input,
+    ///         ]
+    ///         
+    ///         Scenes::from(scenes)
+    ///     }
+    /// }
     fn define_scenes(&self) -> Scenes {
         Scenes(None)
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> crate::Svgr;
+    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> Svgr;
 }
 
 #[derive(Debug)]
-pub struct ResolvedScenesTimeline(
-    pub(crate) Vec<(std::ops::Range<usize>, SceneInfo, Arc<dyn Scene>)>,
+pub struct ResolvedScenesTimeline<'a>(
+    pub(crate) Vec<(std::ops::Range<usize>, SceneInfo, &'a (dyn Scene + 'a))>,
 );
 
-impl ResolvedScenesTimeline {
+impl<'a> ResolvedScenesTimeline<'_> {
     pub fn iter(
-        &self,
-    ) -> impl Iterator<Item = &(std::ops::Range<usize>, SceneInfo, Arc<dyn Scene>)> {
+        &'a self,
+    ) -> impl Iterator<Item = &(std::ops::Range<usize>, SceneInfo, &'a (dyn Scene + 'a))> {
         self.0.iter()
     }
 }
 
-pub struct ResolvedRenderingTimeline<TAudioUnit: AudioTimelineUnit + std::fmt::Debug> {
+pub struct ResolvedRenderingTimeline<'a, TAudioUnit: AudioTimelineUnit + std::fmt::Debug> {
     pub audio_map: Option<ResolvedAudioMap<TAudioUnit>>,
-    pub scenes: Option<ResolvedScenesTimeline>,
+    pub scenes: Option<ResolvedScenesTimeline<'a>>,
     pub duration_in_frames: usize,
 }
 
 pub fn resolve_timeline<
+    'a,
     TAudioUnit: AudioTimelineUnit + std::fmt::Debug + Copy,
     TFun: Fn(&str) -> super::error::Result<usize>,
 >(
     duration: &Duration,
-    scenes: &ScenesWithAudio,
+    scenes: &ScenesWithAudio<'a>,
     time_base: &TimeBase,
     top_level_audio_map: &AudioMap,
     resolve_audio_duration: TFun,
-) -> crate::error::Result<ResolvedRenderingTimeline<TAudioUnit>> {
+) -> crate::error::Result<ResolvedRenderingTimeline<'a, TAudioUnit>> {
     let scenes_count = scenes.len();
 
     let (duration, resolved_scenes) = match (scenes.0.as_deref(), duration) {
@@ -72,7 +109,7 @@ pub fn resolve_timeline<
                         duration_in_frames: duration + overlap_next,
                         is_last: index == scenes_count - 1,
                     },
-                    Arc::clone(scene),
+                    *scene,
                 ));
 
                 final_duration += duration;
@@ -91,7 +128,7 @@ pub fn resolve_timeline<
             )?,
             None,
         )),
-        _ => Err(crate::error::FFramesCoreError::MissingDurationOrScenes),
+        _ => Err(crate::error::FFramesError::MissingDurationOrScenes),
     }?;
 
     let mut resolved_audio_map = top_level_audio_map.resolve_with_scenes::<TAudioUnit>(

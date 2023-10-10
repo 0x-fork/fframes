@@ -1,10 +1,13 @@
 use clap::Parser;
+use fframes::StaticMediaProvider;
 use fframes_renderer::{fframes_logger, render, EncoderOptions, RenderOptions};
-use hello_world_example::HelloWorldVideo;
+use hello_world_example::{HelloWorldMedia, HelloWorldVideo};
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 struct Args {
+    #[clap(short, long)]
+    gpu: bool,
     #[clap(short, long, default_value = "out.mp4")]
     output: String,
     #[clap(long)]
@@ -19,11 +22,17 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+    let media = HelloWorldMedia::prepare().unwrap();
+
     render(
-        HelloWorldVideo { slug: &args.slug },
+        &HelloWorldVideo {
+            media: &media,
+            slug: &args.slug,
+        },
         args.output.as_str(),
         RenderOptions {
-            media_dir: "./media",
+            media: Some(&media),
+            load_system_fonts: true,
             logger: fframes_logger::FFramesLoggerVariant::Compact,
             encoder_options: EncoderOptions {
                 preferred_audio_codec: args.audio_codec.as_deref(),

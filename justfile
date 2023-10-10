@@ -1,8 +1,8 @@
 clippy *ARGS:
   cargo clippy {{ARGS}} -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
 
-clippy-fix:
-  cargo clippy --fix -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
+clippy-fix *ARGS:
+  cargo clippy {{ARGS}} --fix -- -D warnings -A clippy::option-map-unit-fn -A clippy::module_inception -A clippy::single-match
 
 build:
   cargo build
@@ -32,6 +32,12 @@ play example:
 
 bench example:
   cd examples/{{example}} && cargo build --release && time cargo run --release
+
+check-wasm example:
+  cd examples/{{example}}/editor/editor-bridge && cargo check --lib --target wasm32-unknown-unknown
+
+check-examples:
+  just check-wasm hello-world & just check-wasm podcast & just check-wasm tiktok & just check-wasm beta & just check-wasm low-poly-art
 
 install-ffmpeg version: 
   git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg

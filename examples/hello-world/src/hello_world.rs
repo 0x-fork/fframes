@@ -1,8 +1,11 @@
-use fframes::{AudioMap, Color, FFramesContext, Frame, Video};
+use fframes::{include_media_dir, AudioMap, Color, FFramesContext, Frame, Video};
+
+include_media_dir!(pub struct HelloWorldMedia, "examples/hello-world/media");
 
 #[derive(Debug)]
 pub struct HelloWorldVideo<'a> {
     pub slug: &'a str,
+    pub media: &'a HelloWorldMedia,
 }
 
 impl Video for HelloWorldVideo<'_> {
@@ -11,7 +14,7 @@ impl Video for HelloWorldVideo<'_> {
     const HEIGHT: usize = 1080;
 
     fn duration(&self) -> fframes::Duration {
-        fframes::Duration::Seconds(20.)
+        fframes::Duration::Seconds(30.)
     }
 
     fn audio(&self) -> AudioMap {

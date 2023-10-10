@@ -12,8 +12,8 @@ import * as Belt_MapString from "rescript/lib/es6/belt_MapString.js";
 var iconContainerClassName = "overflow-hidden bg-gray-400 bg-gradient-to-tr from-indigo-400 to-pink-400 flex justify-center items-center";
 
 function MediaList$LoadedMediaIcon(Props) {
-  var media = Props.media;
   var variant = Props.variant;
+  var media = Props.media;
   var style = variant ? ({
         height: "2.5rem",
         width: "2.5rem",
@@ -144,8 +144,8 @@ function MediaList$LoadedMedia(Props) {
               className: Cx.cx([variant ? "py-2 h-16 2xl:h-20 flex space-x-2 px-6" : "w-32 flex flex-col space-y-2"]),
               title: name
             }, React.createElement(MediaList$LoadedMediaIcon, {
-                  media: media,
-                  variant: variant
+                  variant: variant,
+                  media: media
                 }), React.createElement("div", {
                   className: "ml-0.5 flex flex-col"
                 }, React.createElement("p", {
@@ -162,17 +162,8 @@ var LoadedMedia = {
   make: MediaList$LoadedMedia
 };
 
-function MediaList$Loading(Props) {
-  var name = Props.name;
-  return React.createElement("div", undefined, React.createElement("p", undefined, name));
-}
-
-var Loading = {
-  make: MediaList$Loading
-};
-
 function memo(__x) {
-  return React.memo(__x, (function (propsA, propsB) {
+  return React.memo(__x, (function (propsB, propsA) {
                 return propsA.variant === propsB.variant;
               }));
 }
@@ -185,11 +176,6 @@ var make = memo(function (Props) {
                 }, Belt_Array.map(Belt_MapString.keysToArray(mediaState.mediaList), (function (name) {
                         var media = Belt_MapString.getExn(mediaState.mediaList, name);
                         switch (media.TAG | 0) {
-                          case /* Loading */0 :
-                              return React.createElement(MediaList$Loading, {
-                                          name: name,
-                                          key: name
-                                        });
                           case /* Media */1 :
                               return React.createElement(MediaList$LoadedMedia, {
                                           name: name,
@@ -197,6 +183,7 @@ var make = memo(function (Props) {
                                           variant: variant,
                                           key: name
                                         });
+                          case /* Loading */0 :
                           case /* Error */2 :
                               return null;
                           
@@ -208,7 +195,6 @@ export {
   LoadedMediaIcon ,
   stringifyFontWeight ,
   LoadedMedia ,
-  Loading ,
   memo ,
   make ,
   

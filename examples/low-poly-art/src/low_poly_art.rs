@@ -1,16 +1,20 @@
-use std::sync::Arc;
-
-use fframes::{AudioMap, AudioTimestamp, Scene, Svgr};
+#![allow(dead_code)]
+use fframes::{include_media_dir, AudioMap, Scene, Svgr};
 pub use fframes::{FFramesContext, Frame, Video};
 
-pub struct LowPolyVideo {}
+include_media_dir!(pub struct LowPolyMedia, "examples/low-poly-art/media");
 
-mod owl;
-mod pelican;
-mod popuga;
-mod spektacled_owl;
+pub struct LowPolyVideo<'a> {
+    pub scene: &'a dyn Scene,
+    pub media: &'a LowPolyMedia,
+}
 
-impl Video for LowPolyVideo {
+pub mod owl;
+pub mod pelican;
+pub mod popuga;
+pub mod spektacled_owl;
+
+impl Video for LowPolyVideo<'_> {
     const FPS: usize = 60;
     const WIDTH: usize = 1920;
     const HEIGHT: usize = 1080;
@@ -20,16 +24,11 @@ impl Video for LowPolyVideo {
     }
 
     fn audio(&self) -> AudioMap {
-        AudioMap::from([(
-            "owl.mp3",
-            (AudioTimestamp::Frame(0)..AudioTimestamp::Second(10.)),
-        )])
+        AudioMap::none()
     }
 
     fn define_scenes(&self) -> fframes::Scenes {
-        let vec: Vec<Arc<dyn Scene>> = vec![Arc::new(owl::Owl {})];
-
-        fframes::Scenes::from(vec)
+        fframes::Scenes::from(vec![self.scene])
     }
 
     fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> Svgr {
@@ -41,7 +40,7 @@ impl Video for LowPolyVideo {
           >
             <defs>
               <pattern id="scratch-pattern" patternUnits="userSpaceOnUse" width="230" height="177">
-                <image href={ctx.get_image_link("white_noise.png")} x="0" y="0" width="230" height="177" />
+                <image href={ctx.get_image_href("white_noise.png").expect("missing white_noise.png")} x="0" y="0" width="230" height="177" />
               </pattern>
             </defs>
 

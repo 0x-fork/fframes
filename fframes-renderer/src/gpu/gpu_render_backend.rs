@@ -4,7 +4,9 @@ use crate::{
     encoder_frame::EncoderFrame,
     fframes_logger::FFramesLogger,
     render_backend::FFramesRenderBackend,
-    renderer_error::FFramesResult,
+    renderer_error::{
+        FFramesRendererError, FFramesRendererResult, RenderEncodingError, RenderEncodingResult,
+    },
 };
 use fframes::{usvgr, AudioTimelineSamples, BreaksLruCache, ResolvedRenderingTimeline, Video};
 use futures::executor::block_on;
@@ -22,14 +24,14 @@ impl FFramesRenderBackend for GpuRenderingBackend {
     fn render<'a, TVideo: Video + Sync + Sized>(
         &self,
         output: &'a str,
-        video: TVideo,
+        video: &'a TVideo,
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
         encoder_options: &EncoderOptions<'a>,
         _fontdb: &usvgr_text_layout::fontdb::Database,
         timeline: &ResolvedRenderingTimeline<AudioTimelineSamples>,
         ctx: fframes::FFramesContext,
-    ) -> FFramesResult<()> {
+    ) -> FFramesRendererResult<()> {
         let instance = wgpu::Instance::new(wgpu::Backends::PRIMARY);
 
         // create an adapter
@@ -38,7 +40,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
             compatible_surface: None,
             force_fallback_adapter: false,
         }))
-        .unwrap();
+        .ok_or_else(|| FFramesRendererError::Custom("No suitable GPU adapter found".to_owned()))?;
 
         let (device, queue) = block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
@@ -49,7 +51,9 @@ impl FFramesRenderBackend for GpuRenderingBackend {
             // trace_path can be used for API call tracing
             None,
         ))
-        .unwrap();
+        .map_err(|e| {
+            FFramesRendererError::Custom(format!("Failed to request GPU adapter: {e:?}"))
+        })?;
 
         let vs_module = device.create_shader_module(&include_wgsl!("../shaders/geometry.vs.wgsl"));
         let fs_module = device.create_shader_module(&include_wgsl!("../shaders/geometry.fs.wgsl"));
@@ -98,7 +102,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                 output,
                 encoder_options,
                 &logger,
-                &mut |video_encoder| -> FFramesResult<()> {
+                &mut |video_encoder| -> RenderEncodingResult<()> {
                     let mut frame = EncoderFrame::make(&video_encoder.video_stream)?;
 
                     for fr in 0..ctx.duration_in_frames {
@@ -112,8 +116,7 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                                 },
                                 &ctx,
                             )
-                            .into_svg_tree(usvg_options)
-                            .unwrap();
+                            .into_svg_tree(usvg_options)?;
 
                         let (mesh, transforms, primitives) = tesselate_svg(rtree);
 
@@ -375,7 +378,9 @@ impl FFramesRenderBackend for GpuRenderingBackend {
                         // the future. Otherwise the application will freeze.
                         let mapping = buffer_slice.map_async(wgpu::MapMode::Read);
                         device.poll(wgpu::Maintain::Wait);
-                        block_on(mapping).unwrap();
+                        block_on(mapping).map_err(|_| {
+                            RenderEncodingError::Internal("Failed to map buffer".to_owned())
+                        })?;
 
                         let data = buffer_slice.get_mapped_range();
                         frame.fill_from_rgba_pixmap(fr as i64, &data);
@@ -390,22 +395,24 @@ impl FFramesRenderBackend for GpuRenderingBackend {
 
                     Ok(())
                 },
-            )?
+            )
+            .map_err(|e| FFramesRendererError::RenderChunkError(0, e))
         }?;
 
         logger.success(output, None);
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
     fn debug_frame<TVideo: Video + Sync + Sized>(
         &self,
         _frame: fframes::Frame,
         _out: &str,
-        _video: TVideo,
+        _video: &TVideo,
         _usvg_options: &usvgr::Options,
         _fontdb: &usvgr_text_layout::fontdb::Database,
         _ctx: fframes::FFramesContext,
-    ) -> FFramesResult<()> {
+    ) -> FFramesRendererResult<()> {
         todo!()
     }
 }

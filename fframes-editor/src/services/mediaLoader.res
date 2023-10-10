@@ -4,7 +4,7 @@ module Promise = Js.Promise
 type audioInfo = {
   duration: float,
   sampleRate: int,
-  arrayBuffer: Js.ArrayBuffer.t,
+  // arrayBuffer: Js.ArrayBuffer.t,
   audioData: WebAudio.AudioBuffer.t,
   monoPcmData: Js.Int16Array.t,
 }
@@ -31,11 +31,8 @@ type processedMedia =
 
 type loadableMedia = Loading(string) | Media(processedMedia) | Error(string)
 
-@genType
-type mediaImport = string
-
 type action =
-  | InitMediaProcessing(Js.Dict.t<mediaImport>)
+  | InitMediaProcessing(Js.Dict.t<WasmController.mediaImport>)
   | MediaItemProcessed(string, processedMedia)
   | MediaProcessingFinished
 
@@ -78,21 +75,34 @@ module MediaLoaderObserver = UseObservable.MakeObserver(ObserverState)
 // This type forces typescript implementation to correctly call the `resolveMedia` and convert values to the rescript world
 type forceTsReturnResolveMedia = MediaResolved
 
+type mediaResolverOptions = {
+  name: string,
+  url: string,
+  wasmController: WasmController.t,
+  wasmControllerOptions: WasmController.options,
+}
+
+type staticMediaResolverOptions = {
+  wasmController: WasmController.t,
+  wasmControllerOptions: WasmController.options,
+}
+
+@genType.as("StaticMediaResolver")
+type staticMediaResolver = staticMediaResolverOptions => Js.Promise.t<unit>
+
 @genType.as("MediaResolver")
-type mediaResolveFn = (string, string, WasmController.t) => Js.Promise.t<forceTsReturnResolveMedia>
+type mediaResolveFnWithOptions = mediaResolverOptions => Js.Promise.t<forceTsReturnResolveMedia>
 
-@genType.as("MediaResolverWithOptions")
-type mediaResolveFnWithOptions = (
-  WasmController.options,
-  string,
-  string,
-  WasmController.t,
-) => Js.Promise.t<forceTsReturnResolveMedia>
-
-@module("./MediaResolvers") external resolveAudio: mediaResolveFn = "resolveAudio"
-@module("./MediaResolvers") external resolveSubtitles: mediaResolveFn = "resolveSubtitles"
-@module("./MediaResolvers") external resolveFont: mediaResolveFn = "resolveFont"
+@module("./MediaResolvers") external resolveAudio: mediaResolveFnWithOptions = "resolveAudio"
+@module("./MediaResolvers")
+external resolveSubtitles: mediaResolveFnWithOptions = "resolveSubtitles"
+@module("./MediaResolvers") external resolveFont: mediaResolveFnWithOptions = "resolveFont"
 @module("./MediaResolvers") external resolveImage: mediaResolveFnWithOptions = "resolveImage"
+
+@module("./MediaResolvers")
+external resolveStaticFonts: staticMediaResolver = "resolveStaticFonts"
+@module("./MediaResolvers")
+external resolveStaticAudios: staticMediaResolver = "resolveStaticAudios"
 
 // This is pretty dumb of how genType works for typescript.
 // It only maps public types to the internal types when using public API, so we can't do this on Promise.then step
@@ -104,8 +114,27 @@ let resolveMedia = (name, media) => {
 }
 
 @genType
-let processImports = (
-  ~imports: Js.Dict.t<mediaImport>,
+let populateInlinedMedia = (
+  ~wasmController: WasmController.t,
+  ~options: WasmController.options,
+) => {
+  wasmController.populate_static_fonts_db_with_static_fonts()
+  let fonts_loader = resolveStaticFonts({
+    wasmController: wasmController,
+    wasmControllerOptions: options,
+  })
+
+  let audios_loader = resolveStaticAudios({
+    wasmController: wasmController,
+    wasmControllerOptions: options,
+  })
+
+  Promise.all([fonts_loader, audios_loader])
+}
+
+@genType
+let processDynamicMedia = (
+  ~imports: WasmController.mediaFolder,
   ~wasmController: WasmController.t,
   ~options: WasmController.options,
 ) => {
@@ -131,11 +160,37 @@ let processImports = (
         if name->Js.String.endsWith(".png") ||
         name->Js.String.endsWith(".jpg") ||
         name->Js.String.endsWith(".jpeg") =>
-        Some(resolveImage(options))
+        Some(resolveImage)
       | _ => None
-      }->Option.map(resolveFn => resolveFn(name, moduleVal, wasmController))
+      }->Option.map(resolveFn =>
+        resolveFn({
+          name: name,
+          url: moduleVal,
+          wasmController: wasmController,
+          wasmControllerOptions: options,
+        })
+      )
     }
   })
   ->Promise.all
-  ->Promise.thenResolve(_ => MediaLoaderObserver.dispatch(MediaProcessingFinished))
+}
+
+@genType
+let processMedia = (
+  ~dynamicImports: option<WasmController.mediaFolder>,
+  ~wasmController: WasmController.t,
+  ~options: WasmController.options,
+) => {
+  Js.Promise.all2((
+    populateInlinedMedia(~wasmController, ~options),
+    switch dynamicImports {
+    | None => Promise.resolve()
+    | Some(dynamicImports) =>
+      processDynamicMedia(
+        ~imports=dynamicImports,
+        ~wasmController,
+        ~options,
+      )->Js.Promise.thenResolve(_ => ())
+    },
+  ))->Promise.thenResolve(_ => MediaLoaderObserver.dispatch(MediaProcessingFinished))
 }

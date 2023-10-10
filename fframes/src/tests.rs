@@ -2,7 +2,6 @@ use crate::{
     resolve_timeline, AudioMap, AudioTimelineSamples, AudioTimestamp, FFramesContext, Frame,
     ResolvedRenderingTimeline, Scene, Video,
 };
-use std::sync::Arc;
 
 #[derive(Debug)]
 struct FakeScene {}
@@ -48,8 +47,8 @@ impl Video for FakeVideo {
 
     fn define_scenes(&self) -> crate::Scenes {
         crate::Scenes::from(vec![
-            Arc::new(FakeScene {}) as Arc<dyn Scene>,
-            Arc::new(FakeScene {}) as Arc<dyn Scene>,
+            &FakeScene {} as &dyn Scene,
+            &FakeScene {} as &dyn Scene,
         ])
     }
 
@@ -70,7 +69,7 @@ fn test_audio_map_resolve() {
 
     let ResolvedRenderingTimeline { audio_map, .. } = resolve_timeline::<AudioTimelineSamples, _>(
         &video.duration(),
-        &crate::ScenesWithAudio::from(&video.define_scenes()),
+        &crate::ScenesWithAudio::new(&video.define_scenes()),
         &tb,
         &audio_map,
         |_| Ok(24),

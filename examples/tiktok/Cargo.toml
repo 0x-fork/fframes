@@ -5,7 +5,8 @@ edition = "2021"
 
 [dependencies]
 fframes = {path="../../fframes"}
-libm="0.2.1"
+tiktok-media ={path="./media"}
+libm="0.2.8"
 
 [features]
 default=["renderer"]

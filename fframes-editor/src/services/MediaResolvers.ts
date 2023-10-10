@@ -1,28 +1,29 @@
 import {
   MediaResolver,
-  MediaResolverWithOptions,
+  StaticMediaResolver,
   resolveMedia,
 } from "fframes-editor/src/services/mediaLoader.gen";
 import { createDecoder } from "minimp3-wasm/dist/minimp3-wasm";
 // @ts-expect-error no  types
 import minimp3decoderWasm from "minimp3-wasm/dist/decoder.opt.wasm?url";
+import { fontInfo } from "src/WasmController.gen";
 
 const audioContext = new AudioContext();
 
-export const resolveAudio: MediaResolver = async (
-  name,
+export const resolveAudio: MediaResolver = async ({
   url,
-  wasmController
-) => {
+  wasmController,
+  name,
+}) => {
   const response = await fetch(url);
   const arrayBuffer = await response.arrayBuffer();
 
   const decoder = await createDecoder(
     new Uint8Array(arrayBuffer.slice(0)),
-    minimp3decoderWasm
+    minimp3decoderWasm,
   );
 
-  const data = await decoder.decode(decoder.duration);
+  const data = decoder.decode(decoder.duration);
   const length = Math.floor(data.pcm.length / data.numChannels);
 
   const monoPcm = new Int16Array(length);
@@ -36,7 +37,6 @@ export const resolveAudio: MediaResolver = async (
   return resolveMedia(name, {
     tag: "Audio",
     value: {
-      arrayBuffer,
       audioData,
       monoPcmData: monoPcm,
       sampleRate: data.samplingRate,
@@ -45,32 +45,51 @@ export const resolveAudio: MediaResolver = async (
   });
 };
 
-export const resolveSubtitles: MediaResolver = async (
-  name,
-  url,
-  wasmController
-) => {
-  const response = await fetch(url);
-  const text = await response.text();
-  const phrasesCount = wasmController.add_subtitles_source(name, text);
+export const resolveStaticAudios: StaticMediaResolver = async ({
+  wasmController,
+}) => {
+  let i = 0;
+  while (true) {
+    let audio = wasmController.get_static_audio_data_by_index(i);
+    if (!audio) {
+      break;
+    }
 
-  return resolveMedia(name, {
-    tag: "Subtitles",
-    value: phrasesCount,
-  });
+    const audioBuffer = audioContext.createBuffer(
+      1,
+      audio.fltp_data.length,
+      audio.sample_rate,
+    );
+    audioBuffer.copyToChannel(audio.fltp_data, 0);
+
+    resolveMedia(audio.name, {
+      tag: "Audio",
+      value: {
+        audioData: audioBuffer,
+        sampleRate: audio.sample_rate,
+        duration: audio.mono_pcm_data.length / audio.sample_rate,
+        monoPcmData: audio.mono_pcm_data,
+      },
+    });
+
+    i++;
+  }
 };
 
-export const resolveFont: MediaResolver = async (name, url, wasmController) => {
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-  const fontInfo = wasmController.ingest_font(new Uint8Array(arrayBuffer));
-
+async function prepareFontMediaData(
+  fontInfo: fontInfo,
+  arrayBuffer: ArrayBuffer,
+  name: string,
+  url?: string,
+) {
   const decoder = new TextDecoder("utf-8");
-  let fontName = decoder.decode(new Uint8Array(fontInfo.name).buffer);
+  let fontName = fontInfo.name
+    ? decoder.decode(new Uint8Array(fontInfo.name).buffer)
+    : "unknown";
 
   if (!fontName) {
     console.error(
-      `Can not parse the font file ${url} there is a huge chance that this font file won't work in the renderer. For now trying to fallback to browser based font`
+      `Can not parse the font file ${url} there is a huge chance that this font file won't work in the renderer. For now trying to fallback to browser based font`,
     );
   }
 
@@ -88,6 +107,57 @@ export const resolveFont: MediaResolver = async (name, url, wasmController) => {
       weight: fontInfo.weight,
       unicodeRange: loadedFont.unicodeRange,
     },
+  });
+}
+
+export const resolveStaticFonts: StaticMediaResolver = async ({
+  wasmController,
+}) => {
+  let i = 0;
+  let fonts = [];
+  while (true) {
+    let font = wasmController.get_static_font_data_by_index(i);
+    if (!font) {
+      break;
+    }
+
+    fonts.push(font);
+    i++;
+  }
+
+  await Promise.all(
+    fonts.map(({ data, info, name }) => {
+      return prepareFontMediaData(info, data.buffer, name);
+    }),
+  );
+};
+
+export const resolveFont: MediaResolver = async ({
+  name,
+  url,
+  wasmController,
+}) => {
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+
+  let fontInfo = wasmController.ingest_font(new Uint8Array(arrayBuffer));
+  return prepareFontMediaData(fontInfo, arrayBuffer, name, url);
+};
+
+export const resolveSubtitles: MediaResolver = async ({
+  name,
+  url,
+  wasmController,
+}) => {
+  const response = await fetch(url);
+  const text = await response.text();
+  let phrasesCount = 0;
+
+  wasmController.add_subtitles_source(name, text);
+
+  return resolveMedia(name, {
+    tag: "Subtitles",
+    value: phrasesCount,
   });
 };
 
@@ -113,19 +183,20 @@ const imageToBase64 = (image: HTMLImageElement) => {
   return canvas.toDataURL("image/png");
 };
 
-export const resolveImage: MediaResolverWithOptions = async (
-  options,
+export const resolveImage: MediaResolver = async ({
   name,
   url,
-  wasmController
-) => {
+  wasmController,
+  wasmControllerOptions,
+}) => {
   const image = await loadImage(url);
   const base64 =
-    image.naturalHeight * image.naturalWidth > options.imageLengthLimit
+    image.naturalHeight * image.naturalWidth >
+      wasmControllerOptions.dynamicImageLengthLimit
       ? null
       : imageToBase64(image);
 
-  wasmController.add_image_source(name, url, base64);
+  wasmController.add_image_source(name, url, base64 ?? undefined);
 
   return resolveMedia(name, {
     tag: "Image",

@@ -9,7 +9,6 @@ export default defineConfig({
       strict: false,
     },
   },
-  assetsInlineLimit: 0,
   optimizeDeps: {
     entries: [".editor-bridge/main.tsx"],
   },

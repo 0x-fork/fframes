@@ -1,26 +1,28 @@
 #[macro_export]
 macro_rules! setup_wasm_editor {
-    ($x:tt, $params:tt) => {
+    ($x:tt, $params:tt, $static_media:expr) => {
         #[wasm_bindgen(module = "fframes-editor")]
         extern "C" {
             #[wasm_bindgen(catch)]
             async fn load_audio_wasm_callback(path: &str) -> Result<JsValue, JsValue>;
         }
 
-        static VIDEO: $x = $x $params;
-
         lazy_static! {
+            static ref VIDEO: $x<'static> = $x $params;
+            static ref RAW_SCENES: fframes::Scenes<'static> = VIDEO.define_scenes();
+
             static ref DURATION_IN_FRAMES: Mutex<usize> = Mutex::new(0);
             static ref BREAK_LINES_CACHE: fframes::BreaksLruCache = fframes::BreaksLruCache::new(10).unwrap();
             static ref FONTS: Mutex<wasm_font_source::WasmFontSource> = Mutex::new(wasm_font_source::WasmFontSource::new());
-            static ref SCENES: Mutex<Option<fframes::ResolvedScenesTimeline>> = Mutex::new(None);
+            static ref SCENES: Mutex<Option<fframes::ResolvedScenesTimeline<'static>>> = Mutex::new(None);
             static ref TIME_BASE: Mutex<Option<fframes::TimeBase>> = Mutex::new(None);
-            static ref MEDIA_PROVIDER: Mutex<fframes::MediaProvider> =
-                Mutex::new(fframes::MediaProvider {
-                    audio: HashMap::new(),
-                    images: HashMap::new(),
-                    subtitles: HashMap::new(),
-                });
+            static ref MEDIA_PROVIDER: Mutex<fframes::DynamicMediaProvider<'static>> =
+                Mutex::new(fframes::DynamicMediaProvider::new(
+                HashMap::new(),
+                HashMap::new(),
+                HashMap::new(),
+                Vec::new()
+            ));
         }
 
         #[wasm_bindgen]
@@ -33,8 +35,7 @@ macro_rules! setup_wasm_editor {
             };
 
             TIME_BASE.lock().unwrap().replace(tb);
-
-            let (duration, scenes, audio_map) = wasm_audio_map::prepare_video_with_audio(&VIDEO, &tb).await;
+            let (duration, scenes, audio_map) = wasm_audio::prepare_video_with_audio(&*VIDEO, &tb, &$static_media, &RAW_SCENES).await;
 
             let mut duration_mutex_ref = DURATION_IN_FRAMES.lock().unwrap();
             *duration_mutex_ref = duration;
@@ -55,23 +56,23 @@ macro_rules! setup_wasm_editor {
 
         #[wasm_bindgen]
         pub fn add_audio_source(file: String, input: &[i16]) {
-            let audio_data = fframes::AudioData::Preloaded(
-                fframes::PreloadedAudioData {
+            let audio_data =
+                fframes::media::PreloadedAudioData {
                     sample_rate: 44100,
-                    samples: input.to_vec(),
-                },
-            );
+                    // Can't guarantee the lifetime of the input slice
+                    samples: std::borrow::Cow::Owned(input.to_vec()),
+                };
 
             let mut media_provider = MEDIA_PROVIDER.lock().unwrap();
-            media_provider.audio.insert(file.clone(), audio_data);
+            media_provider.audio.insert(file.clone(), fframes::AudioData::Preloaded(audio_data));
         }
 
         #[wasm_bindgen]
         pub fn add_subtitles_source(file: String, content: String) -> usize {
-            use std::str::FromStr;
+            use fframes::media::FFramesSubtitles;
 
-            let parsed_subtitle = Subtitles::parse(content.as_str(), $x::FPS).unwrap();
-            let phrases_count = parsed_subtitle.cues_count();
+            let parsed_subtitle = Subtitles::parse(&content).unwrap();
+            let phrases_count = (&parsed_subtitle).cues_count();
 
             let mut media_provider = MEDIA_PROVIDER
                 .lock()
@@ -88,9 +89,11 @@ macro_rules! setup_wasm_editor {
 
             media_provider.images.insert(
                 file,
-                fframes::ImageData {
-                    link: url,
-                    base64: base64_data
+                fframes::media::ImageData {
+                    // in wasm we might skip base64 loading but we always have url provided.
+                    // base64 is required for canvas preview render but the data is better
+                    base64_data: std::borrow::Cow::Owned(base64_data.unwrap_or(url.clone())),
+                    filename: url,
                 }
             );
         }
@@ -113,7 +116,7 @@ macro_rules! setup_wasm_editor {
                     time_base,
                     font_source: Some(FONTS.lock().unwrap().deref()),
                     scenes:  SCENES.lock().unwrap().as_ref(),
-                    media_provider: MEDIA_PROVIDER.lock().unwrap().deref(),
+                    media_source: Some(MEDIA_PROVIDER.lock().unwrap().deref()),
                 },
             ).value
         }
@@ -131,11 +134,11 @@ macro_rules! setup_wasm_editor {
                     breaks_lru_cache: None.into(),
                 },
                 &FFramesContext {
+                    time_base,
                     duration_in_frames: *DURATION_IN_FRAMES.lock().unwrap(),
                     mode: FFramesMode::EditorTimelinePreview,
-                    time_base,
                     scenes:  SCENES.lock().unwrap().as_ref(),
-                    media_provider: MEDIA_PROVIDER.lock().unwrap().deref(),
+                    media_source: Some(MEDIA_PROVIDER.lock().unwrap().deref()),
                     font_source: Some(FONTS.lock().unwrap().deref()),
                 },
             ).value
@@ -146,9 +149,33 @@ macro_rules! setup_wasm_editor {
             use fframes::FontSource;
 
             let mut fonts = FONTS.lock().unwrap();
-            let face_info = fonts.insert_font(slice.to_vec());
+            let face_info = fonts.insert_font(slice.to_vec().into(), None);
 
             serde_wasm_bindgen::to_value(&face_info).unwrap()
+        }
+
+        #[wasm_bindgen]
+        pub fn populate_static_fonts_db_with_static_fonts() {
+            let mut font_wasm_db = FONTS.lock().unwrap();
+
+            if let Some(fonts) = (&$static_media).get_all_font_data() {
+                for (font_data, filename) in fonts {
+                    font_wasm_db.insert_font(font_data.into(), Some(filename));
+                }
+            }
+        }
+
+        #[wasm_bindgen]
+        pub fn get_static_font_data_by_index(index: usize) -> Option<wasm_font_source::StaticFontFace> {
+            let fonts = FONTS.lock().unwrap();
+            fonts.static_fonts.get(index).cloned()
+        }
+
+        #[wasm_bindgen]
+        pub fn get_static_audio_data_by_index(index: usize) -> Option<wasm_audio::AudioData> {
+            let audios = (&$static_media).get_all_audio_data()?;
+        fframes::log!("audios: {:?}", audios);
+            audios.get(index).map(|(static_audio, filename)| wasm_audio::AudioData::new(*static_audio, filename))
         }
     };
 }

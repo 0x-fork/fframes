@@ -4,15 +4,22 @@ type namedRange = {
   end: int,
 }
 
+@genType
+type mediaImport = string
+
+type mediaFolder = Js.Dict.t<mediaImport>
+
 @gentype.as("EditorOptions")
 type options = {
+  staticMediaFolder: option<mediaFolder>,
+  dynamicMediaFolder: option<mediaFolder>,
   ignoreMediaRegex: option<Js.RegExp.t>,
   hideDock: bool,
   loop: bool,
   lockFps: option<int>,
   mediaListLayout: [#grid | #list | #fromAspectRatio],
   rewindStepInSeconds: int,
-  imageLengthLimit: int,
+  dynamicImageLengthLimit: int,
   volumeStepFrom0To100: int,
 }
 
@@ -37,6 +44,17 @@ type fontInfo = {
 
 type initOut = {prepare: (int, int) => int}
 
+@genType
+type staticFont = {data: Js.Uint8Array.t, info: fontInfo, name: string}
+
+@genType
+type staticAudio = {
+  fltp_data: Js.Float32Array.t,
+  mono_pcm_data: Js.Int16Array.t,
+  sample_rate: int,
+  name: string,
+}
+
 @genType.as("WasmController")
 type t = {
   add_audio_source: (string, ReScriptJs.Js.Int16Array.t) => unit,
@@ -47,6 +65,9 @@ type t = {
   render_frame: Js.BigInt.t => string,
   render_preview_frame: Js.BigInt.t => string,
   ingest_font: Js.Uint8Array.t => fontInfo,
+  populate_static_fonts_db_with_static_fonts: unit => unit,
+  get_static_font_data_by_index: int => Js.Nullable.t<staticFont>,
+  get_static_audio_data_by_index: int => Js.Nullable.t<staticAudio>,
 }
 
 module type WasmBridge = {

@@ -1,8 +1,9 @@
 use colored::Colorize;
 use ffmpeg_next::ffi::AVPixelFormat;
-use std::{fmt, sync::PoisonError};
+use std::{error::Error, fmt, str::Utf8Error, sync::PoisonError};
 
-pub enum AVError {
+/// Thread or Chunk level error which can happen during parallelized rendering
+pub enum RenderEncodingError {
     MissingVideoStreamInFile(String),
     CantOpenFile(String),
     CantAllocate(String),
@@ -13,9 +14,13 @@ pub enum AVError {
     Internal(String),
     CannotLocateCodec,
     InvalidArgument(String),
+    CoreError(fframes::error::FFramesError),
+    RenderError,
+    CStringError(std::ffi::NulError),
+    Utf8Error(Utf8Error),
 }
 
-impl fmt::Display for AVError {
+impl fmt::Display for RenderEncodingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -37,28 +42,44 @@ impl fmt::Display for AVError {
                 Self::CannotLocateCodec => "Couldn't locate audio or video codec neither from render_options nor from the output file extension. Make sure that extension is a valid video file and you have installed appropriate codecs for this specific container. E.g. in order to output the .webm extension you should have vp9 and opus codecs installed".to_owned(),
                 Self::InvalidArgument(argument) => format!("Argument {argument} that was provided is not valid or not supported for the current codec."),
                 Self::InvalidPixFmt(pix_fmt) => format!("Pixel format `{pix_fmt:?}` is not supported for current codec"),
+                Self::CoreError(err) => format!("{err:?}"),
+                Self::CStringError(err) => format!("Failed to convert string to c string: {err:?}"),
+                Self::RenderError => "Rendering pipeline failed.".to_owned(),
+                Self::Utf8Error(err) => format!("Failed to convert bytes to utf8 string: {err:?}"),
             }
         )
     }
 }
 
-pub type AVResult<T> = Result<T, AVError>;
+pub type RenderEncodingResult<T> = Result<T, RenderEncodingError>;
 
-pub enum FFramesError {
-    FFmpegError(AVError),
-    RenderChunkError(usize, AVError),
-    MediaError(std::io::Error),
-    SubtitlesParsingError(fframes::SubtitlesError),
+pub enum FFramesRendererError {
+    RenderChunkError(usize, RenderEncodingError),
+    ConcatChunkError(RenderEncodingError),
+    IOError(std::io::Error),
     MissingRequiredMedia(String),
-    CoreError(fframes::error::FFramesCoreError),
     ImageError((String, image::ImageError)),
-    ParserError(fframes::usvgr::Error),
     ConcurrencyError,
-    CustomError(String),
+    Internal(String),
     InvalidOutput,
+    Utf8Error(Utf8Error),
+
+    MediaError(fframes::media::FFramesMediaError),
+    CoreError(fframes::error::FFramesError),
+
+    /// Any custom rendering backend implementation-specific error
+    Custom(String),
 }
 
-impl fmt::Debug for FFramesError {
+impl Error for FFramesRendererError {}
+
+impl fmt::Display for FFramesRendererError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl fmt::Debug for FFramesRendererError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -69,59 +90,62 @@ impl fmt::Debug for FFramesError {
                     "Rendering chunk {chunk} failed.\nReason: {error}",
                     chunk = chunk.to_string().cyan().bold()
                 ),
-                Self::FFmpegError(err) => format!("{err}"),
-                Self::MediaError(err) => format!("{}\n{err}", "Can't load or process media".bold()),
+                Self::ConcatChunkError(error)=>  format!(
+                    "Concatenation of rendered video chunks failed failed.\nReason: {error}",
+                ),
+                Self::IOError(err) => format!("{}\n{err}", "Can't load or process media".bold()),
                 Self::MissingRequiredMedia(required_media) => format!(
                     "Missing required media {}. Verify that you provided correct media_dir.",
                     required_media.magenta().bold()
                 ),
-                Self::SubtitlesParsingError(err) => format!("{err:?}"),
                 Self::CoreError(err) => format!("{err:?}"),
                 Self::ImageError((file, err)) =>
                     format!("Can not decode image {file}. Error {err:?}"),
                 Self::ConcurrencyError => "Something not correct happened while trying concurrently access one of the resources".to_owned(),
-                Self::ParserError(err) => format!("SVG parsing error: {err:?}"),
-                Self::CustomError(err) => err.to_owned(),
+                Self::Internal(err) | Self::Custom(err) => err.to_owned(),
                 Self::InvalidOutput => "Invalid output file. Path does not exist or does not the valid file".to_owned(),
+                Self::Utf8Error(err) => format!("Failed to convert bytes to utf8 string: {err:?}"),
+                Self::MediaError(err) => format!("Media processing error: {err:?}"),
             }
         )
     }
 }
 
-pub type FFramesResult<T> = Result<T, FFramesError>;
+pub type FFramesRendererResult<T> = Result<T, FFramesRendererError>;
 
-impl From<AVError> for FFramesError {
-    fn from(ffmpeg_error: AVError) -> Self {
-        Self::FFmpegError(ffmpeg_error)
-    }
-}
-
-impl From<std::io::Error> for FFramesError {
+impl From<std::io::Error> for FFramesRendererError {
     fn from(io_error: std::io::Error) -> Self {
-        Self::MediaError(io_error)
+        Self::IOError(io_error)
     }
 }
 
-impl From<fframes::SubtitlesError> for FFramesError {
-    fn from(err: fframes::SubtitlesError) -> Self {
-        Self::SubtitlesParsingError(err)
-    }
-}
-
-impl From<fframes::error::FFramesCoreError> for FFramesError {
-    fn from(err: fframes::error::FFramesCoreError) -> Self {
-        Self::CoreError(err)
-    }
-}
-
-impl<T> From<PoisonError<T>> for FFramesError {
+impl<T> From<PoisonError<T>> for FFramesRendererError {
     fn from(_: PoisonError<T>) -> Self {
         Self::ConcurrencyError
     }
 }
 
-impl From<fframes::usvgr::Error> for FFramesError {
-    fn from(err: fframes::usvgr::Error) -> Self {
-        Self::ParserError(err)
+// Duplicate implementation here because it is completely valid scenario to have core error during rendering/encoding phase and the preparation phase as well.
+impl From<fframes::error::FFramesError> for RenderEncodingError {
+    fn from(err: fframes::error::FFramesError) -> Self {
+        Self::CoreError(err)
+    }
+}
+
+impl From<fframes::error::FFramesError> for FFramesRendererError {
+    fn from(err: fframes::error::FFramesError) -> Self {
+        Self::CoreError(err)
+    }
+}
+
+impl From<Utf8Error> for FFramesRendererError {
+    fn from(err: Utf8Error) -> Self {
+        Self::Utf8Error(err)
+    }
+}
+
+impl From<fframes::media::FFramesMediaError> for FFramesRendererError {
+    fn from(err: fframes::media::FFramesMediaError) -> Self {
+        Self::MediaError(err)
     }
 }

@@ -9,7 +9,7 @@ fn e2e_rendering() {
     println!("Running e2e rendering tests for {OS}-{ARCH}");
 
     render(
-        TestVideo {
+        &TestVideo {
             slug: "This frame index:".to_owned(),
         },
         "out.mp4",
@@ -20,11 +20,6 @@ fn e2e_rendering() {
                 concurrency: 1,
                 ..Default::default()
             },
-            media_dir: std::env::current_dir()
-                .unwrap()
-                .join("media")
-                .to_str()
-                .unwrap(),
             ..Default::default()
         },
     )

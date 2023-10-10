@@ -1,39 +1,13 @@
-use crate::{audio_window_functions, FFramesContext};
+use crate::{audio_window_functions, media, TimeBase};
 use std::{convert::TryInto, ops::Range};
 
-#[derive(Debug, Clone)]
-pub struct PreloadedAudioData {
-    pub samples: Vec<i16>,
-    pub sample_rate: i32,
-}
-
-impl PreloadedAudioData {
-    fn duration_in_seconds(&self) -> f32 {
-        self.samples.len() as f32 / self.sample_rate as f32
-    }
-
-    fn duration_in_frames(&self, fps: usize) -> usize {
-        self.samples.len() * fps / self.sample_rate as usize
-    }
-
-    fn get_range(&self, range: std::ops::Range<usize>) -> Option<&[i16]> {
-        self.samples.get(range)
-    }
-
-    fn get_frame_data(&self, length: usize, frame: usize, fps: i64) -> Option<&[i16]> {
-        let start_index = frame * self.sample_rate as usize / fps as usize;
-
-        self.samples.get(start_index..start_index + length)
-    }
-}
-
 #[derive(Clone, Debug)]
-pub enum AudioData {
-    Preloaded(PreloadedAudioData),
+pub enum AudioData<'a> {
+    Preloaded(media::PreloadedAudioData<'a>),
     Lazy,
 }
 
-impl AudioData {
+impl AudioData<'_> {
     pub fn duration_in_seconds(&self) -> f32 {
         match self {
             AudioData::Lazy => 0.,
@@ -41,10 +15,17 @@ impl AudioData {
         }
     }
 
-    pub fn duration_in_frames(&self, ctx: &FFramesContext) -> usize {
+    pub fn duration_in_frames(&self, tb: &TimeBase) -> usize {
         match self {
             AudioData::Lazy => 0,
-            AudioData::Preloaded(data) => data.duration_in_frames(ctx.time_base.fps),
+            AudioData::Preloaded(data) => data.duration_in_frames(tb.fps),
+        }
+    }
+
+    pub fn sample_rate(&self) -> i32 {
+        match self {
+            AudioData::Lazy => 0,
+            AudioData::Preloaded(data) => data.sample_rate,
         }
     }
 
@@ -94,7 +75,7 @@ fn get_fft_size_number(variant: &SampleSize) -> usize {
 
 #[derive(Debug)]
 pub struct VisualizeFrameInput<'a> {
-    pub audio: &'a AudioData,
+    pub audio: &'a AudioData<'a>,
     pub sample_size: SampleSize,
     pub smooth_level: usize,
     pub window: Option<audio_window_functions::WindowFunction>,
@@ -195,7 +176,7 @@ pub fn get_visualization(
 /// Stranger if you are reading this comment you might be interested in implementation and how
 /// to make it more efficient and faster. Here is a great place to help fframes by changing implementation
 /// of this function to be in-place and do not allocate.
-pub fn prettify_spectrum(spectrum: &[f32]) -> Vec<f32> {
+pub fn center_spectrum_low_frequences(spectrum: &[f32]) -> Vec<f32> {
     let mut pretty_spectrum = vec![0.0; spectrum.len()];
     let mid = spectrum.len() / 2 - 1;
 
@@ -217,7 +198,7 @@ mod tests {
     #[test]
     fn test_prettify_spectrum() {
         assert_eq!(
-            prettify_spectrum([1., 2., 3., 4., 5., 6., 7., 8.].as_slice()),
+            center_spectrum_low_frequences([1., 2., 3., 4., 5., 6., 7., 8.].as_slice()),
             vec![7., 5., 3., 1., 2., 4., 6., 8.]
         );
     }

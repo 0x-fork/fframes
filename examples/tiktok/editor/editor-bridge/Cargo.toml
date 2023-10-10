@@ -8,9 +8,10 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 path = "./lib.rs"
 
-[workspace]
-
 [dependencies]
 wasm-bindgen = "0.2.74"
 fframes-editor-controller = { path = "../../../../fframes-editor-controller" }
 tiktok-example = { path = "../../", default-features=false }
+
+[profile.release]
+opt-level = 'z'
