@@ -45,15 +45,23 @@ impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
 
     pub fn render_scenes(&self, global_frame: &Frame) -> Svgr {
         if let Some(scenes) = self.scenes.as_ref() {
-            Svgr::from_iter(scenes.0.iter().filter(|&(range, _, _scene)| range.contains(&global_frame.index)).map(|(range, _, scene)| scene.render_frame(
-                        Frame {
-                            fps: global_frame.fps,
-                            global_index: global_frame.index,
-                            index: global_frame.index - range.start,
-                            breaks_lru_cache: global_frame.breaks_lru_cache.clone(),
-                        },
-                        self,
-                    )))
+            Svgr::from_iter(
+                scenes
+                    .0
+                    .iter()
+                    .filter(|&(range, _, _scene)| range.contains(&global_frame.index))
+                    .map(|(range, _, scene)| {
+                        scene.render_frame(
+                            Frame {
+                                fps: global_frame.fps,
+                                global_index: global_frame.index,
+                                index: global_frame.index - range.start,
+                                breaks_lru_cache: global_frame.breaks_lru_cache.clone(),
+                            },
+                            self,
+                        )
+                    }),
+            )
         } else {
             Svgr::default()
         }

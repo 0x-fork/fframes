@@ -24,7 +24,10 @@ impl ImageData {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn decode_image(filename: &str, data: &[u8]) -> crate::error::Result<usvgr::PreloadedImageData> {
+pub fn decode_image(
+    filename: &str,
+    data: &[u8],
+) -> crate::error::Result<usvgr::PreloadedImageData> {
     let buffer =
         image::load_from_memory(data).map_err(crate::error::FFramesMediaError::ImageError)?;
 

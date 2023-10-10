@@ -55,13 +55,18 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
     // These are the values we give to the renderer/editor to access all of the media dynamicaly.
     let populate_fonts_expressions = media_files
         .iter()
-        .filter_map(|MediaFile { variant, ident, filename, .. }| {
-            matches!(variant, MediaVariant::Font).then_some(
-                quote! {
+        .filter_map(
+            |MediaFile {
+                 variant,
+                 ident,
+                 filename,
+                 ..
+             }| {
+                matches!(variant, MediaVariant::Font).then_some(quote! {
                     font_source.add_font(String::from(#filename), std::sync::Arc::new(self.#ident));
-                }
-            )
-        })
+                })
+            },
+        )
         .collect::<Vec<_>>();
     let populate_images_expressions = media_files
         .iter()
@@ -72,21 +77,36 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
         })
         .collect::<Vec<_>>();
 
-    // These are used mainly for editor and provides direct access to all the static media as 
+    // These are used mainly for editor and provides direct access to all the static media as
     // 'static borrow which significantly simplifies wasm code
     let audio_identifiers = media_files
         .iter()
-        .filter_map(|MediaFile { variant, ident, filename, .. }| {
-            matches!(variant, MediaVariant::Audio).then_some(quote! { ( &self.#ident, #filename )})
-        })
+        .filter_map(
+            |MediaFile {
+                 variant,
+                 ident,
+                 filename,
+                 ..
+             }| {
+                matches!(variant, MediaVariant::Audio)
+                    .then_some(quote! { ( &self.#ident, #filename )})
+            },
+        )
         .collect::<Vec<_>>();
     let font_identifiers = media_files
         .iter()
-        .filter_map(|MediaFile { variant, ident, filename, .. }| {
-            matches!(variant, MediaVariant::Font).then_some(quote! { ( &self.#ident, #filename )})
-        })
+        .filter_map(
+            |MediaFile {
+                 variant,
+                 ident,
+                 filename,
+                 ..
+             }| {
+                matches!(variant, MediaVariant::Font)
+                    .then_some(quote! { ( &self.#ident, #filename )})
+            },
+        )
         .collect::<Vec<_>>();
-
 
     quote! {
         // This is a workaround to force include_bytes which is the way we inline styles to force
@@ -95,7 +115,7 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
         //
         // More info here https://jack.wrenn.fyi/blog/include-transmute/
         #[repr(C)]
-        struct ForceAlignTo<Align, Bytes: ?Sized> { 
+        struct ForceAlignTo<Align, Bytes: ?Sized> {
             pub _align: [Align; 0],
             pub bytes: Bytes
         }
@@ -105,7 +125,7 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
             #(#fields)*
         }
 
-        impl #ident { 
+        impl #ident {
             // we do have this only to avoid the requirement of importing the trait 
             pub fn new() -> #fframes_crate_ident::error::Result<Self> {
                 Ok(Self {
@@ -257,7 +277,7 @@ impl MediaFile {
                     #fframes_crate_ident::AudioData::Preloaded(
                         #fframes_crate_ident::media::PreloadedAudioData {
                             samples: {
-                                static ALIGNED_LITERAL: &ForceAlignTo<i16, [u8]> = &ForceAlignTo { 
+                                static ALIGNED_LITERAL: &ForceAlignTo<i16, [u8]> = &ForceAlignTo {
                                     _align: [],
                                     bytes: *#literal
                                 };
@@ -353,7 +373,7 @@ fn create_image_identifier_for_platform(
     image: {
         // This is basically the u32 rgba images under the hood so we must align them correctly
         // they will be again casted via bytemuch to the u32
-        static ALIGNED_LITERAL: &ForceAlignTo<u32, [u8]> = &ForceAlignTo { 
+        static ALIGNED_LITERAL: &ForceAlignTo<u32, [u8]> = &ForceAlignTo {
             _align: [],
             bytes: *#bytes_literal
         };
@@ -512,11 +532,9 @@ fn verify_correct_algiment_of_the_file() {
     use bytemuck::cast_slice;
 
     let bytes = include_bytes!("../../examples/marketing/media/marketing.mp3");
-    let initial_slize: &[i16] = &fframes_media_loaders::decode_mp3(
-        std::io::Cursor::new(bytes),
-    )
-    .unwrap()
-    .samples;
+    let initial_slize: &[i16] = &fframes_media_loaders::decode_mp3(std::io::Cursor::new(bytes))
+        .unwrap()
+        .samples;
 
     let u8_slice: &[u8] = cast_slice::<i16, u8>(initial_slize);
     let i16_slice: &[i16] = cast_slice::<u8, i16>(u8_slice);
