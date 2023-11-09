@@ -1,9 +1,9 @@
-(inlined)
+(Compile-time)
 Document [
     Element {
         tag_name: Some(svg)
         attributes: [
-            Attribute { name: width, value: Length(Length { number: 1920.0, unit: None }) }
+            Attribute { name: width, value: Length(Length { number: 1900.0, unit: None }) }
             Attribute { name: height, value: Length(Length { number: 1080.0, unit: None }) }
         ]
         children: [
