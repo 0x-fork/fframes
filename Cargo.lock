@@ -150,7 +150,7 @@ dependencies = [
 
 [[package]]
 name = "audio-announce-bridge-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes-editor-controller",
  "hello-world-example",
@@ -159,7 +159,7 @@ dependencies = [
 
 [[package]]
 name = "audio-announce-editor-bridge-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "audio-announce-example",
  "fframes-editor-controller",
@@ -168,7 +168,7 @@ dependencies = [
 
 [[package]]
 name = "audio-announce-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "clap 4.3.12",
  "fframes",
@@ -218,7 +218,7 @@ checksum = "604178f6c5c21f02dc555784810edfb88d34ac2c73b2eae109655649ee73ce3d"
 
 [[package]]
 name = "beta-editor-bridge"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "beta-example",
  "fframes-editor-controller",
@@ -231,7 +231,7 @@ dependencies = [
 
 [[package]]
 name = "beta-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -692,7 +692,7 @@ checksum = "8d7439c3735f405729d52c3fbbe4de140eaf938a1fe47d227c27f8254d4302a5"
 
 [[package]]
 name = "e2e-tests"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -702,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "editor-bridge"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes-editor-controller",
  "marketing-example",
@@ -800,15 +800,15 @@ dependencies = [
 
 [[package]]
 name = "fframes"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
+ "fframes-media-dir-macro",
  "fframes-media-loaders",
  "futures",
  "konst",
  "lazy_static",
  "libm",
  "lru",
- "media-dir-macro",
  "microfft",
  "num",
  "parking_lot 0.12.1",
@@ -819,12 +819,11 @@ dependencies = [
  "ttf-parser 0.18.0",
  "usvgr",
  "wasm-bindgen",
- "webvtt-parser",
 ]
 
 [[package]]
 name = "fframes-editor-controller"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "console_error_panic_hook",
  "fframes",
@@ -837,8 +836,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "fframes-media-dir-macro"
+version = "1.0.0-beta.1"
+dependencies = [
+ "base64 0.21.2",
+ "bytemuck",
+ "fframes-media-loaders",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.107",
+]
+
+[[package]]
 name = "fframes-media-loaders"
-version = "0.0.1"
+version = "1.0.0-beta.1"
 dependencies = [
  "bytemuck",
  "ffmpeg-next",
@@ -852,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "fframes_renderer"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "bytemuck",
  "cc",
@@ -877,7 +889,7 @@ dependencies = [
 
 [[package]]
 name = "fframes_test_utils"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "futures",
@@ -1201,7 +1213,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hello-world-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "clap 4.3.12",
  "fframes",
@@ -1551,7 +1563,7 @@ dependencies = [
 
 [[package]]
 name = "low-poly-art-bridge"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes-editor-controller",
  "low-poly-art-example",
@@ -1560,7 +1572,7 @@ dependencies = [
 
 [[package]]
 name = "low-poly-art-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -1649,7 +1661,7 @@ dependencies = [
 
 [[package]]
 name = "marketing-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -1671,19 +1683,6 @@ checksum = "8ea1f30cedd69f0a2954655f7188c6a834246d2bcf1e315e2ac40c4b24dc9519"
 dependencies = [
  "cfg-if",
  "rayon",
-]
-
-[[package]]
-name = "media-dir-macro"
-version = "0.7.3"
-dependencies = [
- "base64 0.21.2",
- "bytemuck",
- "fframes-media-loaders",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn 1.0.107",
 ]
 
 [[package]]
@@ -2129,7 +2128,7 @@ dependencies = [
 
 [[package]]
 name = "podcast-editor-bridge"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes-editor-controller",
  "podcast-example",
@@ -2138,7 +2137,7 @@ dependencies = [
 
 [[package]]
 name = "podcast-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -2691,7 +2690,7 @@ dependencies = [
 
 [[package]]
 name = "svgr-macro"
-version = "0.1.1"
+version = "1.0.0-beta.1"
 dependencies = [
  "criterion",
  "lazy_static",
@@ -2827,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "tiktok-editor-bridge"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes-editor-controller",
  "tiktok-example",
@@ -2836,7 +2835,7 @@ dependencies = [
 
 [[package]]
 name = "tiktok-example"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
  "fframes_renderer",
@@ -2846,7 +2845,7 @@ dependencies = [
 
 [[package]]
 name = "tiktok-media"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "fframes",
 ]
@@ -3189,7 +3188,7 @@ dependencies = [
 
 [[package]]
 name = "webvtt-parser"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "nom",
  "nom_locate",

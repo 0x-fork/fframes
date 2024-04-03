@@ -38,5 +38,9 @@ usvgr = "0.30.0"
 usvgr-text-layout = "0.30.0"
 
 # fframes internal deps
-webvtt-parser = { path = "webvtt-parser" }
-fframes-media-loaders = { path = "fframes-media-loaders" }
+webvtt-parser = { path = "webvtt-parser", version = "1.0.0-beta.1" }
+fframes-media-loaders = { path = "fframes-media-loaders", version = "1.0.0-beta.1" }
+svgr-macro = { path = "svgr-macro", version = "1.0.0-beta.1" }
+fframes-media-dir-macro = { path = "media-dir-macro", version = "1.0.0-beta.1" }
+fframes = { path = "fframes", version = "1.0.0-beta.1" }
+

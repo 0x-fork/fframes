@@ -1,15 +1,17 @@
 [package]
 name = "fframes-media-loaders"
-version = "0.0.1"
+version = "1.0.0-beta.1"
 description = "Media loaders used by different fframes packages. This crate is not meant to be used directly."
 authors = ["Dmitriy Kovalenko <dmtr.kovalenko@outlook.com>"]
 edition = "2021"
+license = "MIT"
+homepage = "https://fframes.studio"
 
 [lib]
 
 [dependencies]
 quote = { version = "1.0.9", optional = true }
-webvtt-parser.workspace = true
+webvtt-parser.workspace=true
 bytemuck = { version = "1.13.1", features = ["derive"] }
 ttf-parser = "0.19.1"
 
@@ -21,3 +23,4 @@ image = { version = "0.24.6", default-features = false, features = [
   "jpeg",
 ] }
 usvgr.workspace = true
+

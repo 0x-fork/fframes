@@ -1,7 +1,11 @@
 [package]
 name = "webvtt-parser"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/dmtrKovalenko/fframes"
+description = "WebVTT parser for Rust"
+keywords = ["webvtt", "parser", "subtitle", "rust"]
 
 [dependencies]
 nom = "7.1.3"

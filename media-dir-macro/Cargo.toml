@@ -1,12 +1,10 @@
 [package]
-name = "media-dir-macro"
-version = "0.7.3"
-description = "The procedural macro used by include_dir"
-authors = ["Michael Bryan <michaelfbryan@gmail.com>"]
-repository = "https://github.com/Michael-F-Bryan/include_dir"
-license = "MIT"
+name = "fframes-media-dir-macro"
+version = "1.0.0-beta.1"
 edition = "2021"
-rust-version = "1.56"
+description = "A macro for generating SVG trees at compile time"
+license = "MIT"
+homepage = "https://fframes.studio"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

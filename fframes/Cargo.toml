@@ -1,27 +1,28 @@
 [package]
 name = "fframes"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+author = "Dmitriy Kovalenoko <dmtr.kovalenko@outlook.com>"
+license = "MIT"
+description = "A video generation framework"
+homepage = "https://fframes.studio"
 
 [dependencies]
 microfft = "0.4.0"
 libm = "0.2.1"
 lazy_static = "1.4.0"
 num = "0.4.1"
-webvtt-parser = { path = "../webvtt-parser" }
-svgr-macro = { path = "../svgr-macro" }
-media-dir-macro = { path = "../media-dir-macro" }
 konst = "0.2.15"
 roxmltree = "0.14.1"
 rangemap = "1.0.3"
 ttf-parser = "0.18.0"
 lru = "0.9.0"
 serde = { version = "1.0", features = ["derive"] }
-usvgr = { workspace = true }
 parking_lot = "0.12.1"
 fframes-media-loaders.workspace = true
+usvgr.workspace = true 
+svgr-macro.workspace = true
+fframes-media-dir-macro.workspace = true
 
 [dev-dependencies]
 futures = "0.3.24"
