@@ -2,6 +2,7 @@
   "name": "fframes-root",
   "private": true,
   "workspaces": [
+    "e2e/**/*",
     "fframes-editor",
     "examples/**/*"
   ],
@@ -9,6 +10,7 @@
     "react-from-svg": "^5.1.2"
   },
   "devDependencies": {
-    "odiff-bin": "^2.5.1"
+    "odiff-bin": "^2.5.1",
+    "syncpack": "^12.3.0"
   }
 }
