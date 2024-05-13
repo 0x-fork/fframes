@@ -84,7 +84,7 @@ impl Video for BetaVideo<'_> {
         fframes::Scenes::from(vec)
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> Svgr {
+    fn render_frame<'a>(&self, frame: Frame, ctx: &FFramesContext<'a, '_>) -> Svgr<'a> {
         svgr!(
            <svg
             xmlns="http://www.w3.org/2000/svg"

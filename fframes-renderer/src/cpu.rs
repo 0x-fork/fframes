@@ -5,7 +5,7 @@ use fframes::{
 use rayon::prelude::*;
 use std::{ops::Range, sync::Arc};
 use svgr::SvgrCache;
-use usvgr_text_layout::{FontsCache, TreeTextToPath, UsvgrTextLayoutCache};
+use usvgr::fontdb;
 use uuid::Uuid;
 
 use crate::{
@@ -79,9 +79,9 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         logger: Arc<dyn FFramesLogger>,
         usvg_options: &usvgr::Options,
         encoder_options: &EncoderOptions<'a>,
-        font_db: &usvgr_text_layout::fontdb::Database,
+        font_db: &fontdb::Database,
         timeline: &ResolvedRenderingTimeline<AudioTimelineSamples>,
-        ctx: fframes::FFramesContext,
+        ctx: fframes::FFramesContext<'a, '_>,
     ) -> FFramesRendererResult<()> {
         let extension = output
             .split('.')
@@ -123,9 +123,8 @@ impl FFramesRenderBackend for CpuRenderingBackend {
 
                             let mut svgr_cache = SvgrCache::new(self.cache_capacity);
                             let break_lines_cache = BreaksLruCache::new(self.text_cache_capacity);
-                            let mut text_layout_cache =
-                                UsvgrTextLayoutCache::new(self.text_cache_capacity);
-                            let mut fonts_cache = FontsCache::new();
+                            let mut converter_cache =
+                                usvgr::Cache::new_with_text_cache(self.text_cache_capacity);
 
                             let mut pixmap = svgr::tiny_skia::Pixmap::new(
                                 TVideo::WIDTH as u32,
@@ -134,6 +133,8 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                             .ok_or_else(|| {
                                 RenderEncodingError::CantAllocate("pixmap".to_owned())
                             })?;
+
+                            let svgr_ctx = svgr::Context::new_from_pixmap_unsafe(&pixmap);
 
                             chunk_range
                                 .to_owned()
@@ -149,25 +150,20 @@ impl FFramesRenderBackend for CpuRenderingBackend {
                                         &ctx,
                                     );
 
-                                    let mut rtree = svg.into_svg_tree(usvg_options)?;
-                                    rtree.convert_text_with_cache(
+                                    let rtree = svg.into_svg_tree(
+                                        usvg_options,
+                                        &mut converter_cache,
                                         font_db,
-                                        &mut text_layout_cache,
-                                        &mut fonts_cache,
-                                        true,
-                                    );
-
+                                    )?;
                                     svgr::render(
                                         &rtree,
-                                        usvgr::FitTo::Original,
                                         svgr::tiny_skia::Transform::default(),
-                                        pixmap.as_mut(),
+                                        &mut pixmap.as_mut(),
                                         &mut svgr_cache,
-                                    )
-                                    .ok_or(RenderEncodingError::RenderError)?;
+                                        &svgr_ctx,
+                                    );
 
                                     logger.log_frame(index, thread_number);
-
                                     frame.fill_from_rgba_pixmap(index as i64, pixmap.data());
 
                                     let video_stream = encoder.video_stream;
@@ -213,31 +209,33 @@ impl FFramesRenderBackend for CpuRenderingBackend {
     }
 
     #[cfg(debug_assertions)]
-    fn debug_frame<'a, TVideo: Video + Sync + Sized>(
+    fn debug_frame<'a, 'media: 'a, TVideo: Video + Sync + Sized>(
         &self,
         frame: fframes::Frame,
         out: &str,
-        video: &TVideo,
+        video: &'a TVideo,
         usvg_options: &usvgr::Options,
-        font_db: &usvgr_text_layout::fontdb::Database,
-        ctx: fframes::FFramesContext,
+        font_db: &usvgr::fontdb::Database,
+        ctx: fframes::FFramesContext<'a, 'media>,
     ) -> FFramesRendererResult<()> {
         let mut pixmap = svgr::tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
             .ok_or_else(|| FFramesRendererError::Internal("Failed to allocate pixmap for rendering. This may indicate that this machine is out of memory.".to_owned()))?;
 
-        let mut rtree = video
-            .render_frame(frame, &ctx)
-            .into_svg_tree(usvg_options)?;
-        rtree.convert_text(font_db, true);
+        let mut converter_cache = usvgr::Cache::default();
+        let rtree = video.render_frame(frame, &ctx).into_svg_tree(
+            usvg_options,
+            &mut converter_cache,
+            font_db,
+        )?;
 
+        let ctx = svgr::Context::new_from_pixmap_unsafe(&pixmap);
         svgr::render(
             &rtree,
-            usvgr::FitTo::Original,
             svgr::tiny_skia::Transform::default(),
-            pixmap.as_mut(),
+            &mut pixmap.as_mut(),
             &mut SvgrCache::none(),
-        )
-        .ok_or_else(|| FFramesRendererError::Internal("Failed to render frame".to_owned()))?;
+            &ctx,
+        );
 
         let buffer = pixmap.encode_png().unwrap();
         std::fs::write(out, buffer)?;
