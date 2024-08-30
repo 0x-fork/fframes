@@ -21,7 +21,3 @@ name = "hello_world_example"
 path = "src/lib.rs"
 doctest = false
 
-[[bin]]
-name = "hello_world_example_bin"
-path = "src/main.rs"
-required-features = ["renderer"]
