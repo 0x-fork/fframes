@@ -45,13 +45,13 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y yasm nasm ffmpeg libx264-dev libx265-dev libmp3lame-dev libopus-dev 
+          sudo apt-get install -y yasm nasm ffmpeg libx264-dev libx265-dev libopus-dev 
 
       - name: Install brew deps 
         if: runner.os == 'macOS'
         run: |
-          brew install pkg-config ffmpeg x264 x265 lame opus nasm
-          brew link x264 x265 lame --force
+          brew install pkg-config ffmpeg x264 x265 opus nasm
+          brew link x264 x265 --force
 
       - name: Install yarn
         run: |-

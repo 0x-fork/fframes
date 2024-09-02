@@ -4,14 +4,14 @@
 
 FFrames will install and compile ffmpeg during the development as we rely on the ffmpeg libav libraries, so there are dependencies on the system encoders required to build libav libraries. Here's what you'll need:
 
-for linux 
+for linux:
 ```sh
-
+sudo apt-get install -y yasm nasm ffmpeg libx264-dev libx265-dev libopus-dev
 ```
 
-for macos
+for macos:
 ```sh
-brew install ffmpeg
+brew install pkg-config ffmpeg x264 x265 opus nasm
 ```
 
 ## Beta testing
