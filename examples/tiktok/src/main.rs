@@ -1,4 +1,3 @@
-use fframes::MediaProvider;
 use fframes::StaticMediaProvider;
 pub use fframes_renderer::{fframes_logger, render, RenderOptions};
 use tiktok_example::{GooseMedia, GooseVideo};
