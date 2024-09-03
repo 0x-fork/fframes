@@ -5,7 +5,7 @@ use tiktok_example::{GooseMedia, GooseVideo};
 
 fn main() {
     let media = GooseMedia::prepare().unwrap();
-    println!("media: {:?}", media.resolve_audio("thouoght.mp3"));
+
     render(
         &GooseVideo { media: &media },
         "out.mp4",
