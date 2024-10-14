@@ -3,7 +3,7 @@ use crate::error::Result;
 use crate::FFramesMediaError;
 use ffmpeg_sys_fframes::*;
 use std::ffi::CString;
-use std::io::{self, Cursor, Read};
+use std::path::Path;
 use std::ptr;
 
 #[inline(always)]
@@ -91,21 +91,6 @@ unsafe fn decode_packet(
     Ok(())
 }
 
-unsafe extern "C" fn read_packet(
-    opaque: *mut std::ffi::c_void,
-    buf: *mut u8,
-    buf_size: std::ffi::c_int,
-) -> std::ffi::c_int {
-    let cursor = &mut *(opaque as *mut Cursor<&[u8]>);
-    let destination_buf = std::slice::from_raw_parts_mut(buf, buf_size as usize);
-
-    match cursor.read(destination_buf).unwrap_or(0) as i32 {
-        0 => AVERROR_EOF,
-        ret => ret,
-    }
-}
-
-const AV_TMP_BUF_SIZE: usize = 4096;
 const MONO_CH_LAYOUT: AVChannelLayout = AVChannelLayout {
     order: AVChannelOrder::AV_CHANNEL_ORDER_NATIVE,
     nb_channels: 1,
@@ -133,34 +118,22 @@ const MONO_CH_LAYOUT: AVChannelLayout = AVChannelLayout {
 ///
 /// A sample rate that and a vector of f32 fltp planar audio samples. If the sample_rate were not
 /// provided uses original sample rate of the input audio file.
-pub unsafe fn decode_audio(
-    data: &[u8],
-    filename: &str,
+pub unsafe fn decode_raw_file(
+    filename: impl AsRef<Path>,
     sample_rate: Option<u32>,
 ) -> Result<(u32, Vec<f32>)> {
     av_log_set_level(AV_LOG_FATAL);
-    let filename = std::ffi::CString::new(filename).unwrap();
+    let filename = std::ffi::CString::new(filename.as_ref().to_string_lossy().as_ref()).unwrap();
 
+    let mut avio_ctx = std::ptr::null_mut();
     let mut fmt_context = avformat_alloc_context();
+    // let mut cursor = None;
+
     if fmt_context.is_null() {
         return Err(FFramesMediaError::AudioDecodingError(
             "Could not allocate format context".to_string(),
         ));
     }
-
-    let buf = av_malloc(AV_TMP_BUF_SIZE * AV_INPUT_BUFFER_PADDING_SIZE as usize) as *mut u8;
-    let mut cursor = io::Cursor::new(data);
-    let mut avio_ctx = avio_alloc_context(
-        buf,
-        AV_TMP_BUF_SIZE as i32,
-        0,
-        &mut cursor as *mut _ as *mut std::ffi::c_void,
-        Some(read_packet),
-        None,
-        None,
-    );
-
-    (*fmt_context).pb = avio_ctx;
 
     let ret = avformat_open_input(
         &mut fmt_context,
@@ -329,40 +302,32 @@ pub unsafe fn decode_audio(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn test_audio_decoding_mp3() {
-        let result =
-            unsafe { decode_audio(include_bytes!("../test_audio/audio.mp3"), "audio.mp3", None) };
+        let result = unsafe { decode_raw_file(PathBuf::from("test_audio/audio.mp3"), None) };
 
-        assert_eq!(result.unwrap().1.len(), 926255);
+        assert_eq!(result.unwrap().1.len(), 926100);
     }
 
     #[test]
     fn test_audio_decoding_flac() {
-        let result = unsafe {
-            decode_audio(
-                include_bytes!("../test_audio/audio.flac"),
-                "audio.flac",
-                None,
-            )
-        };
+        let result = unsafe { decode_raw_file(PathBuf::from("test_audio/audio.flac"), None) };
 
         assert_eq!(result.unwrap().1.len(), 926100);
     }
 
     #[test]
     fn test_audio_decoding_wav() {
-        let result =
-            unsafe { decode_audio(include_bytes!("../test_audio/audio.wav"), "audio.wav", None) };
+        let result = unsafe { decode_raw_file(PathBuf::from("test_audio/audio.wav"), None) };
 
         assert_eq!(result.unwrap().1.len(), 926100);
     }
 
     #[test]
     fn test_audio_decoding_aac() {
-        let result =
-            unsafe { decode_audio(include_bytes!("../test_audio/audio.aac"), "audio.aac", None) };
+        let result = unsafe { decode_raw_file(PathBuf::from("test_audio/audio.aac"), None) };
 
         assert_eq!(result.unwrap().1.len(), 927744);
     }

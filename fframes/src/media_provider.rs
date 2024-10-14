@@ -1,4 +1,5 @@
 use crate::{error::Result, media, AudioData, FontSource};
+use fframes_media_loaders::VideoMedia;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 #[derive(Clone)]
@@ -20,6 +21,7 @@ pub trait MediaProvider<'a>: Send + Sync + Debug {
     fn resolve_audio(&'a self, name: &str) -> Option<&'a AudioData>;
     fn resolve_image(&'a self, name: &str) -> Option<&'a media::ImageData>;
     fn resolve_subtitles(&'a self, name: &str) -> Option<&'a media::Subtitles>;
+    fn resolve_video(&'a self, name: &str) -> Option<&'a media::VideoMedia>;
 
     /// Returns all the font data along with the original file name
     // fn populate_font_source(&'a self, font_source: &mut dyn FontSource) -> Result<Vec<RawFontData>>;
@@ -58,6 +60,10 @@ impl<'a> MediaProvider<'a> for () {
         _image_data: &mut HashMap<String, Arc<usvgr::PreloadedImageData>>,
     ) {
     }
+
+    fn resolve_video(&'a self, _name: &str) -> Option<&'a VideoMedia> {
+        None
+    }
 }
 
 impl StaticMediaProvider<'_> for () {
@@ -77,22 +83,25 @@ impl StaticMediaProvider<'_> for () {
 #[derive(Clone, Default, Debug)]
 pub struct DynamicMediaProvider<'media> {
     pub audio: HashMap<String, AudioData<'media>>,
-    pub images: HashMap<String, crate::media::ImageData>,
-    pub subtitles: HashMap<String, crate::media::Subtitles<'media>>,
+    pub images: HashMap<String, media::ImageData>,
+    pub subtitles: HashMap<String, media::Subtitles<'media>>,
+    pub videos: HashMap<String, media::VideoMedia>,
     pub fontdata: Vec<RawFontData>,
 }
 
 impl<'media> DynamicMediaProvider<'media> {
     pub fn new(
         audio: HashMap<String, AudioData<'media>>,
-        images: HashMap<String, crate::media::ImageData>,
-        subtitles: HashMap<String, crate::media::Subtitles<'media>>,
+        images: HashMap<String, media::ImageData>,
+        subtitles: HashMap<String, media::Subtitles<'media>>,
+        videos: HashMap<String, media::VideoMedia>,
         fonts_data: Vec<RawFontData>,
     ) -> Self {
         Self {
             audio,
             images,
             subtitles,
+            videos,
             fontdata: fonts_data,
         }
     }
@@ -111,6 +120,10 @@ impl<'a> MediaProvider<'a> for DynamicMediaProvider<'a> {
         self.subtitles.get(name)
     }
 
+    fn resolve_video(&'a self, name: &str) -> Option<&'a media::VideoMedia> {
+        self.videos.get(name)
+    }
+
     fn populate_font_source(&'a self, font_source: &mut dyn FontSource) {
         for font in self.fontdata.iter() {
             font_source.add_font(font.file_name.clone(), font.data.clone())
@@ -123,7 +136,7 @@ impl<'a> MediaProvider<'a> for DynamicMediaProvider<'a> {
         image_data: &mut HashMap<String, Arc<usvgr::PreloadedImageData>>,
     ) {
         for (name, data) in self.images.iter() {
-            image_data.insert(name.clone(), data.image.clone());
+            image_data.insert(name.clone(), data.href());
         }
     }
 }
@@ -163,6 +176,12 @@ impl<'a, const N: usize> MediaProvider<'a> for CombinedMediaProvider<'a, N> {
         self.0
             .iter()
             .find_map(|provider| provider.resolve_subtitles(name))
+    }
+
+    fn resolve_video(&'a self, name: &str) -> Option<&'a media::VideoMedia> {
+        self.0
+            .iter()
+            .find_map(|provider| provider.resolve_video(name))
     }
 
     fn populate_font_source(&'a self, font_source: &mut dyn FontSource) {
