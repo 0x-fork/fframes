@@ -17,6 +17,7 @@ use crate::{
     renderer_error::{FFramesRendererError, FFramesRendererResult},
 };
 
+#[derive(Debug, Clone)]
 pub struct CpuRenderingBackend {
     /// The number of **individual svg elements or groups** to cache. Pure CPU rendering is very slow
     /// for mostly any filter, shadows, or gradients so it is important to cache unchanged elements.
@@ -214,16 +215,14 @@ impl FFramesRenderBackend for CpuRenderingBackend {
         Ok(())
     }
 
-    #[cfg(debug_assertions)]
-    fn debug_frame<'a, 'media: 'a, TVideo: Video + Sync + Sized>(
+    fn render_frame<'a, 'media: 'a, TVideo: Video + Sync + Sized>(
         &self,
         frame: fframes::Frame,
-        out: &str,
         video: &'a TVideo,
         usvg_options: &usvgr::Options,
         font_db: &usvgr::fontdb::Database,
         ctx: fframes::FFramesContext<'a, 'media>,
-    ) -> FFramesRendererResult<()> {
+    ) -> FFramesRendererResult<Vec<u8>> {
         let mut pixmap = svgr::tiny_skia::Pixmap::new(TVideo::WIDTH as u32, TVideo::HEIGHT as u32)
             .ok_or_else(|| FFramesRendererError::Internal("Failed to allocate pixmap for rendering. This may indicate that this machine is out of memory.".to_owned()))?;
 
@@ -243,9 +242,6 @@ impl FFramesRenderBackend for CpuRenderingBackend {
             &ctx,
         );
 
-        let buffer = pixmap.encode_png().unwrap();
-        std::fs::write(out, buffer)?;
-
-        Ok(())
+        Ok(pixmap.take())
     }
 }

@@ -10,16 +10,14 @@ use usvgr::fontdb;
 
 #[allow(clippy::too_many_arguments)]
 pub trait FFramesRenderBackend {
-    #[cfg(debug_assertions)]
-    fn debug_frame<'a, 'media: 'a, TVideo: Video + Sync + Sized>(
+    fn render_frame<'a, 'media: 'a, TVideo: Video + Sync + Sized>(
         &self,
         frame: fframes::Frame,
-        out: &str,
         video: &'a TVideo,
         usvg_options: &usvgr::Options,
         font_db: &usvgr::fontdb::Database,
         ctx: fframes::FFramesContext<'a, 'media>,
-    ) -> FFramesRendererResult<()>;
+    ) -> FFramesRendererResult<Vec<u8>>;
 
     fn render<'a, TVideo: Video + Sync + Sized>(
         &self,
