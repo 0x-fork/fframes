@@ -1,6 +1,4 @@
-#!/usr/bin/env bash 
 set -euo pipefail
-
 VERSION="$1"
 echo "Releasing version $VERSION"
 
@@ -12,8 +10,9 @@ fi
 cargo install cargo-edit
 cargo set-version "$VERSION"
 
-# this is needed to force cargo to use specific version from crates
-sed 's/path = "[^"]*", //' Cargo.toml
+# this is needed to force cargo to use specific version from crates during the publish
+# after the release all these changes should be reverted
+sed -i 's/path = "[^"]*", //' Cargo.toml
 
 cd fframes-editor
 yarn build:prod
