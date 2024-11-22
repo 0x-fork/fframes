@@ -14,7 +14,6 @@
     "bundle:dev": "tailwindcss -o tw.css && node esbuild.mjs",
     "build:prod": "tailwindcss -m -o tw.css && yarn rescript:build && node esbuild.mjs -r",
     "dev": "concurrently --raw 'rescript build -w' 'tailwindcss -o tw.css --watch' 'node esbuild.mjs --watch'",
-    "postinstall": "ln -s -f ./src/shims ./src/services/shims",
     "rescript:build": "rescript build -with-deps",
     "rescript:clean": "rescript clean -with-deps"
   },
