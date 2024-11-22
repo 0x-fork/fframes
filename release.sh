@@ -12,6 +12,9 @@ fi
 cargo install cargo-edit
 cargo set-version "$VERSION"
 
+# this is needed to force cargo to use specific version from crates
+sed 's/path = "[^"]*", //' Cargo.toml
+
 cd fframes-editor
 yarn build:prod
 yarn publish --no-git-tag-version --access public --new-version "$VERSION"
