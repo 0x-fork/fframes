@@ -23,41 +23,15 @@ Once everything is installed please install the just command runner and init the
   cargo install --locked just cargo-watch wasm-bindgen-cli wasm-pack
   just init-repo
 ```
+During the build fframes will automatically download and compile required libraries. You can control which libraries will be tried to link (usually codecs or hw acceslleration librareies) by using cargo features of the `fframes_renderer`(for encoding) and `fframes`(for decoding) crates.
 
-## Linking libav aka ffmpeg
-
-If during the build you are getting an error that `libavformat`.h` or some other C header from libav is missing it means that either:
-
-- You don't have required system linbraries installed 
-- Your linker is not able to find the libav headers
-
-### Troubleshooting
-
-Run the following command and if you are seeing errors it means that you might need to populate the LDFLAGS and CFLAGS with the path to the ffmpeg lib and include folders.
-
-```bash
-pkg-config --libs libavutil libavcodec libavformat libswscale libswresample
+```toml
+[dependencies]
+# this will enable and try to link libx264 during the build
+fframes_renderer = { version = "0.1.0", features = ["h264", "libav-agree-gpl"] }
 ```
 
-### Manual compilation
-
-Usually, you can always install precompiled ffmpeg binaries for any platform but for some reason, you can always compile sources and link them manually. Here is a minimal build required for fframes. 
-
-```bash
-  git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
-  cd ffmpeg
-  git remote update
-  git fetch --tags
-  git checkout n6.0.0
-
-  # this is a minimum set of options to build ffmpeg for fframes, you will likely need more options
-  ./configure --enable-shared --enable-libx264 --enable-libx265 --enable-gpl
-  make
-  make install
-
-```
-
-More information about compiling from sources https://trac.ffmpeg.org/wiki/CompilationGuide
+All the build and linking of codecs and other system libs are leveraging the ffmpeg build system, so for troubleshooting please refer the [ffmpeg compilation guide](https://trac.ffmpeg.org/wiki/CompilationGuide).
 
 ## Usage
 
@@ -86,6 +60,10 @@ just render {{example}} # just render podcast
 In order to create your custom video just copy an example. It is not recommended though to use this framework in the production, as it may panic. The project is still under hard development.
 
 Please provide any of your feedback and ideas as issues, and feel free to contribute, but ideally, start from the issue.
+
+## Installation
+
+All the libraries are already published to the crates io including the most recent nightly version. So you can already install and use them independently.
 
 ## Contributing
 
