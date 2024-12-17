@@ -10,10 +10,6 @@ fi
 cargo install cargo-edit
 cargo set-version "$VERSION"
 
-# this is needed to force cargo to use specific version from crates during the publish
-# after the release all these changes should be reverted
-sed -i 's/path = "[^"]*", //' Cargo.toml
-
 cd fframes-editor
 yarn build:prod
 yarn publish --no-git-tag-version --access public --new-version "$VERSION"
