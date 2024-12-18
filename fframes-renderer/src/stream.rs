@@ -148,6 +148,10 @@ impl Stream {
         (*c).max_qdiff = encoder_options.max_qdiff;
         (*c).bit_rate_tolerance = encoder_options.bitrate_tolerance;
 
+        if let Some(video_bitrate) = encoder_options.video_bitrate {
+            (*c).bit_rate = video_bitrate;
+        }
+
         if (*(*oc).oformat).flags & AVFMT_GLOBALHEADER != 0 {
             (*c).flags |= AV_CODEC_FLAG_GLOBAL_HEADER as i32;
         }

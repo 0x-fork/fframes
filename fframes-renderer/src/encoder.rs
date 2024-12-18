@@ -47,9 +47,9 @@ pub struct EncoderOptions<'a> {
     /// Sample format used to store encoded audio frame. By default equals to AvSampleFormat::AV_SAMPLE_FMT_FLTP
     /// @default AV_SAMPLE_FMT_FLTP
     pub sample_format: AVSampleFormat,
-    /// Audio bitrate in bytes, if not provided 192k used.
+    /// Target audio bitrate in bits, if not provided 192kb used.
     pub audio_bitrate: Option<i64>,
-    /// Video bitrate, sometimes may not be needed and inferred from other codec params, like crf for libx264 and libx265
+    /// Target video bitrate in bits, sometimes may not be needed and inferred from other codec params, like crf for libx264 and libx265
     pub video_bitrate: Option<i64>,
     /// Number of bits the bitstream is allowed to diverge from the reference.
     /// @default 0
