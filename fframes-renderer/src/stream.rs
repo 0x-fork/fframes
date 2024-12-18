@@ -166,7 +166,7 @@ impl Stream {
         ffmpeg_loggable_action!(avcodec_open2(c, codec, opts));
         ffmpeg_loggable_action!(avcodec_parameters_from_context((*st).codecpar, c));
 
-        if let Some((tag, options)) = encoder_options.audio_tag.zip((*st).codecpar.as_mut()) {
+        if let Some((tag, options)) = encoder_options.video_tag.zip((*st).codecpar.as_mut()) {
             options.codec_tag = tag as u32;
         }
 
