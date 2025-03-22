@@ -6,7 +6,6 @@ mod duration;
 mod fframes_context;
 mod font_data;
 mod frame;
-mod log;
 mod media_provider;
 mod named_range;
 mod scenes;
@@ -17,9 +16,11 @@ mod video;
 // Methods that we are not pub use ::* should be declared here:
 pub mod animation;
 pub mod error;
+pub mod log;
 
 #[cfg(test)]
 mod tests;
+mod transform;
 mod video_data;
 
 pub use audio_data::*;
@@ -30,14 +31,13 @@ pub use duration::*;
 pub use fframes_context::*;
 pub use font_data::*;
 pub use frame::*;
-#[allow(unused_imports)]
-pub use log::log::*;
 pub use media_provider::*;
 pub use named_range::*;
 pub use scenes::*;
 pub use svgr::*;
 pub use svgr_macro::*;
 pub use text::*;
+pub use transform::*;
 pub use video::*;
 pub use video_data::*;
 

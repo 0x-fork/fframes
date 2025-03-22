@@ -44,6 +44,10 @@ impl<'a> Svgr<'a> {
             "Subtrees are not available when using runtime svg tree, if you see this message it means that feature flags are set incorrectly."
         )
     }
+
+    pub fn empty() -> Self {
+        Self::default()
+    }
 }
 
 #[cfg(any(not(feature = "compile-time-svgtree"), target_arch = "wasm32"))]
