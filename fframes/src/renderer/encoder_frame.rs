@@ -1,7 +1,7 @@
+use super::renderer_error::{RenderEncodingError, RenderEncodingResult};
+use super::stream;
 use crate::ffmpeg_action;
-use crate::renderer_error::{RenderEncodingError, RenderEncodingResult};
-use crate::stream;
-use ffmpeg_sys_fframes::*;
+use crate::media::ffmpeg_sys_fframes::*;
 
 #[derive(Clone)]
 pub(crate) struct FrameFormatConvertor {
@@ -15,7 +15,7 @@ impl FrameFormatConvertor {
             let sws_ctx = sws_getContext(
                 (*video_stream.enc).width,
                 (*video_stream.enc).height,
-                AVPixelFormat::AV_PIX_FMT_YUV420P,
+                AVPixelFormat::AV_PIX_FMT_RGBA,
                 (*video_stream.enc).width,
                 (*video_stream.enc).height,
                 (*video_stream.enc).pix_fmt,
@@ -185,7 +185,7 @@ impl EncoderFrame {
                 panic!("Can not reuse frame allocations");
             }
 
-            crate::pix_fmt::fill_yuv420_from_rgba_pixmap_accelerated(
+            super::pix_fmt::fill_yuv420_from_rgba_pixmap_accelerated(
                 (*frame).width,
                 (*frame).height,
                 (*frame).linesize[0],
