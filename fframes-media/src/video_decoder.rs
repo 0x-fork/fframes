@@ -781,7 +781,7 @@ unsafe fn find_hw_accelleleration_for_codec(
             #[cfg(feature = "mediacodec")]
             AVHWDeviceType::AV_HWDEVICE_TYPE_MEDIACODEC,
             #[cfg(feature = "vulkan")]
-            AwHwDeviceType::AV_HWDEVICE_TYPE_VDPAU,
+            AVHWDeviceType::AV_HWDEVICE_TYPE_VULKAN,
         ];
 
         for &hw_type in hw_types.iter() {
