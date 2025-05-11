@@ -25,10 +25,11 @@ base64 = "0.22.1"
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 fframes-media.workspace = true
 
-# this is acutally just suppresssing the error message at compile time
+# this is actually just suppresssing the error message at compile time
 [target.'cfg(target_os = "macos")'.dependencies]
 fframes-media = { workspace = true, features = ["videotoolbox"] }
 
 [features]
+exif = ["fframes-media/kamadak-exif"]
 nightly = []
 metadata = []

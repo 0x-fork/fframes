@@ -32,6 +32,7 @@ usvgr.workspace = true
 svgr-macro.workspace = true
 fframes-media.workspace = true
 fframes-media-dir-macro.workspace = true
+kamadak-exif.workspace = true
 
 # these are renderer/encoder specific dependnecies
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -58,6 +59,7 @@ wasm-bindgen = "0.2.100"
 # would be always populated by the platform sysroot itself
 default = ["cpu_renderer"]
 cpu_renderer = ["svgr"]
+exif = ["fframes-media/exif", "fframes-media-dir-macro/exif"]
 compile-time-svgtree = ["svgr-macro/compile-time-svgtree"]
 
 # enable various encoders & decoders

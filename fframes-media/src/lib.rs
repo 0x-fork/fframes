@@ -29,3 +29,6 @@ mod video_decoder;
 pub use ffmpeg_sys_fframes;
 #[cfg(not(target_arch = "wasm32"))]
 pub use video_decoder::*;
+
+#[cfg(feature = "exif")]
+pub use exif;

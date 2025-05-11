@@ -58,3 +58,6 @@ pub use media::ffmpeg_sys_fframes;
 pub use serde;
 pub use ttf_parser;
 pub use usvgr;
+
+#[cfg(feature = "exif")]
+pub use media::exif;

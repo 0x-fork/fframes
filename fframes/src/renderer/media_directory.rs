@@ -1,7 +1,7 @@
 use super::renderer_error::FFramesRendererResult;
 use crate::{
     DynamicMediaProvider, RawFontData,
-    media::{RawMediaFile, Subtitles, VideoMedia, decode_image},
+    media::{RawMediaFile, Subtitles, VideoMedia},
 };
 use rayon::prelude::*;
 use std::{
@@ -113,19 +113,9 @@ impl MediaDirectory {
                             });
                         }
                         ("jpg" | "jpeg" | "png", RawMediaFile::Data(bytes)) => {
-                            let image = decode_image(filename, bytes)?;
-                            let metadata = crate::media::ImageMetadata {
-                                width: image.width,
-                                height: image.height,
-                            };
-
                             image_hash.lock()?.insert(
                                 filename.to_owned(),
-                                crate::media::ImageData::new_from_raw_data(
-                                    Arc::new(image),
-                                    filename.to_owned(),
-                                    metadata,
-                                ),
+                                crate::media::ImageData::new_from_bytes(filename, bytes)?,
                             );
                         }
                         ("mp4" | "webm" | "mkv" | "avi" | "mov" | "flv" | "wmv" | "m4v", _) => {

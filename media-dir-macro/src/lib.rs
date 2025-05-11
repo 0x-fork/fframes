@@ -125,7 +125,7 @@ pub fn include_media_dir(input: TokenStream) -> TokenStream {
         }
 
         impl #ident {
-            // we have this only to avoid the requirement of importing the trait 
+            // we have this only to avoid the requirement of importing the trait
             pub fn new() -> #fframes_crate_ident::error::Result<Self> {
                 Ok(Self {
                     #(#instantiate_fields)*
@@ -247,7 +247,7 @@ impl MediaFile {
         let ident = &self.ident;
         let type_identifier = match self.variant {
             MediaVariant::Audio => quote! { #fframes_crate_ident::AudioData<'static> },
-            MediaVariant::Image => quote! { #fframes_crate_ident::media::ImageData },
+            MediaVariant::Image => quote! { #fframes_crate_ident::media::ImageData<'static> },
             // In wasm or dynamic media provider we load the Subtitles type, but in the static
             // compilation we expose direct Vtt struct that does not allocate.
             MediaVariant::Subtitles => quote! { #fframes_crate_ident::media::Vtt<'static> },
@@ -313,6 +313,7 @@ impl MediaFile {
             }
             MediaVariant::Image => {
                 let file_name = self.path.file_name().and_then(|f| f.to_str()).unwrap();
+                print!("self.path: {:?}", self.path);
                 let file_bytes = std::fs::read(&self.path).unwrap();
 
                 let image_data = &fframes_media::decode_image(file_name, &file_bytes).unwrap();
@@ -440,8 +441,8 @@ fn create_image_identifier_for_platform_wasm(
     );
 
     quote! {
-        #fframes_crate_ident::media::ImageData::new_from_base_64_data(
-            #fframes_crate_ident::media::Base64ImageData::BorrowedStatic(#base64_web_png),
+        #fframes_crate_ident::media::ImageData::new_from_web_source(
+            #fframes_crate_ident::media::OwnedSharedString::BorrowedStatic(#base64_web_png),
             String::from(#dev_server_url),
             String::from(#file_name),
             #fframes_crate_ident::media::ImageMetadata {

@@ -753,6 +753,7 @@ dependencies = [
  "futures",
  "image",
  "indicatif",
+ "kamadak-exif",
  "konst",
  "lazy_static",
  "libm",
@@ -793,10 +794,12 @@ dependencies = [
 name = "fframes-media"
 version = "1.0.0-beta.6.rc-3.2"
 dependencies = [
+ "base64 0.22.1",
  "bytemuck",
  "ffmpeg-sys-next",
  "image",
  "itoa",
+ "kamadak-exif",
  "libc",
  "quote",
  "ttf-parser 0.25.1",
@@ -1301,6 +1304,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "kamadak-exif"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1130d80c7374efad55a117d715a3af9368f0fa7a2c54573afc15a188cd984837"
+dependencies = [
+ "mutate_once",
+]
+
+[[package]]
 name = "konst"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1554,6 +1566,12 @@ dependencies = [
  "adler2",
  "simd-adler32",
 ]
+
+[[package]]
+name = "mutate_once"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16cf681a23b4d0a43fc35024c176437f9dcd818db34e0f42ab456a0ee5ad497b"
 
 [[package]]
 name = "new_debug_unreachable"
