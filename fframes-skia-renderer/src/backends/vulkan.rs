@@ -30,7 +30,7 @@ impl SkiaVulkanCtx {
     pub fn new(width: usize, height: usize) -> FFramesRendererResult<Self> {
         unsafe {
             let entry = Entry::load().map_err(|e| {
-                FFramesRendererError::Skia(format!("Failed to load Vulkan entry: {}", e))
+                FFramesRendererError::Skia(format!("Failed to load Vulkan entry: {e}"))
             })?;
 
             let instance: Instance = {
@@ -41,7 +41,7 @@ impl SkiaVulkanCtx {
                     .unwrap_or_else(|| vk::make_api_version(0, 1, 1, 0));
 
                 let app_name = CString::new("fframes_skia_renderer").map_err(|e| {
-                    FFramesRendererError::Skia(format!("Failed to create CString: {}", e))
+                    FFramesRendererError::Skia(format!("Failed to create CString: {e}"))
                 })?;
 
                 let extension_names = [
@@ -66,16 +66,13 @@ impl SkiaVulkanCtx {
                     .flags(vk::InstanceCreateFlags::ENUMERATE_PORTABILITY_KHR);
 
                 entry.create_instance(&create_info, None).map_err(|e| {
-                    FFramesRendererError::Skia(format!("Failed to create Vulkan instance: {}", e))
+                    FFramesRendererError::Skia(format!("Failed to create Vulkan instance: {e}"))
                 })?
             };
 
             let physical_device = {
                 let physical_devices = instance.enumerate_physical_devices().map_err(|e| {
-                    FFramesRendererError::Skia(format!(
-                        "Failed to enumerate physical devices: {}",
-                        e
-                    ))
+                    FFramesRendererError::Skia(format!("Failed to enumerate physical devices: {e}"))
                 })?;
 
                 physical_devices.iter().copied().next().ok_or_else(|| {
@@ -133,7 +130,7 @@ impl SkiaVulkanCtx {
                 instance
                     .create_device(physical_device, &device_create_info, None)
                     .map_err(|e| {
-                        FFramesRendererError::Skia(format!("Failed to create device: {}", e))
+                        FFramesRendererError::Skia(format!("Failed to create device: {e}"))
                     })?
             };
 
@@ -253,9 +250,7 @@ impl SkiaBackend for SkiaVulkanCtx {
             let image = self
                 .device
                 .create_image(&image_create_info, None)
-                .map_err(|e| {
-                    FFramesRendererError::Skia(format!("Failed to create image: {}", e))
-                })?;
+                .map_err(|e| FFramesRendererError::Skia(format!("Failed to create image: {e}")))?;
 
             // Allocate memory for the image
             let mem_requirements = self.device.get_image_memory_requirements(image);
@@ -276,13 +271,13 @@ impl SkiaBackend for SkiaVulkanCtx {
                 .device
                 .allocate_memory(&alloc_info, None)
                 .map_err(|e| {
-                    FFramesRendererError::Skia(format!("Failed to allocate memory: {}", e))
+                    FFramesRendererError::Skia(format!("Failed to allocate memory: {e}"))
                 })?;
 
             self.device
                 .bind_image_memory(image, memory, 0)
                 .map_err(|e| {
-                    FFramesRendererError::Skia(format!("Failed to bind image memory: {}", e))
+                    FFramesRendererError::Skia(format!("Failed to bind image memory: {e}"))
                 })?;
 
             // this is correct to have at the texture level, this is just a way
@@ -354,7 +349,7 @@ impl<'a> SkiaFFramesRenderer<'a, SkiaVulkanCtx> {
 fn vulkan_version(entry: &Entry) -> FFramesRendererResult<Option<(usize, usize, usize)>> {
     let detected_version = unsafe {
         entry.try_enumerate_instance_version().map_err(|e| {
-            FFramesRendererError::Skia(format!("Failed to enumerate instance version: {}", e))
+            FFramesRendererError::Skia(format!("Failed to enumerate instance version: {e}"))
         })?
     };
 
