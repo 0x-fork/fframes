@@ -129,7 +129,7 @@ impl<'a> ImageData<'a> {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn get_container_bytes(&self) -> crate::Result<Cow<[u8]>> {
+    pub fn get_container_bytes(&self) -> crate::Result<Cow<'_, [u8]>> {
         let Some(container_bytes) = self.container_bytes else {
             return Err(crate::error::FFramesMediaError::MediaDirectoryProvided);
         };
@@ -138,7 +138,7 @@ impl<'a> ImageData<'a> {
     }
 
     #[cfg(target_arch = "wasm32")]
-    pub fn get_container_bytes(&self) -> crate::Result<Cow<[u8]>> {
+    pub fn get_container_bytes(&self) -> crate::Result<Cow<'_, [u8]>> {
         use base64::Engine;
         use base64::engine::general_purpose::STANDARD as base64_engine;
 
@@ -160,11 +160,7 @@ impl<'a> ImageData<'a> {
         let exif_data = self
             .exif_data
             .get_or_init(|| {
-                let container_bytes = self
-                    .get_container_bytes()
-                    .map_err(|error| panic!("error {error:?}"))
-                    .ok()?;
-
+                let container_bytes = self.get_container_bytes().ok()?;
                 ExifData::parse(container_bytes.as_ref()).ok()
             })
             .as_ref()?;

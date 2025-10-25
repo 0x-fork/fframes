@@ -51,9 +51,10 @@ fn main() {
         .as_deref()
         .unwrap_or_else(|| ALL_SONGS.choose(rng).expect("Failed to pick a random song"));
 
+    let video = PixelVideo::new_random_scenes(song, &args.enter_text, rng, Some(&media), photos);
     render(
         "out.mp4",
-        &PixelVideo::new_random_scenes(song, &args.enter_text, rng, Some(&photos_media), photos),
+        &video,
         #[cfg(feature = "cpu")]
         {
             fframes::cpu::CpuRenderingBackend {

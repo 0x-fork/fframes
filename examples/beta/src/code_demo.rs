@@ -4,11 +4,11 @@ use fframes::{FFramesContext, Frame, Scene, Svgr, Transform, animation::Easing, 
 pub struct CodeDemoScene {}
 
 impl Scene for CodeDemoScene {
-    fn duration(&self) -> fframes::Duration {
+    fn duration(&self) -> fframes::Duration<'_> {
         fframes::Duration::Frames(200)
     }
 
-    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> Svgr {
+    fn render_frame(&self, frame: Frame, ctx: &FFramesContext) -> Svgr<'_> {
         let tilt_angle = frame.animate(&fframes::timeline!(
           at 0.3, duration 3.0, animate -0.4 => 1.2, Easing::Linear
         ));
@@ -28,7 +28,6 @@ impl Scene for CodeDemoScene {
                  skew_y: -tilt_angle + 0.4,
                  ..Default::default()
              }}
-             transform={Transform::skew(tilt_angle, -tilt_angle + 0.4)}
              href={ctx.get_image("beta_code.png").expect("Do not panic in real code").href()}
              opacity={frame.animate(&fframes::timeline!(
                at 0.3, duration 0.5, animate 0. => 1., Easing::Linear

@@ -20,10 +20,10 @@ pub trait Video: Sync + Sized {
     const BACKGROUND_COLOR: Color = Color::BLACK;
 
     /// Defines either dynamic or inferred duration of the video
-    fn duration(&self) -> Duration;
+    fn duration(&self) -> Duration<'_>;
 
     /// Defines the audio timeline of the video (when and how long audio tracks are played)
-    fn audio(&self) -> AudioMap;
+    fn audio(&self) -> AudioMap<'_>;
 
     /// Defines the scenes timeline of the video.
     /// Each scene is an dyn object which implements the `Scene` trait.
@@ -32,7 +32,7 @@ pub trait Video: Sync + Sized {
     /// In short: put your scenes to the `&self` or do not add any fields to the scene struct.
     ///
     /// # Example
-    /// ```no_run
+    /// ```rust
     /// use fframes::{Video, Scenes, Scene, Frame, Svgr, FFramesContext};
     ///
     /// struct SceneZeroSize;
@@ -48,10 +48,10 @@ pub trait Video: Sync + Sized {
     /// };
     ///
     /// impl Video for MyVideo {
-    ///     fn define_scenes(&self) -> Scenes {
+    ///     fn define_scenes(&self) -> Scenes<'_> {
     ///         let scenes: Vec<&dyn Scene> = vec![
     ///             // notice this is a zero sized type so we can create ref right here
-    ///             &SceneZeroSize,
+    ///             &SceneZeroSize},
     ///             // And here we passing a ref bound to the &self
     ///             &self.scene_with_input,
     ///         ]
@@ -60,7 +60,7 @@ pub trait Video: Sync + Sized {
     ///     }
     /// }
     /// ```
-    fn define_scenes(&self) -> Scenes {
+    fn define_scenes(&self) -> Scenes<'_> {
         Scenes(None)
     }
 
