@@ -94,10 +94,10 @@ impl Scene for SpeakerScene<'_> {
         fframes::svgr!(
             <image
                 width={1920}
-                height={1080}
+                // height={1080}
                 x="0"
                 y="0"
-                href={self.media.background_room_jpg.href()}
+                href={self.media.background_2025_png.href()}
             />
 
             {title_structure.as_svgr(title_opts)}
