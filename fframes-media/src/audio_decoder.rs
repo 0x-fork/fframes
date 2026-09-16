@@ -236,7 +236,6 @@ impl AudioDecoder {
                     (*self.frame).data.as_mut_ptr() as *mut _ as *mut *const u8,
                     (*self.frame).nb_samples,
                 );
-                samples.set_len(current_length + nb_samples as usize);
 
                 if ret < 0 {
                     return Err(FFramesMediaError::LibAVAudioDecodingError((
@@ -244,6 +243,8 @@ impl AudioDecoder {
                         "Error while resampling".to_string(),
                     )));
                 }
+
+                samples.set_len(current_length + ret as usize);
             }
 
             Ok(())
@@ -255,13 +256,14 @@ impl AudioDecoder {
             let mut samples = Vec::new();
 
             while av_read_frame(self.fmt_context, self.avpkt) >= 0 {
-                if (*self.avpkt).stream_index == self.stream_idx {
-                    let decode_result = self.decode_packet(&mut samples);
-                    if decode_result.is_err() {
-                        av_packet_unref(self.avpkt);
-
-                        break;
-                    }
+                if (*self.avpkt).stream_index == self.stream_idx
+                    && self.decode_packet(&mut samples).is_err()
+                {
+                    // Trailing garbage (ID3 tags, truncated downloads) is
+                    // common; keep what decoded so far instead of failing
+                    // the whole file.
+                    av_packet_unref(self.avpkt);
+                    break;
                 }
 
                 av_packet_unref(self.avpkt);
@@ -270,6 +272,27 @@ impl AudioDecoder {
             // Flush the decoder
             self.decode_packet(&mut samples)?;
             av_frame_unref(self.frame);
+
+            // Drain samples the resampler still buffers.
+            let delay = swr_get_delay(self.swr_ctx, self.out_sample_rate as i64);
+            if delay > 0 {
+                let current_length = samples.len();
+                samples.reserve(delay as usize);
+                let ret = swr_convert(
+                    self.swr_ctx,
+                    [samples.as_mut_ptr().add(current_length)].as_ptr() as *mut *mut _,
+                    delay as i32,
+                    std::ptr::null_mut(),
+                    0,
+                );
+                if ret < 0 {
+                    return Err(FFramesMediaError::LibAVAudioDecodingError((
+                        ret,
+                        "Error while draining the resampler".to_string(),
+                    )));
+                }
+                samples.set_len(current_length + ret as usize);
+            }
 
             Ok((self.out_sample_rate, samples))
         }

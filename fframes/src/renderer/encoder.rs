@@ -23,6 +23,47 @@ pub const fn FFMPEG_AVERROR(e: std::os::raw::c_int) -> std::os::raw::c_int {
     -e
 }
 
+/// Writes the container header.  With `faststart`, mp4/mov/3gp files get the
+/// `moov` atom moved to the front (`movflags +faststart`, a second pass over
+/// the file when the trailer is written) so browsers and NLEs can start
+/// playback before the whole file is downloaded.
+pub(crate) unsafe fn write_header(
+    oc: *mut AVFormatContext,
+    faststart: bool,
+) -> Result<(), renderer_error::RenderEncodingError> {
+    unsafe {
+        let format_name_ptr = (*(*oc).oformat).name;
+        let format_name = if format_name_ptr.is_null() {
+            std::borrow::Cow::Borrowed("")
+        } else {
+            CStr::from_ptr(format_name_ptr).to_string_lossy()
+        };
+
+        let mut opts: *mut AVDictionary = std::ptr::null_mut();
+        if faststart
+            && ["mp4", "mov", "3gp"]
+                .iter()
+                .any(|container| format_name.contains(container))
+        {
+            let key = CString::new("movflags").unwrap();
+            let value = CString::new("+faststart").unwrap();
+            av_dict_set(&mut opts, key.as_ptr(), value.as_ptr(), 0);
+        }
+
+        let status = avformat_write_header(oc, &mut opts);
+        av_dict_free(&mut opts);
+
+        if status < 0 {
+            return Err(renderer_error::RenderEncodingError::FFmpegError(
+                status,
+                av_error_to_string(status),
+            ));
+        }
+
+        Ok(())
+    }
+}
+
 pub fn av_error_to_string(errnum: i32) -> String {
     let mut errbuf = [0 as c_char; AV_ERROR_MAX_STRING_SIZE];
     unsafe {
@@ -213,9 +254,19 @@ impl Drop for Encoder {
     }
 }
 
+/// What an [`Encoder`] writes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EncoderOutput {
+    /// The file the user asked for.
+    Final { with_audio: bool },
+    /// A per-thread chunk that is concatenated into the final file later.
+    /// It never carries audio and skips the `faststart` rewrite pass.
+    IntermediateChunk,
+}
+
 impl Encoder {
     pub unsafe fn new(
-        with_audio: bool,
+        output: EncoderOutput,
         width: i32,
         height: i32,
         fps: i32,
@@ -256,11 +307,11 @@ impl Encoder {
                 RenderEncodingError::CantOpenFile(filename.to_owned())
             );
 
-            let audio_stream = with_audio
+            let audio_stream = matches!(output, EncoderOutput::Final { with_audio: true })
                 .then(|| Stream::make_audio(oc, &render_options.audio_encoder_options))
                 .transpose()?;
 
-            avformat_write_header(oc, std::ptr::null_mut());
+            write_header(oc, matches!(output, EncoderOutput::Final { .. }))?;
 
             Ok(Encoder {
                 oc,
@@ -272,7 +323,7 @@ impl Encoder {
 
     #[allow(clippy::too_many_arguments)]
     pub unsafe fn with_output<T, F: FnMut(&mut Encoder) -> RenderEncodingResult<T>>(
-        with_audio: bool,
+        output: EncoderOutput,
         width: i32,
         height: i32,
         fps: i32,
@@ -282,15 +333,8 @@ impl Encoder {
         inner_fn: &mut F,
     ) -> RenderEncodingResult<T> {
         unsafe {
-            let mut encoder = Encoder::new(
-                with_audio,
-                width,
-                height,
-                fps,
-                filename,
-                render_options,
-                logger,
-            )?;
+            let mut encoder =
+                Encoder::new(output, width, height, fps, filename, render_options, logger)?;
 
             inner_fn(&mut encoder)
             // Encoder::drop() will be called here
@@ -314,21 +358,35 @@ impl Encoder {
             if status < 0 {
                 let error_description = av_error_to_string(status);
 
-                return Err(renderer_error::RenderEncodingError::CantWriteFrame(
-                    error_description,
-                ));
+                return Err(renderer_error::RenderEncodingError::CantEncodeFrame {
+                    error: error_description,
+                    pts: Some((*(*frame)).pts),
+                });
             }
 
             while status >= 0 {
                 status = avcodec_receive_packet(stream.enc, *packet);
 
-                match status {
-                    status if status == AVERROR_EOF => break,
-                    status if status == FFMPEG_AVERROR(EAGAIN) => {
-                        break;
-                    }
-                    _ => status = customize_frame(*packet),
+                if status == AVERROR_EOF || status == FFMPEG_AVERROR(EAGAIN) {
+                    break;
                 }
+
+                if status < 0 {
+                    let error_description = av_error_to_string(status);
+                    return Err(renderer_error::RenderEncodingError::CantEncodeFrame {
+                        error: format!("avcodec_receive_packet failed: {error_description}"),
+                        pts: Some((*(*frame)).pts),
+                    });
+                }
+
+                let write_status = customize_frame(*packet);
+                if write_status < 0 {
+                    let error_description = av_error_to_string(write_status);
+                    return Err(renderer_error::RenderEncodingError::CantWriteFrame(
+                        error_description,
+                    ));
+                }
+                status = write_status;
             }
 
             Ok(())

@@ -1,17 +1,13 @@
 use crate::SkiaBackend;
-use crate::resource_provider::SkiaFFramesProvider;
 use fframes::get_thread_count;
-use fframes::usvgr::WriteOptions;
 use fframes::{
     AudioTimelineSamples, FFramesContext, RenderOptions, ResolvedRenderingTimeline, TextCache,
     Video, VideoDecodersWorker, usvgr,
 };
 use fframes::{
-    Encoder, EncoderFrame, FFramesLogger, FFramesRendererError, FFramesRendererResult,
-    RenderEncodingResult,
+    Encoder, EncoderFrame, EncoderOutput, FFramesLogger, FFramesRendererError,
+    FFramesRendererResult, RenderEncodingResult,
 };
-use skia_safe::svg::Dom;
-use skia_safe::{ConditionallySend, Sendable};
 use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
@@ -22,10 +18,9 @@ use std::thread;
 #[cfg(feature = "debug")]
 use std::time::Instant;
 
-// Pipeline data structures
 struct FrameRequest {
     frame: usize,
-    dom: Sendable<Dom>,
+    tree: usvgr::Tree,
 }
 
 impl Eq for FrameRequest {}
@@ -123,7 +118,13 @@ pub fn start<'a, 'b, 'media: 'a, TVideo: Video + Sync + Send, TBackend: SkiaBack
 
     let encoder = unsafe {
         Encoder::new(
-            include_audio && timeline.audio_map.is_some(),
+            if include_audio {
+                EncoderOutput::Final {
+                    with_audio: timeline.audio_map.is_some(),
+                }
+            } else {
+                EncoderOutput::IntermediateChunk
+            },
             ctx.current_video_size.width as i32,
             ctx.current_video_size.height as i32,
             ctx.time_base.fps as i32,
@@ -187,9 +188,8 @@ pub fn start<'a, 'b, 'media: 'a, TVideo: Video + Sync + Send, TBackend: SkiaBack
         Ok(())
     })?;
 
-    if let Some(audio_stream) = encoder.audio_stream.as_ref() {
-        audio_stream.set_encoder_threads_count(pipeline_config.encoder_threads);
-        unsafe { encoder.fill_audio_stream(timeline.audio_map.as_ref(), ctx) }
+    if encoder.audio_stream.is_some() {
+        unsafe { encoder.fill_audio_stream(timeline.audio_map.as_ref(), ctx, &logger) }
             .map_err(|err| FFramesRendererError::RenderChunkError(0, err))?;
     }
 
@@ -213,9 +213,8 @@ fn spawn_frame_generator<'a, 'media: 'a, TVideo: Video + Sync + Send>(
     let break_lines_cache = TextCache::new(10);
     let mut converter_cache = usvgr::Cache::new_with_text_cache(10);
 
-    // x2 because sometimse we might need to decode 2 frames at once
+    // x2 because sometimes we might need to decode 2 frames at once
     let video_decoders_worker = VideoDecodersWorker::new(pipeline_config.buffer_queue_size * 2);
-    let provider = SkiaFFramesProvider::new(video_decoders_worker.clone(), ctx);
 
     for frame in frame_range {
         #[cfg(feature = "debug")]
@@ -233,25 +232,18 @@ fn spawn_frame_generator<'a, 'media: 'a, TVideo: Video + Sync + Send>(
             frame,
             ctx.time_base.fps,
             break_lines_cache.clone(),
-            provider.worker_local_decoders.clone(),
+            video_decoders_worker.clone(),
         );
 
-        let svg = {
-            video
-                .render_frame(fframe, ctx)
-                .into_svg_tree(usvg_options, &mut converter_cache, font_db)?
-                .to_string(&WriteOptions::default())
-        };
-
-        let dom = Dom::from_str(&svg, provider.clone())
-            .unwrap()
-            .wrap_send()
-            .map_err(|_| {
-                FFramesRendererError::Custom("Failed to send DOM to renderer".to_string())
-            })?;
+        // Direct path: Svgr -> usvgr::Tree (no string serialization, no Dom parsing)
+        let tree = video.render_frame(fframe, ctx).into_svg_tree(
+            usvg_options,
+            &mut converter_cache,
+            font_db,
+        )?;
 
         frame_sender
-            .send(FrameRequest { frame, dom })
+            .send(FrameRequest { frame, tree })
             .map_err(|_| {
                 FFramesRendererError::Custom("Frame generator channel closed".to_string())
             })?;
@@ -283,7 +275,10 @@ fn spawn_renderer<TBackend: SkiaBackend>(
     let frame_datavec_size = image_info.compute_byte_size(image_info.min_row_bytes());
     let row_bytes = image_info.min_row_bytes();
 
-    while let Ok(FrameRequest { dom, frame }) = {
+    // Persist across frames so static paths/images are converted only once
+    let mut render_cache = crate::render::RenderCache::new();
+
+    while let Ok(FrameRequest { tree, frame }) = {
         #[cfg(feature = "debug")]
         let wait_start = Instant::now();
         let result = frame_receiver.recv();
@@ -310,15 +305,14 @@ fn spawn_renderer<TBackend: SkiaBackend>(
                 payload.pixels = vec![0; frame_datavec_size];
             }
 
-            let dom = dom.into_inner();
             let pixmap = skia_safe::Pixmap::new(&image_info, &mut payload.pixels, row_bytes)
                 .ok_or_else(|| {
                     FFramesRendererError::Custom("Failed to create pixmap".to_string())
                 })?;
 
             surface.canvas().clear(background_color);
-            dom.render(surface.canvas());
-            drop(dom);
+
+            crate::render::render_tree(&tree, surface.canvas(), &mut render_cache);
 
             if let Some(gpu_context) = gpu_context.as_mut() {
                 gpu_context.flush_submit_and_sync_cpu();
@@ -335,6 +329,10 @@ fn spawn_renderer<TBackend: SkiaBackend>(
                     "Failed to read pixels from Skia image".to_string(),
                 ));
             };
+
+            // Video-frame images view the tree's pixel buffers without
+            // copying, so the tree has to outlive the flush and readback.
+            drop(tree);
         }
 
         #[cfg(feature = "debug")]

@@ -9,6 +9,8 @@ use std::rc::Rc;
 pub enum Duration<'a> {
     /// Resolves duration from the audio file, the string is the file name in the media folder.
     FromAudio(&'a str),
+    /// Resolves duration from the video file metadata.
+    FromVideo(&'a str),
     /// Duration in seconds
     Seconds(f32),
     /// Duration in pure frames, not recommended to use because the value must keep in sync with FPS.
@@ -41,15 +43,30 @@ impl<'a> Sub for Duration<'a> {
 }
 
 impl<'a> Duration<'a> {
+    /// Audio files this duration is resolved from.
     pub fn used_audio_files(&self) -> Option<Vec<&'a str>> {
+        self.used_files(|duration| match duration {
+            Duration::FromAudio(audio) => Some(audio),
+            _ => None,
+        })
+    }
+
+    /// Video files whose metadata this duration is resolved from.
+    pub fn used_video_files(&self) -> Option<Vec<&'a str>> {
+        self.used_files(|duration| match duration {
+            Duration::FromVideo(video) => Some(video),
+            _ => None,
+        })
+    }
+
+    fn used_files(
+        &self,
+        pick: impl Fn(&Duration<'a>) -> Option<&'a str> + Copy,
+    ) -> Option<Vec<&'a str>> {
         match self {
-            Duration::FromAudio(audio) => Some(vec![audio]),
-            Duration::Seconds(_) => None,
-            Duration::Frames(_) => None,
-            Duration::Auto => None,
             Duration::__Subtract(alt) | Duration::__Add(alt) => {
                 let (left, right) = alt.as_ref();
-                match (left.used_audio_files(), right.used_audio_files()) {
+                match (left.used_files(pick), right.used_files(pick)) {
                     (Some(mut left), Some(mut right)) => {
                         left.append(&mut right);
                         Some(left)
@@ -59,6 +76,7 @@ impl<'a> Duration<'a> {
                     (None, None) => None,
                 }
             }
+            duration => pick(duration).map(|file| vec![file]),
         }
     }
 
@@ -69,7 +87,9 @@ impl<'a> Duration<'a> {
         resolve_audio_duration: &'a TFun,
     ) -> crate::error::Result<usize> {
         match self {
-            Duration::FromAudio(audio) => resolve_audio_duration(audio),
+            Duration::FromAudio(audio) | Duration::FromVideo(audio) => {
+                resolve_audio_duration(audio)
+            }
             Duration::Seconds(seconds) => Ok((seconds * fps as f32) as usize),
             Duration::Frames(frames) => Ok(*frames),
             Duration::Auto => {
@@ -107,7 +127,7 @@ impl<'a> Duration<'a> {
                 let right =
                     right.to_frames_async(fps, related_audio_map, resolve_audio_duration)?;
 
-                Ok(left + right)
+                Ok(left.saturating_sub(right))
             }
         }
     }

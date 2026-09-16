@@ -1,4 +1,4 @@
-pub use fframes::{AnimateRuntimeInput, AudioMap, Frame, Svgr, Video, animation};
+use fframes::{AnimateRuntimeInput, AudioMap, Frame, Svgr, Video, animation};
 use fframes::{FFramesContext, VisualizeFrameInput, animation::Easing, include_media_dir};
 
 const SPRING: animation::Easing = animation::Easing::Spring {
@@ -449,7 +449,7 @@ impl Video for MarketingVideo<'_> {
                                         at 18.7, duration 0.3, animate -40. => 0.0, Easing::Linear
                                     ))}
                                     stroke-dasharray={
-                                        format!("{}, 137px", &frame.animate(
+                                        format!("{}, 137px", frame.animate(
                                             &fframes::timeline!(
                                                 at 18.7, duration 0.3, animate 30.0 => 12.0, Easing::Linear
                                             )

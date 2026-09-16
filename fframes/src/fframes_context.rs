@@ -114,6 +114,7 @@ impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
         frame_size: usize,
     ) -> Vec<f32> {
         let mut audio_data = vec![0.0; frame_size];
+        let encoder_rate = self.time_base.sample_rate;
 
         let media_source = if let Some(media_source) = self.media_source {
             media_source
@@ -126,27 +127,67 @@ impl<'a, 'media: 'a> FFramesContext<'a, 'media> {
                 let start_of_this_frame_in_file =
                     start_sample.as_usize() - sample_range.start.as_usize();
 
-                let range = media_source.resolve_audio(f).and_then(|a| {
-                    a.get_range(
-                        start_of_this_frame_in_file..start_of_this_frame_in_file + frame_size,
-                    )
-                });
+                let audio = media_source.resolve_audio(f);
 
-                if let Some(range) = range {
-                    range.iter().enumerate().for_each(|(i, sample)| {
-                        let filled_sample = audio_data[i];
+                if let Some(audio) = audio {
+                    let source_rate = audio.sample_rate() as usize;
 
-                        if filled_sample == 0. {
-                            audio_data[i] = *sample
-                        } else {
-                            audio_data[i] = filled_sample + *sample - (filled_sample * *sample)
+                    if source_rate == 0 {
+                        return;
+                    }
+
+                    if source_rate == encoder_rate {
+                        // The last frame of a file is usually partial: mix what is left.
+                        let end = (start_of_this_frame_in_file + frame_size)
+                            .min(audio.duration_in_samples());
+                        if let Some(range) = audio.get_range(start_of_this_frame_in_file..end) {
+                            Self::mix_audio_samples(&mut audio_data, range);
                         }
-                    });
+                    } else {
+                        // The source runs at a different rate: linearly interpolate
+                        // the encoder's sample positions from the source samples.
+                        let ratio = source_rate as f64 / encoder_rate as f64;
+                        let source_start = (start_of_this_frame_in_file as f64 * ratio) as usize;
+                        let source_needed = ((frame_size as f64 * ratio).ceil() as usize) + 2;
+                        let source_len = audio.duration_in_samples();
+                        let source_end = (source_start + source_needed).min(source_len);
+
+                        if let Some(range) = audio.get_range(source_start..source_end) {
+                            let source_at = |index: usize| range.get(index).copied().unwrap_or(0.0);
+                            let resampled: Vec<f32> = (0..frame_size)
+                                .map(|i| {
+                                    // Positions are computed from the file start so
+                                    // consecutive encoder frames stay phase aligned.
+                                    let exact = (start_of_this_frame_in_file + i) as f64 * ratio;
+                                    let index = exact as usize - source_start;
+                                    let frac = (exact - exact.floor()) as f32;
+                                    source_at(index) * (1.0 - frac) + source_at(index + 1) * frac
+                                })
+                                .collect();
+                            Self::mix_audio_samples(&mut audio_data, &resampled);
+                        }
+                    }
                 }
             }
         });
 
         audio_data
+    }
+
+    /// Mixes `range` into `audio_data` so that overlapping tracks stay within
+    /// `[-1, 1]` without hard clipping: `a + b - a*b` when both samples have
+    /// the same sign (mirrored for negative values), a plain sum otherwise.
+    #[inline]
+    fn mix_audio_samples(audio_data: &mut [f32], range: &[f32]) {
+        for (mixed, sample) in audio_data.iter_mut().zip(range) {
+            let a = *mixed;
+            let b = *sample;
+            *mixed = if a * b > 0.0 {
+                a + b - a * b * a.signum()
+            } else {
+                a + b
+            };
+        }
     }
 }
 

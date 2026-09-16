@@ -7,7 +7,7 @@ use once_cell::sync::OnceCell;
 use std::{
     ffi::c_int,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 #[allow(unused_variables)]
@@ -24,6 +24,14 @@ pub trait FFramesLogger: Sync + Send {
     }
     fn log_frame(&self, index: usize, thread_number: usize) {}
 
+    /// Called once before audio encoding starts with the number of audio
+    /// frames that will be reported through `log_audio_frame`.
+    fn init_audio_encoding(&self, frames_count: usize) -> FFramesRendererResult<()> {
+        Ok(())
+    }
+    fn log_audio_frame(&self) {}
+    fn finish_audio_encoding(&self) {}
+
     fn get_libav_log_level(&self) -> c_int {
         AV_LOG_FATAL
     }
@@ -38,6 +46,8 @@ pub trait FFramesLogger: Sync + Send {
 pub struct CompactFFramesLogger {
     frames_progress_bar: OnceCell<ProgressBar>,
     media_progress_bar: OnceCell<ProgressBar>,
+    // Reset on every render so a logger instance can be reused.
+    audio_progress_bar: Mutex<Option<ProgressBar>>,
 }
 
 impl FFramesLogger for CompactFFramesLogger {
@@ -70,6 +80,35 @@ impl FFramesLogger for CompactFFramesLogger {
 
     fn log_unprocessed_media_file(&self, filename: &str) {
         println!("Can not process media file {filename}.")
+    }
+
+    fn init_audio_encoding(&self, frames_count: usize) -> FFramesRendererResult<()> {
+        println!("Encoding audio stream");
+        let mut slot = self
+            .audio_progress_bar
+            .lock()
+            .map_err(|_| FFramesRendererError::ConcurrencyError)?;
+        if let Some(previous) = slot.take() {
+            previous.finish_and_clear();
+        }
+        *slot = Some(ProgressBar::new(frames_count as u64));
+        Ok(())
+    }
+
+    fn log_audio_frame(&self) {
+        if let Ok(slot) = self.audio_progress_bar.lock()
+            && let Some(pb) = slot.as_ref()
+        {
+            pb.inc(1);
+        }
+    }
+
+    fn finish_audio_encoding(&self) {
+        if let Ok(mut slot) = self.audio_progress_bar.lock()
+            && let Some(pb) = slot.take()
+        {
+            pb.finish_and_clear();
+        }
     }
 
     fn init_media_processing(&self, medias_count: usize) -> FFramesRendererResult<()> {
@@ -140,6 +179,7 @@ pub fn make_logger(variant: FFramesLoggerVariant) -> Arc<dyn FFramesLogger> {
             Arc::new(CompactFFramesLogger {
                 frames_progress_bar: OnceCell::new(),
                 media_progress_bar: OnceCell::new(),
+                audio_progress_bar: Mutex::new(None),
             }) as Arc<dyn FFramesLogger>
         }
         FFramesLoggerVariant::Custom(logger) => logger,

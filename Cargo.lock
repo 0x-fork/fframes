@@ -805,9 +805,9 @@ dependencies = [
 
 [[package]]
 name = "fframes-skia-bindings"
-version = "0.89.1"
+version = "0.91.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea076550513b3c4e9028a3a79c5c1d1b53b32c195d8f59c374ad60b8ece3d7ee"
+checksum = "05df6915f25d413d30e5003b7f98c12d79b3490c70affcce3b30caaf4384b750"
 dependencies = [
  "bindgen",
  "cc",
@@ -822,9 +822,9 @@ dependencies = [
 
 [[package]]
 name = "fframes-skia-safe"
-version = "0.89.1"
+version = "0.91.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ed4679f4c88179259d841fb7ba27a8f7bac8cef8aeed8379af56860ba74bfaf"
+checksum = "aef6f090c160ed785fa8a5239f6b761785db70c0cb49a448e427f493211c4cc0"
 dependencies = [
  "base64 0.22.1",
  "bitflags 2.9.0",
@@ -842,7 +842,10 @@ dependencies = [
  "fframes",
  "fframes-skia-safe",
  "foreign-types-shared",
+ "low-poly-art-example",
  "metal",
+ "png",
+ "svgr",
  "thingbuf",
  "uuid",
 ]
@@ -1546,6 +1549,23 @@ checksum = "3be647b768db090acb35d5ec5db2b0e1f1de11133ca123b9eacf5137868f892a"
 dependencies = [
  "adler2",
  "simd-adler32",
+]
+
+[[package]]
+name = "motion-graphics-editor-bridge-example"
+version = "1.0.0-beta.6.rc-3.2"
+dependencies = [
+ "fframes-editor-controller",
+ "motion-graphics-example",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "motion-graphics-example"
+version = "1.0.0-beta.6.rc-3.2"
+dependencies = [
+ "clap",
+ "fframes",
 ]
 
 [[package]]
@@ -2373,9 +2393,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.15.0"
+version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
+checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "static_assertions"
@@ -2400,9 +2420,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "svgr"
-version = "0.44.2"
+version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b565151f9d28dcfe78c9570374d17fe7e4a906783cf91808b5eff41afd59081"
+checksum = "2dfcea2ffe8b9a59a4b3b5ed35c6c75f788fc479026057bcc7826f783bf9ee47"
 dependencies = [
  "gif 0.12.0",
  "jpeg-decoder",
@@ -2426,14 +2446,13 @@ dependencies = [
  "rust-fuzzy-search",
  "syn",
  "usvgr",
- "uuid",
 ]
 
 [[package]]
 name = "svgrtypes"
-version = "0.44.2"
+version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acf81458bdd66ff62f7f6c48aed7647c4eb9acfcb4eb06ab152258c647e33e78"
+checksum = "5bbcde848db2bd5401c349f18d0377f2ef64f6a0a509b6820e1856f716d67137"
 dependencies = [
  "kurbo 0.8.3",
  "proc-macro2",
@@ -2510,6 +2529,7 @@ dependencies = [
  "clap",
  "fframes",
  "fframes_skia_renderer",
+ "image",
 ]
 
 [[package]]
@@ -2773,9 +2793,9 @@ checksum = "b1d386ff53b415b7fe27b50bb44679e2cc4660272694b7b6f3326d8480823a94"
 
 [[package]]
 name = "usvgr"
-version = "0.44.2"
+version = "0.45.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "582c42609ddc66b015e3368e4696c2a4ba05d0f675b6562157b966aaa778515a"
+checksum = "dfb96de3ca33ec7947688e0bfdbfdf621099bbe112296f374c362548410bfe85"
 dependencies = [
  "ahash",
  "base64 0.21.7",
@@ -2792,6 +2812,7 @@ dependencies = [
  "self-rust-tokenize",
  "simplecss",
  "siphasher 1.0.1",
+ "smallvec",
  "strict-num",
  "svgrtypes",
  "tiny-skia-path",

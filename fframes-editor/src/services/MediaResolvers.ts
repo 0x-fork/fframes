@@ -3,7 +3,15 @@ import {
   StaticMediaResolver,
   resolveMedia,
 } from "../../src/services/mediaLoader.gen";
-import { fontInfo, generalVideoFileMetadata } from "src/WasmController.gen";
+import { fontInfo } from "src/WasmController.gen";
+import { Input, UrlSource, ALL_FORMATS } from "mediabunny";
+import { registerVideo } from "./VideoFrameBufferManager";
+
+interface VideoMetadata {
+  width: number;
+  height: number;
+  duration: number;
+}
 
 const audioContext = new AudioContext();
 
@@ -198,25 +206,24 @@ export const resolveImage: MediaResolver = async ({
   });
 };
 
-type VideoMetadata = {
-  width: number;
-  height: number;
-  duration: number;
-};
-
-function loadVideoMetadata(url: string) {
+function loadVideoMetadataViaElement(url: string) {
   return new Promise<VideoMetadata>((resolve, reject) => {
     const videoElement = document.createElement("video");
     videoElement.src = url;
 
+    const timeout = setTimeout(() => {
+      videoElement.src = "";
+      reject(new Error(`Video metadata load timeout for ${url}`));
+    }, 10000);
+
     videoElement.addEventListener(
       "loadedmetadata",
       () => {
-        const metadata: generalVideoFileMetadata = {
+        clearTimeout(timeout);
+        const metadata: VideoMetadata = {
           width: videoElement.videoWidth,
           height: videoElement.videoHeight,
           duration: videoElement.duration,
-          fps: 30,
         };
 
         resolve(metadata);
@@ -224,13 +231,57 @@ function loadVideoMetadata(url: string) {
       { once: true }
     );
 
-    videoElement.addEventListener("error", reject, { once: true });
+    videoElement.addEventListener(
+      "error",
+      e => {
+        clearTimeout(timeout);
+        reject(e);
+      },
+      { once: true }
+    );
   });
+}
+
+async function loadVideoMetadataViaMediabunny(
+  url: string
+): Promise<VideoMetadata> {
+  const source = new UrlSource(url);
+  const input = new Input({ source, formats: ALL_FORMATS });
+  try {
+    const videoTrack = await input.getPrimaryVideoTrack();
+    if (!videoTrack) throw new Error("No video track found");
+    const duration = await input.computeDuration();
+    return {
+      width: videoTrack.codedWidth,
+      height: videoTrack.codedHeight,
+      duration,
+    };
+  } finally {
+    input.dispose();
+  }
+}
+
+async function loadVideoMetadata(url: string): Promise<VideoMetadata> {
+  try {
+    return await loadVideoMetadataViaElement(url);
+  } catch {
+    return await loadVideoMetadataViaMediabunny(url);
+  }
 }
 
 export const resolveVideo: MediaResolver = async options => {
   const { url, wasmController, name } = options;
-  const { width, height, duration } = await loadVideoMetadata(url);
+
+  let width: number, height: number, duration: number;
+  try {
+    ({ width, height, duration } = await loadVideoMetadata(url));
+  } catch (e) {
+    // Surface it like every other resolver does instead of silently
+    // dropping the video from the composition.
+    throw new Error(`Could not load video metadata for ${name} (${url})`, {
+      cause: e,
+    });
+  }
 
   wasmController.add_video_source_placeholder(
     name,
@@ -240,5 +291,13 @@ export const resolveVideo: MediaResolver = async options => {
     duration
   );
 
-  return resolveAudio(options);
+  registerVideo(name, url);
+
+  try {
+    return await resolveAudio(options);
+  } catch (e) {
+    // Videos without an audio track still render; only their audio is skipped.
+    console.warn(`Could not decode the audio track of ${name}.`, e);
+    return "MediaResolved";
+  }
 };

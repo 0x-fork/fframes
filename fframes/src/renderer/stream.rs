@@ -63,7 +63,7 @@ unsafe fn is_pixel_format_supported(
 }
 
 impl Stream {
-    /// Can't implement this as a triat cause it needs to be called in specific order
+    /// Can't implement this as a trait cause it needs to be called in specific order
     pub fn free(&mut self) {
         unsafe {
             // in case encoder is not needed (remux) we won't allocate the encoder
@@ -80,12 +80,6 @@ impl Stream {
 
     pub unsafe fn get_frames_in_stream(&self) -> i64 {
         unsafe { (*self.st).nb_frames }
-    }
-
-    pub fn set_encoder_threads_count(&self, count: usize) {
-        unsafe {
-            (*self.enc).thread_count = count as i32;
-        }
     }
 
     pub(crate) unsafe fn prepare_stream_codec(
@@ -268,7 +262,7 @@ impl Stream {
             (*c).bit_rate = encoder_options.bitrate.unwrap_or(192000);
             (*st).time_base = AVRational {
                 num: 1,
-                den: sample_rate,
+                den: validated_sample_rate,
             };
 
             (*c).ch_layout = MONO_CH_LAYOUT;

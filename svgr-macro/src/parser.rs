@@ -177,15 +177,15 @@ impl Parser<'_> {
                 _ => return Ok(None),
             };
 
+            // A process-wide counter gives every animation a unique, deterministic
+            // identifier for the whole compilation.
+            use std::sync::atomic::{AtomicUsize, Ordering};
+            static ANIMATION_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+            let animation_id = ANIMATION_COUNTER.fetch_add(1, Ordering::SeqCst);
             let mut punctuated = Punctuated::new();
             punctuated.push(PathSegment {
-                ident: Ident::new(
-                    &format!(
-                        "ANIMATION_{}",
-                        uuid::Uuid::new_v4().simple().to_string().to_uppercase()
-                    ),
-                    Span::call_site(),
-                ),
+                ident: Ident::new(&format!("__SVGR_ANIM_{animation_id}"), Span::call_site()),
                 arguments: PathArguments::None,
             });
 

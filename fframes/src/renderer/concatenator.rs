@@ -11,6 +11,7 @@ use crate::{RenderOptions, ffmpeg_sys_fframes::*};
 use std::{
     ffi::CString,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 pub struct AvPacketAutoFree {
@@ -120,24 +121,21 @@ unsafe fn create_encoder_copy_from_file(
         );
 
         let output_video_stream = avformat_new_stream(output_format_ctx, std::ptr::null_mut());
-        let audio_stream =
-            Stream::make_audio(output_format_ctx, &render_options.audio_encoder_options)?;
-
-        let encoder = Encoder {
-            video_stream: Stream {
-                st: output_video_stream,
-                enc: std::ptr::null_mut(),
-                variant: StreamVariant::Video,
-            },
-            audio_stream: Some(audio_stream),
-            oc: output_format_ctx,
-        };
+        let mut audio_stream =
+            match Stream::make_audio(output_format_ctx, &render_options.audio_encoder_options) {
+                Ok(audio_stream) => audio_stream,
+                Err(err) => {
+                    avformat_close_input(&mut input_format_ctx);
+                    avformat_free_context(output_format_ctx);
+                    return Err(err);
+                }
+            };
 
         avcodec_parameters_copy(
             (*output_video_stream).codecpar,
             (*input_video_stream).codecpar,
         );
-        (*encoder.video_stream.st).time_base = (*input_video_stream).time_base;
+        (*output_video_stream).time_base = (*input_video_stream).time_base;
 
         avformat_close_input(&mut input_format_ctx);
         avio_open(
@@ -146,9 +144,27 @@ unsafe fn create_encoder_copy_from_file(
             AVIO_FLAG_WRITE,
         );
 
-        avformat_write_header(encoder.oc, std::ptr::null_mut());
+        // `Encoder::drop` writes the trailer, which libavformat only allows
+        // after a successful header write, so the encoder is only built once
+        // the header is out and a failed header releases the context by hand.
+        if let Err(err) = crate::renderer::encoder::write_header(output_format_ctx, true) {
+            audio_stream.free();
+            if !(*output_format_ctx).pb.is_null() {
+                avio_closep(&mut (*output_format_ctx).pb);
+            }
+            avformat_free_context(output_format_ctx);
+            return Err(err);
+        }
 
-        Ok(encoder)
+        Ok(Encoder {
+            video_stream: Stream {
+                st: output_video_stream,
+                enc: std::ptr::null_mut(),
+                variant: StreamVariant::Video,
+            },
+            audio_stream: Some(audio_stream),
+            oc: output_format_ctx,
+        })
     }
 }
 
@@ -186,6 +202,7 @@ impl Encoder {
         &self,
         audio_map: Option<&ResolvedAudioMap<AudioTimelineSamples>>,
         ctx: &FFramesContext,
+        logger: &Arc<dyn super::fframes_logger::FFramesLogger>,
     ) -> Result<(), RenderEncodingError> {
         unsafe {
             if let (Some(audio_map), Some(audio_stream)) = (audio_map, self.audio_stream.as_ref()) {
@@ -196,7 +213,12 @@ impl Encoder {
                 let mut audio_frame_pts = 0usize;
                 let frame_size = (*audio_stream.enc).frame_size as usize;
 
-                while audio_frame_pts <= stream_duration_in_samples.as_usize() {
+                // Progress reporting must never abort the encoding itself.
+                let _ = logger.init_audio_encoding(
+                    stream_duration_in_samples.as_usize().div_ceil(frame_size),
+                );
+
+                while audio_frame_pts < stream_duration_in_samples.as_usize() {
                     let audio_data = ctx.get_mixed_audio_data_in_fltp(
                         audio_map,
                         AudioTimelineSamples::from_usize(audio_frame_pts),
@@ -206,8 +228,11 @@ impl Encoder {
                     audio_frame.fill_from_audio_data(audio_frame_pts as i64, audio_data);
                     self.send_frame(audio_stream, &audio_frame)?;
 
+                    logger.log_audio_frame();
                     audio_frame_pts += frame_size;
                 }
+
+                logger.finish_audio_encoding();
             }
 
             Ok(())
@@ -283,8 +308,7 @@ impl Encoder {
 
                     match codec_type {
                         AVMediaType::AVMEDIA_TYPE_VIDEO => {
-                            // Handle video packet
-                            packet.get_mut().flags |= AV_PKT_FLAG_KEY;
+                            // Handle video packet (preserve original keyframe flags)
                             packet.get_mut().stream_index = (*self.video_stream.st).index;
 
                             if let Some(last_mux_dts) = last_video_mux_dts.as_mut() {
@@ -297,13 +321,19 @@ impl Encoder {
                                 (*input_video_stream).time_base,
                                 (*self.video_stream.st).time_base,
                             );
-                            av_interleaved_write_frame(self.oc, packet.get());
+                            let ret = av_interleaved_write_frame(self.oc, packet.get());
+                            if ret < 0 {
+                                avformat_close_input(&mut input_format_ctx);
+                                let error_description =
+                                    crate::renderer::encoder::av_error_to_string(ret);
+                                return Err(RenderEncodingError::CantWriteFrame(error_description));
+                            }
                         }
                         AVMediaType::AVMEDIA_TYPE_AUDIO => {
                             // Handle audio packet if we have an audio stream
-                            if !input_audio_stream.is_null() && self.audio_stream.is_some() {
-                                let audio_stream = self.audio_stream.as_ref().unwrap();
-
+                            if !input_audio_stream.is_null()
+                                && let Some(audio_stream) = self.audio_stream.as_ref()
+                            {
                                 packet.get_mut().stream_index = (*audio_stream.st).index;
 
                                 // Apply DTS validation for audio packets too
@@ -312,13 +342,21 @@ impl Encoder {
                                 }
                                 last_audio_mux_dts = Some((*packet.get()).dts);
 
-                                // Rescale audio packet timestamps
                                 av_packet_rescale_ts(
                                     packet.get(),
                                     (*input_audio_stream).time_base,
                                     (*audio_stream.st).time_base,
                                 );
-                                av_interleaved_write_frame(self.oc, packet.get());
+                                let ret = av_interleaved_write_frame(self.oc, packet.get());
+                                if ret < 0 {
+                                    avformat_close_input(&mut input_format_ctx);
+                                    let error_description =
+                                        crate::renderer::encoder::av_error_to_string(ret);
+
+                                    return Err(RenderEncodingError::CantWriteFrame(
+                                        error_description,
+                                    ));
+                                }
                             }
                         }
                         _ => {
@@ -338,25 +376,18 @@ impl Encoder {
 pub unsafe fn concat_video_files_with_audio(
     files: &[PathBuf],
     output: &Path,
-    concurrency: i32,
     audio_map: Option<&ResolvedAudioMap<AudioTimelineSamples>>,
     render_options: &RenderOptions,
     ctx: &FFramesContext,
+    logger: &Arc<dyn super::fframes_logger::FFramesLogger>,
 ) -> Result<(), RenderEncodingError> {
     unsafe {
         let encoder = create_encoder_copy_from_file(&files[0], output, render_options)?;
 
-        // Set thread count for audio encoding before processing
-        if let Some(audio_stream) = &encoder.audio_stream {
-            (*audio_stream.enc).thread_count = concurrency;
-        }
-
-        // Process both video and audio streams from files in synchronized order
         encoder.fill_streams_from_files(files)?;
 
-        // Add any additional audio content from the audio map
         if encoder.audio_stream.is_some() {
-            encoder.fill_audio_stream(audio_map, ctx)?;
+            encoder.fill_audio_stream(audio_map, ctx, logger)?;
         }
 
         Ok(())

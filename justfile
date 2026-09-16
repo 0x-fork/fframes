@@ -43,7 +43,20 @@ render example *ARGS:
   cd examples/{{example}} && cargo run --release {{ARGS}} && just play {{example}}
 
 play example:
-  cd examples/{{example}} && ffplay out.mp4
+  #!/bin/bash
+  cd examples/{{example}}
+  if command -v vlc >/dev/null 2>&1; then
+    vlc out.mp4
+  elif command -v iina >/dev/null 2>&1; then
+    iina out.mp4
+  elif command -v mpv >/dev/null 2>&1; then
+    mpv out.mp4
+  elif command -v ffplay >/dev/null 2>&1; then
+    ffplay out.mp4
+  else
+    echo "No supported media player found. Please install iina, mpv, or vlc."
+    exit 1
+  fi
 
 bench example *ARGS:
   cd examples/{{example}} && cargo build --release {{ARGS}} && time cargo run --release {{ARGS}}
@@ -63,7 +76,7 @@ check-wasm example:
   cd examples/{{example}}/editor/editor-bridge && cargo check --lib --target wasm32-unknown-unknown
 
 check-examples:
-  just check-wasm hello-world && just check-wasm podcast && just check-wasm tiktok && just check-wasm beta && just check-wasm low-poly-art && just check-wasm teej-podcast
+  just check-wasm hello-world && just check-wasm podcast && just check-wasm tiktok && just check-wasm beta && just check-wasm low-poly-art && just check-wasm teej-podcast && just check-wasm motion-graphics
 
 install-ffmpeg version: 
   git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
@@ -76,3 +89,7 @@ install-ffmpeg version:
 test *ARGS: 
   cargo test {{ARGS}}
   cargo test -p fframes_test_utils --no-default-features {{ARGS}}
+
+# Render a markdown file in the terminal (defaults to the agent guidelines)
+md file="AGENTS.md":
+  bat {{file}}

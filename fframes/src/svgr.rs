@@ -71,8 +71,9 @@ impl From<String> for Svgr<'_> {
                     kind: usvgr::svgtree::NestedNodeKind::Text(
                         usvgr::svgtree::roxmltree::StringStorage::new_owned(val)
                     ),
-                    attrs: vec![],
+                    attrs: Box::new([]),
                     children: vec![],
+                    static_hash: None,
                 });
                 1
             ]),
@@ -130,8 +131,9 @@ impl<'a> From<&'a str> for Svgr<'a> {
                     kind: usvgr::svgtree::NestedNodeKind::Text(
                         usvgr::svgtree::roxmltree::StringStorage::Borrowed(val)
                     ),
-                    attrs: vec![],
+                    attrs: Box::new([]),
                     children: vec![],
+                    static_hash: None,
                 });
                 1
             ]),

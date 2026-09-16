@@ -1,8 +1,47 @@
 use fframes::{FFramesContext, FFramesMode, Frame, StaticMediaProvider, Video, VideoSize};
 use std::{cell::RefCell, collections::HashMap, marker::PhantomPinned, pin::Pin, sync::Mutex};
-use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::*;
 
 use crate::{video_metadata, wasm_audio, wasm_font_source};
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(catch)]
+    fn __fframes_get_video_frame(
+        filename: &str,
+        pts: f64,
+        preview: bool,
+    ) -> Result<JsValue, JsValue>;
+}
+
+fn resolve_video_frame(filename: &str, pts: i64, preview: bool) -> Option<fframes::VideoFrameData> {
+    // A JS exception must not unwind through the editor's `RefCell` borrows.
+    let result = __fframes_get_video_frame(filename, pts as f64, preview).ok()?;
+    if result.is_null() || result.is_undefined() {
+        return None;
+    }
+
+    let url = js_sys::Reflect::get(&result, &"url".into())
+        .ok()?
+        .as_string()?;
+    let width = js_sys::Reflect::get(&result, &"width".into())
+        .ok()?
+        .as_f64()? as u32;
+    let height = js_sys::Reflect::get(&result, &"height".into())
+        .ok()?
+        .as_f64()? as u32;
+
+    let preview_url = js_sys::Reflect::get(&result, &"posterUrl".into())
+        .ok()
+        .and_then(|v| v.as_string());
+
+    Some(fframes::VideoFrameData {
+        url,
+        preview_url,
+        width,
+        height,
+    })
+}
 
 struct VideoCtx<T: Video> {
     video: T,
@@ -49,6 +88,7 @@ pub struct WasmEditor<T: Video, TMedia: StaticMediaProvider<'static> + 'static> 
 
 impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<TVideo, TMedia> {
     pub fn new(video: TVideo, static_media: &'static TMedia) -> Self {
+        fframes::set_video_frame_resolver(resolve_video_frame);
         Self {
             video_ctx: RefCell::new(VideoCtx::new(video)),
             static_media,
@@ -92,6 +132,15 @@ impl<TVideo: Video, TMedia: StaticMediaProvider<'static> + 'static> WasmEditor<T
             &tb,
             self.static_media,
             &video_ctx.raw_scenes,
+            |file| {
+                self.media_provider
+                    .lock()
+                    .unwrap()
+                    .videos
+                    .get(file)
+                    .and_then(|video| video.metadata.as_ref())
+                    .map(|metadata| metadata.duration)
+            },
         )
         .await;
 

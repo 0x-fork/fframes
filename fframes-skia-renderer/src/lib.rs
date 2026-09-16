@@ -1,4 +1,3 @@
-mod resource_provider;
 mod skia_pipeline;
 
 mod backends;
@@ -12,6 +11,8 @@ pub use skia_backend::*;
 
 mod instant_rendering;
 pub use instant_rendering::*;
+
+pub mod render;
 
 #[cfg(feature = "debug")]
 mod metrics;

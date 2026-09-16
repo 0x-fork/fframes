@@ -234,12 +234,16 @@ impl Drop for FFmpegFrameBuf {
     }
 }
 
-/// Creates svgr preloaded image data with correctly blended color
+/// Creates svgr preloaded image data with correctly blended color.
+///
+/// `rgba_data` borrows a slot of the decoder's ring buffer (with a fabricated
+/// `'static` lifetime) that is recycled by later decodes, so the returned
+/// image always owns a copy of the pixels.
 fn create_preloaded_image(
     source_fmt: AVPixelFormat,
     resource_name: String,
-    height: u32,
     width: u32,
+    height: u32,
     rgba_data: &'static [u8],
 ) -> Arc<PreloadedImageData> {
     let has_alpha_channel = unsafe {
@@ -249,6 +253,7 @@ fn create_preloaded_image(
     };
 
     if has_alpha_channel {
+        // Pre-multiplies alpha and returns an owned copy.
         Arc::new(PreloadedImageData::new(
             resource_name,
             width,
@@ -256,12 +261,13 @@ fn create_preloaded_image(
             rgba_data,
         ))
     } else {
-        Arc::new(PreloadedImageData::new_blended(
-            resource_name,
+        // Opaque pixels are already final; only the copy is needed.
+        Arc::new(PreloadedImageData {
+            id: resource_name,
+            data: std::borrow::Cow::Owned(rgba_data.to_vec()),
             width,
             height,
-            rgba_data,
-        ))
+        })
     }
 }
 
@@ -897,7 +903,7 @@ unsafe fn find_hw_out_source_format(frame: *mut AVFrame) -> Option<AVPixelFormat
             | AVPixelFormat::AV_PIX_FMT_RGBA
             | AVPixelFormat::AV_PIX_FMT_BGRA => {
                 let res = *fmt;
-                av_freep(formats as *mut c_void);
+                av_freep(&mut formats as *mut *mut _ as *mut c_void);
 
                 return Some(res);
             }
@@ -907,7 +913,7 @@ unsafe fn find_hw_out_source_format(frame: *mut AVFrame) -> Option<AVPixelFormat
             _ => {}
         }
 
-        fmt = formats.offset(1);
+        fmt = fmt.offset(1);
     }
 
     let first_format = *formats;
