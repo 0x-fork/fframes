@@ -1,3 +1,32 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="landing/brand/fframes-wordmark-dark.svg" />
+    <img alt="fframes" src="landing/brand/fframes-wordmark.svg" width="360" />
+  </picture>
+</p>
+
+<p align="center">
+  <b>Video vibe coding framework that is actually fast.</b><br />
+  Write your video in Rust and SVG, render it on the GPU.
+</p>
+
+## Get started
+
+With your coding agent, add the fframes skill and ask for a video:
+
+```sh
+npx skills add dmtrKovalenko/fframes
+```
+
+With cargo:
+
+```sh
+cargo install --locked cargo-fframes --git https://github.com/dmtrKovalenko/fframes
+cargo fframes new my-video
+```
+
+The API reference is on [docs.rs/fframes](https://docs.rs/fframes).
+
 ## Requirements
 
 [Rust](https://www.rust-lang.org/learn/get-started) and [NodeJS](https://nodejs.org/en/download/) (for local development) toolchains.
