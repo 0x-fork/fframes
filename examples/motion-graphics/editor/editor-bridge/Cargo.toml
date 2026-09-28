@@ -1,6 +1,6 @@
 [package]
 name = "motion-graphics-editor-bridge-example"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 
 [lib]

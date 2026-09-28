@@ -1,6 +1,6 @@
 [package]
 name = "fframes-media-dir-macro"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 description = "A macro for generating SVG trees at compile time"
 license = "MIT"
