@@ -45,7 +45,7 @@ pub fn compute_control_points(points: &[f32]) -> (Vec<f32>, Vec<f32>) {
         p2[i] = 2.0 * points[i + 1] - p1[i + 1];
     }
 
-    p2[n - 1] = 0.5 * (points[n] + p1[n - 1]);
+    p2[n - 1] = f32::midpoint(points[n], p1[n - 1]);
 
     (p1, p2)
 }
@@ -58,7 +58,7 @@ pub fn frequencies_to_path<FreqIter: Iterator<Item = f32>>(
     y_multiplicator: f32,
     frequencies: FreqIter,
 ) -> String {
-    let mut path = String::from("");
+    let mut path = String::new();
 
     let (base_x_points, base_y_points): (Vec<f32>, Vec<f32>) = std::iter::once(0.0)
         .chain(frequencies)
@@ -76,11 +76,6 @@ pub fn frequencies_to_path<FreqIter: Iterator<Item = f32>>(
     let (x1_control_points, x2_control_points) = compute_control_points(&base_x_points);
     let (y1_control_points, y2_control_points) = compute_control_points(&base_y_points);
 
-    // can't be const until https://github.com/rust-lang/rust/issues/57241 landed
-    fn align_y(y: f32) -> f32 {
-        1080. - y
-    }
-
     for (index, (x, y)) in base_x_points.into_iter().zip(base_y_points).enumerate() {
         if index == 0 {
             write!(path, " M {} {}", x, align_y(y)).expect("Failed to write to string");
@@ -97,10 +92,14 @@ pub fn frequencies_to_path<FreqIter: Iterator<Item = f32>>(
             x,
             align_y(y)
         )
-        .expect("Failed to write to string")
+        .expect("Failed to write to string");
     }
 
     path.push_str(" z");
 
     path
+}
+
+const fn align_y(y: f32) -> f32 {
+    1080. - y
 }

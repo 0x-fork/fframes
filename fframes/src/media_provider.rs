@@ -33,19 +33,19 @@ pub trait MediaProvider<'a>: Send + Sync + Debug {
     );
 
     fn get_all_audio_data(&self) -> Vec<(&AudioData<'_>, &str)> {
-        Vec::with_capacity(0)
+        Vec::new()
     }
 
     fn get_all_font_data(&self) -> Vec<(&[u8], &str)> {
-        Vec::with_capacity(0)
+        Vec::new()
     }
 
     fn get_all_image_data(&self) -> Vec<(&media::ImageData<'_>, &str)> {
-        Vec::with_capacity(0)
+        Vec::new()
     }
 
     fn get_all_video_data(&self) -> Vec<(&media::VideoMedia, &str)> {
-        Vec::with_capacity(0)
+        Vec::new()
     }
 }
 
@@ -131,8 +131,8 @@ impl<'a> MediaProvider<'a> for DynamicMediaProvider<'a> {
     }
 
     fn populate_font_source(&'a self, font_source: &mut dyn FontSource) {
-        for font in self.fontdata.iter() {
-            font_source.add_font(font.file_name.clone(), font.data.clone())
+        for font in &self.fontdata {
+            font_source.add_font(font.file_name.clone(), font.data.clone());
         }
     }
 
@@ -141,7 +141,7 @@ impl<'a> MediaProvider<'a> for DynamicMediaProvider<'a> {
         &'a self,
         image_data: &mut HashMap<String, Arc<usvgr::PreloadedImageData>>,
     ) {
-        for (name, data) in self.images.iter() {
+        for (name, data) in &self.images {
             image_data.insert(name.clone(), data.href());
         }
     }
@@ -220,7 +220,7 @@ impl<'a, const N: usize> MediaProvider<'a> for CombinedMediaProvider<'a, N> {
     }
 
     fn populate_font_source(&'a self, font_source: &mut dyn FontSource) {
-        for provider in self.0.iter() {
+        for provider in &self.0 {
             provider.populate_font_source(font_source);
         }
     }
@@ -230,7 +230,7 @@ impl<'a, const N: usize> MediaProvider<'a> for CombinedMediaProvider<'a, N> {
         &'a self,
         image_data: &mut HashMap<String, Arc<usvgr::PreloadedImageData>>,
     ) {
-        for provider in self.0.iter() {
+        for provider in &self.0 {
             provider.populate_image_source(image_data);
         }
     }

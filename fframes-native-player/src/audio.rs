@@ -37,7 +37,9 @@ struct Queue {
 
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Queue> {
-        self.queue.lock().unwrap_or_else(|e| e.into_inner())
+        self.queue
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 }
 
@@ -139,7 +141,7 @@ impl AudioOutput {
                         .shared
                         .feeder_wakeup
                         .wait(queue)
-                        .unwrap_or_else(|e| e.into_inner());
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
                 }
                 (queue.feed_position, queue.looping, queue.epoch)
             };
@@ -195,7 +197,7 @@ fn build_stream<T: SizedSample + FromSample<f32>>(
                         (0.0, 0.0)
                     };
                     match frame {
-                        [mono] => *mono = T::from_sample((left + right) * 0.5),
+                        [mono] => *mono = T::from_sample(f32::midpoint(left, right)),
                         [l, r, rest @ ..] => {
                             *l = T::from_sample(left);
                             *r = T::from_sample(right);
