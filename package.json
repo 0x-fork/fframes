@@ -6,5 +6,8 @@
     "odiff-bin": "^2.5.1",
     "prettier": "^3.5.3",
     "syncpack": "^12.3.0"
+  },
+  "scripts": {
+    "build:landing": "node scripts/build-skills-index.mjs"
   }
 }
