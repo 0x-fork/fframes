@@ -1,6 +1,6 @@
 [package]
 name = "pixel-bridge-example"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Dmitriy Kovalenko <dmtr.kovalenko@outlook.com>"]
 edition = "2018"
 
