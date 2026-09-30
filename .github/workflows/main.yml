@@ -107,7 +107,9 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       # FFmpeg is built from source (the workspace unifies the codecs of every
       # example, no prebuilt matches that) and every example is compiled
-      # twice (check + test); debuginfo and incremental artifacts alone push
+      # twice (check + test). The examples enable build-portable so cached
+      # FFmpeg libraries work across runner CPUs without disabling prebuilt
+      # downloads. Debuginfo and incremental artifacts alone push
       # the target dir past the runner's disk.
       CARGO_INCREMENTAL: 0
       CARGO_PROFILE_DEV_DEBUG: 0
@@ -163,7 +165,8 @@ jobs:
         with: 
           cache: true
           cache-on-failure: true
-          cache-key: "v3-rust"
+          # Discard FFmpeg libraries previously compiled for a runner's native CPU.
+          cache-key: "v4-portable-ffmpeg"
           # PR scoped caches are only visible to that PR and push main's cache out
           # of the 10GB quota, so only main saves. PRs restore main's cache.
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -220,7 +223,7 @@ jobs:
         with:
           cache: true
           cache-on-failure: true
-          cache-key: "v3-rust-wasm"
+          cache-key: "v4-portable-ffmpeg-wasm"
           cache-save-if: ${{ github.ref == 'refs/heads/main' }}
           target: wasm32-unknown-unknown
 
