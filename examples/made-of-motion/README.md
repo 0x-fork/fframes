@@ -9,55 +9,6 @@ to fframes: “how do you turn a few lines of code into a feeling?”, three car
 (**code. / motion. / feeling.**), and seven flying letters assembling into the
 fframes wordmark. Original cut boundaries and audio are retained.
 
-## Final assets
-
-This example contains the final data used by the approved film. No Python,
-reconstruction scripts, analysis inputs, or original reference download are needed
-to build, preview, or export it. `assets.json` records the source provenance,
-tracing settings, and SHA-256 hashes of the final assets.
-
-| Location | Contents |
-| --- | --- |
-| `src/vector_ink/*.paths.gz` | Five compressed archives of text SVG paths, covering all measured ink exposures |
-| `src/*_capture.rs` | Final source-frame measurements for ink, opening effects, hand placement, and camera poses |
-| `src/opening-type.path` | Authored title geometry snapped to a pixel grid for the opening's one-frame type pulse |
-| `media/` | Three embedded fonts, the original pixel-object atlas, and the hand silhouette/heat-field atlas |
-| `dynamic_media/portrait-clean.mp4` | Final cleaned portrait footage |
-| `dynamic_media/soundtrack.wav` | Stereo float-PCM soundtrack for native playback |
-| `dynamic_media/soundtrack.m4a` | Original AAC packets for final export |
-
-Keep all three runtime media files next to the example when moving the project.
-They are included in the source asset set; missing media is an error, not a request
-to regenerate it. The final export belongs in `output/made-of-motion.mp4`;
-`output/` is excluded from source control.
-
-## Native preview
-
-Run these commands from the repository root:
-
-```sh
-cargo run --release -p made-of-motion -- preview 0s
-cargo run --release -p made-of-motion -- preview 0.7s  # handwritten pen and star
-cargo run --release -p made-of-motion -- preview 3.5s  # orange ball and portrait
-cargo run --release -p made-of-motion -- preview 6.5s  # ring and three handoffs
-cargo run --release -p made-of-motion -- preview 13.6s # hand and white strokes
-cargo run --release -p made-of-motion -- preview 19s  # red ink and wordmark
-```
-
-Space pauses; h/l seek; j/k step one frame. Use the native preview for revisions
-before requesting a full export.
-
-`--ink-only` displays the vector exposures at their original source positions on
-neutral paper, without objects, footage, grain or branding adaptations. It also
-works with frame, strip, onion, SVG and inspect commands.
-
-```sh
-cargo run --release -p made-of-motion -- --ink-only preview 0s
-cargo run --release -p made-of-motion -- inspect --all-frames
-cargo run --release -p made-of-motion -- --ink-only frame 21,51,90,170,334,416
-cargo run --release -p made-of-motion -- onion 158..199 -n 10 -o output/onion-orbit.png
-cargo run --release -p made-of-motion -- --ink-only onion 414..430 -n 12 -o output/onion-ink.png
-```
 
 ## What is vector, shader, or footage?
 
